@@ -1,203 +1,258 @@
---[[
-    WARNING: Heads up! This script has not been verified by ScriptBlox. Use at your own risk!
-]]
-if jumpscare_jeffwuz_loaded and not (_G.jumpscarefucking123 == true) then
-    warn("Already Loading")
-    return
-end
+-- Kode oleh: sptzyy
 
-pcall(function() getgenv().jumpscare_jeffwuz_loaded = true end)
-
-getgenv().Notify = false
-local Notify_Webhook = "Your Discord Webhook"
-
-if not getcustomasset then
-    warn("getcustomasset tidak ditemukan.")
-    return
-end
-
-local player = game:GetService("Players").LocalPlayer
-local HttpService = game:GetService('HttpService')
+local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
+local TeleportService = game:GetService("TeleportService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local ScreenGui = Instance.new("ScreenGui")
-local VideoScreen = Instance.new("VideoFrame")
-ScreenGui.Parent = game:GetService("CoreGui")
-ScreenGui.IgnoreGuiInset = true
-ScreenGui.Name = "JeffTheKillerWuzHere"
+local player = Players.LocalPlayer
 
-VideoScreen.Parent = ScreenGui
-VideoScreen.Size = UDim2.new(1, 0, 1, 0)
+-- 🔽 ANIMASI "BY : sptzyy" 🔽
+do
+    local introGui = Instance.new("ScreenGui")
+    introGui.Name = "IntroAnimation"
+    introGui.ResetOnSpawn = false
+    introGui.Parent = player:WaitForChild("PlayerGui")
 
--- Untuk download dan menampilkan video, Anda harus pastikan ini berjalan dengan benar di Studio
-writefile("yes.mp4", game:HttpGet("https://github.com/HappyCow91/RobloxScripts/blob/main/Videos/videoplayback.mp4?raw=true"))
+    local introLabel = Instance.new("TextLabel")
+    introLabel.Size = UDim2.new(0, 300, 0, 50)
+    introLabel.Position = UDim2.new(0.5, -150, 0.4, 0)
+    introLabel.BackgroundTransparency = 1
+    introLabel.Text = "By : sptzyy"
+    introLabel.TextColor3 = Color3.fromRGB(40, 40, 40)
+    introLabel.TextScaled = true
+    introLabel.Font = Enum.Font.GothamBold
+    introLabel.Parent = introGui
 
-VideoScreen.Video = getcustomasset("yes.mp4")
-VideoScreen.Looped = true
-VideoScreen.Playing = true
-VideoScreen.Volume = 10
+    local tweenInfoMove = TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true)
+    local tweenMove = TweenService:Create(introLabel, tweenInfoMove, {Position = UDim2.new(0.5, -150, 0.42, 0)})
 
-function notify_hook()
-    -- Thumb API
-    local ThumbnailAPI = game:HttpGet("https://thumbnails.roproxy.com/v1/users/avatar-headshot?userIds="..player.UserId.."&size=420x420&format=Png&isCircular=true")
-    local thumbJson = HttpService:JSONDecode(ThumbnailAPI)
-    local avatardata = thumbJson.data[1].imageUrl
+    local tweenInfoColor = TweenInfo.new(2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true)
+    local tweenColor = TweenService:Create(introLabel, tweenInfoColor, {TextColor3 = Color3.fromRGB(0, 0, 0)})
 
-    -- User API Script
-    local UserAPI = game:HttpGet("https://users.roproxy.com/v1/users/"..player.UserId)
-    local userJson = HttpService:JSONDecode(UserAPI)
+    tweenMove:Play()
+    tweenColor:Play()
 
-    -- Description Data
-    local DescriptionData = userJson.description
-    -- Created Data
-    local CreatedData = userJson.created
-
-    local send_data = {
-        ["username"] = "Jumpscare Notify",
-        ["avatar_url"] = "https://static.wikia.nocookie.net/19dbe80e-0ae6-48c7-98c7-3c32a39b2d7c/scale-to-width/370",
-        ["content"] = "Jeff Wuz Here !",
-        ["embeds"] = {
-            {
-                ["title"] = "Jeff's Log",
-                ["description"] = "**Game : https://www.roblox.com/games/"..game.PlaceId.."**\n\n**Profile : https://www.roblox.com/users/"..player.UserId.."/profile**\n\n**Job ID : "..game.JobId.."**",
-                ["color"] = 4915083,
-                ["fields"] = {
-                    {
-                        ["name"] = "Username",
-                        ["value"] = player.Name,
-                        ["inline"] = true
-                    },
-                    {
-                        ["name"] = "Display Name",
-                        ["value"] = player.DisplayName,
-                        ["inline"] = true
-                    },
-                    {
-                        ["name"] = "User ID",
-                        ["value"] = player.UserId,
-                        ["inline"] = true
-                    },
-                    {
-                        ["name"] = "Account Age",
-                        ["value"] = player.AccountAge.." Day",
-                        ["inline"] = true
-                    },
-                    {
-                        ["name"] = "Membership",
-                        ["value"] = player.MembershipType.Name,
-                        ["inline"] = true
-                    },
-                    {
-                        ["name"] = "Account Created Day",
-                        ["value"] = string.match(CreatedData, "^([%d-]+)"),
-                        ["inline"] = true
-                    },
-                    {
-                        ["name"] = "Profile Description",
-                        ["value"] = "```\n"..DescriptionData.."\n```",
-                        ["inline"] = true
-                    }
-                },
-                ["footer"] = {
-                    ["text"] = "JTK Log",
-                    ["icon_url"] = "https://miro.medium.com/v2/resize:fit:1280/0*c6-eGC3Dd_3HoF-B"
-                },
-                ["thumbnail"] = {
-                    ["url"] = avatardata
-                }
-            }
-        },
-    }
-
-    local headers = {
-        ["Content-Type"] = "application/json"
-    }
-
-    local response = HttpService:RequestAsync({
-        Url = Notify_Webhook,
-        Method = "POST",
-        Headers = headers,
-        Body = HttpService:JSONEncode(send_data)
-    })
+    task.wait(2)
+    local fadeOut = TweenService:Create(introLabel, TweenInfo.new(0.5), {TextTransparency = 1})
+    fadeOut:Play()
+    fadeOut.Completed:Connect(function()
+        introGui:Destroy()
+    end)
 end
 
-if getgenv().Notify == true then
-    if Notify_Webhook == '' then
-        return
-    else
-        notify_hook()
-    end
-elseif getgenv().Notify == false then
-    return
-else
-    warn("True or False")
+-- 🔽 Status AutoFarm 🔽
+local statusValue = ReplicatedStorage:FindFirstChild("AutoFarmStatus")
+if not statusValue then
+    statusValue = Instance.new("BoolValue")
+    statusValue.Name = "AutoFarmStatus"
+    statusValue.Value = false
+    statusValue.Parent = ReplicatedStorage
 end
 
--- Tambahkan GUI untuk cek list pemain dan fitur menarik pemain
-local buttonCheckPlayers = Instance.new("TextButton")
-buttonCheckPlayers.Text = "Cek List Pemain"
-buttonCheckPlayers.Size = UDim2.new(0, 200, 0, 50)
-buttonCheckPlayers.Position = UDim2.new(0, 10, 0, 10)
-buttonCheckPlayers.Parent = ScreenGui
-buttonCheckPlayers.BackgroundColor3 = Color3.fromRGB(0, 0, 255)
+-- 🔽 GUI Utama 🔽
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "AutoFarmGUI"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = player:WaitForChild("PlayerGui")
 
-local buttonTeleport = Instance.new("TextButton")
-buttonTeleport.Text = "Tarik Pemain"
-buttonTeleport.Size = UDim2.new(0, 200, 0, 50)
-buttonTeleport.Position = UDim2.new(0, 10, 0, 70)
-buttonTeleport.Parent = ScreenGui
-buttonTeleport.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 220, 0, 160)
+frame.Position = UDim2.new(0.4, -110, 0.5, -80)
+frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+frame.BorderSizePixel = 0
+frame.Active = true
+frame.Draggable = true
+frame.Parent = screenGui
 
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 15)
+corner.Parent = frame
+
+-- Judul GUI
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 30)
+title.BackgroundTransparency = 1
+title.Text = "Mount Atin V2"
+title.TextColor3 = Color3.new(1, 1, 1)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 16
+title.Parent = frame
+
+-- Tombol SUMMIT
+local button = Instance.new("TextButton")
+button.Size = UDim2.new(0, 160, 0, 40)
+button.Position = UDim2.new(0.5, -80, 0.5, -20)
+button.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+button.Text = "SUMMIT"
+button.TextColor3 = Color3.new(1, 1, 1)
+button.Font = Enum.Font.GothamBold
+button.TextSize = 15
+button.Parent = frame
+
+local buttonCorner = Instance.new("UICorner")
+buttonCorner.CornerRadius = UDim.new(0, 10)
+buttonCorner.Parent = button
+
+-- 🔽 GUI Samping Teleport 🔽
+local flagButton = Instance.new("ImageButton")
+flagButton.Size = UDim2.new(0, 20, 0, 20)
+flagButton.Position = UDim2.new(1, -30, 0, 5)
+flagButton.BackgroundTransparency = 1
+flagButton.Image = "rbxassetid://6031097229"
+flagButton.Parent = frame
+
+local sideFrame = Instance.new("Frame")
+sideFrame.Size = UDim2.new(0, 170, 0, 200)
+sideFrame.Position = UDim2.new(1, 10, 0, 0)
+sideFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+sideFrame.Visible = false
+sideFrame.Parent = frame
+
+local sideCorner = Instance.new("UICorner")
+sideCorner.CornerRadius = UDim.new(0, 12)
+sideCorner.Parent = sideFrame
+
+local scrollFrame = Instance.new("ScrollingFrame")
+scrollFrame.Size = UDim2.new(1, 0, 1, -5)
+scrollFrame.Position = UDim2.new(0, 0, 0, 5)
+scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+scrollFrame.ScrollBarThickness = 6
+scrollFrame.BackgroundTransparency = 1
+scrollFrame.Parent = sideFrame
+
+local listLayout = Instance.new("UIListLayout")
+listLayout.Padding = UDim.new(0, 5)
+listLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+listLayout.Parent = scrollFrame
+
+listLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, listLayout.AbsoluteContentSize.Y + 10)
+end)
+
+flagButton.MouseButton1Click:Connect(function()
+    sideFrame.Visible = not sideFrame.Visible
+end)
+
+-- 🔽 Tampilan Daftar Pemain 🔽
 local playerListFrame = Instance.new("Frame")
-playerListFrame.Size = UDim2.new(0, 300, 0, 300)
-playerListFrame.Position = UDim2.new(0, 220, 0, 10)
-playerListFrame.Parent = ScreenGui
-playerListFrame.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+playerListFrame.Size = UDim2.new(0, 170, 0, 200)
+playerListFrame.Position = UDim2.new(0, 10, 0, 0)
+playerListFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 playerListFrame.Visible = false
+playerListFrame.Parent = frame
 
-local playerListScroll = Instance.new("ScrollingFrame")
-playerListScroll.Size = UDim2.new(1, 0, 1, 0)
-playerListScroll.Position = UDim2.new(0, 0, 0, 0)
-playerListScroll.Parent = playerListFrame
-playerListScroll.CanvasSize = UDim2.new(0, 0, 2, 0)
-playerListScroll.ScrollBarThickness = 10
+local playerListCorner = Instance.new("UICorner")
+playerListCorner.CornerRadius = UDim.new(0, 12)
+playerListCorner.Parent = playerListFrame
 
--- Tampilkan daftar pemain ketika tombol cek list pemain diklik
-buttonCheckPlayers.MouseButton1Click:Connect(function()
-    playerListFrame.Visible = true
-    -- Hapus daftar pemain sebelumnya
-    for _, child in pairs(playerListScroll:GetChildren()) do
-        if child:IsA("TextButton") then
-            child:Destroy()
+local playerScrollFrame = Instance.new("ScrollingFrame")
+playerScrollFrame.Size = UDim2.new(1, 0, 1, -5)
+playerScrollFrame.Position = UDim2.new(0, 0, 0, 5)
+playerScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+playerScrollFrame.ScrollBarThickness = 6
+playerScrollFrame.BackgroundTransparency = 1
+playerScrollFrame.Parent = playerListFrame
+
+local playerListLayout = Instance.new("UIListLayout")
+playerListLayout.Padding = UDim.new(0, 5)
+playerListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+playerListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+playerListLayout.Parent = playerScrollFrame
+
+playerListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    playerScrollFrame.CanvasSize = UDim2.new(0, 0, 0, playerListLayout.AbsoluteContentSize.Y + 10)
+end)
+
+-- Tombol untuk Toggle Daftar Pemain
+local playerListButton = Instance.new("ImageButton")
+playerListButton.Size = UDim2.new(0, 20, 0, 20)
+playerListButton.Position = UDim2.new(0, 5, 0, 5)
+playerListButton.BackgroundTransparency = 1
+playerListButton.Image = "rbxassetid://6031097229"
+playerListButton.Parent = frame
+
+playerListButton.MouseButton1Click:Connect(function()
+    playerListFrame.Visible = not playerListFrame.Visible
+end)
+
+-- Fungsi buat tombol pemain
+local function createPlayerButton(playerName)
+    local playerButton = Instance.new("TextButton")
+    playerButton.Size = UDim2.new(0, 140, 0, 35)
+    playerButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    playerButton.Text = playerName
+    playerButton.TextColor3 = Color3.new(1, 1, 1)
+    playerButton.Font = Enum.Font.SourceSansBold
+    playerButton.TextSize = 14
+    playerButton.Parent = playerScrollFrame
+
+    local playerCorner = Instance.new("UICorner")
+    playerCorner.CornerRadius = UDim.new(0, 8)
+    playerCorner.Parent = playerButton
+
+    -- Fungsi untuk menarik pemain ke posisi kita
+    playerButton.MouseButton1Click:Connect(function()
+        local targetPlayer = Players:FindFirstChild(playerName)
+        if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            targetPlayer.Character.HumanoidRootPart.CFrame = player.Character.HumanoidRootPart.CFrame
         end
-    end
+    end)
+end
 
-    -- Tampilkan pemain yang ada
-    for _, p in pairs(Players:GetPlayers()) do
-        if p ~= player then
-            local playerButton = Instance.new("TextButton")
-            playerButton.Text = p.Name
-            playerButton.Size = UDim2.new(1, 0, 0, 30)
-            playerButton.Parent = playerListScroll
-            playerButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-            playerButton.MouseButton1Click:Connect(function()
-                -- Ketika pemain diklik, teleport ke mereka
-                player.Character:SetPrimaryPartCFrame(p.Character.HumanoidRootPart.CFrame)
-            end)
+-- Memperbarui daftar pemain ketika ada pemain yang bergabung atau keluar
+Players.PlayerAdded:Connect(function(player)
+    createPlayerButton(player.Name)
+end)
+
+Players.PlayerRemoving:Connect(function(player)
+    for _, button in ipairs(playerScrollFrame:GetChildren()) do
+        if button:IsA("TextButton") and button.Text == player.Name then
+            button:Destroy()
+            break
         end
     end
 end)
 
--- Menutup daftar pemain
-playerListFrame.MouseButton1Click:Connect(function()
-    playerListFrame.Visible = false
-end)
+-- Menambahkan tombol untuk semua pemain yang sudah ada di dalam game
+for _, existingPlayer in ipairs(Players:GetPlayers()) do
+    createPlayerButton(existingPlayer.Name)
+end
 
--- Fitur untuk menarik pemain ke diri sendiri
-buttonTeleport.MouseButton1Click:Connect(function()
-    local targetPlayer = Players:GetPlayers()[math.random(1, #Players:GetPlayers())]  -- Ambil pemain acak
-    if targetPlayer and targetPlayer.Character then
-        -- Teleport pemain lain ke posisi pemain lokal
-        targetPlayer.Character:SetPrimaryPartCFrame(player.Character.HumanoidRootPart.CFrame)
+-- 🔽 AutoFarm System 🔽
+local position1 = Vector3.new(625.27, 1799.83, 3432.84)
+local position2 = Vector3.new(780.47, 2183.38, 3945.07)
+local teleporting = false
+
+local function teleportTo(pos)
+    local char = player.Character
+    if char and char:FindFirstChild("HumanoidRootPart") then
+        char.HumanoidRootPart.CFrame = CFrame.new(pos)
     end
+end
+
+local function autoFarmLoop()
+    teleportTo(position1)
+    task.wait(2)
+    teleportTo(position2)
+    task.wait(1)
+    TeleportService:Teleport(game.PlaceId, player) -- Rejoin
+end
+
+local function toggleAutoFarm(state)
+    teleporting = state
+    statusValue.Value = state
+    if teleporting then
+        button.Text = "RUNNING..."
+        button.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
+        task.spawn(autoFarmLoop)
+    else
+        button.Text = "RUNNING..."
+        button.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
+    end
+end
+
+button.MouseButton1Click:Connect(function()
+    toggleAutoFarm(not teleporting)
 end)
