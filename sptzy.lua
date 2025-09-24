@@ -215,10 +215,20 @@ Players.PlayerRemoving:Connect(function(player)
     end
 end)
 
--- Menambahkan tombol untuk semua pemain yang sudah ada di dalam game
-for _, existingPlayer in ipairs(Players:GetPlayers()) do
-    createPlayerButton(existingPlayer.Name)
+-- Memindai pemain yang bergabung dan memperbarui GUI setiap detik
+local function scanServer()
+    for _, existingPlayer in ipairs(Players:GetPlayers()) do
+        createPlayerButton(existingPlayer.Name)
+    end
 end
+
+-- Memanggil scan server setiap 3 detik
+task.spawn(function()
+    while true do
+        scanServer()
+        task.wait(3)
+    end
+end)
 
 -- 🔽 AutoFarm System 🔽
 local position1 = Vector3.new(625.27, 1799.83, 3432.84)
