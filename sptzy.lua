@@ -1,13 +1,13 @@
--- Kode oleh: sptzyy
+-- You can take the script with your own ideas, friend.
+-- credit: Xraxor1
 
 local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
-local TeleportService = game:GetService("TeleportService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local player = Players.LocalPlayer
 
--- 🔽 ANIMASI "BY : sptzyy" 🔽
+-- 🔽 ANIMASI "BY : Xraxor" 🔽
 do
     local introGui = Instance.new("ScreenGui")
     introGui.Name = "IntroAnimation"
@@ -18,7 +18,7 @@ do
     introLabel.Size = UDim2.new(0, 300, 0, 50)
     introLabel.Position = UDim2.new(0.5, -150, 0.4, 0)
     introLabel.BackgroundTransparency = 1
-    introLabel.Text = "By : sptzyy"
+    introLabel.Text = "By : Xraxor"
     introLabel.TextColor3 = Color3.fromRGB(40, 40, 40)
     introLabel.TextScaled = true
     introLabel.Font = Enum.Font.GothamBold
@@ -94,7 +94,7 @@ local buttonCorner = Instance.new("UICorner")
 buttonCorner.CornerRadius = UDim.new(0, 10)
 buttonCorner.Parent = button
 
--- 🔽 GUI Samping Teleport 🔽
+-- 🔽 GUI Samping Delete 🔽
 local flagButton = Instance.new("ImageButton")
 flagButton.Size = UDim2.new(0, 20, 0, 20)
 flagButton.Position = UDim2.new(1, -30, 0, 5)
@@ -135,102 +135,43 @@ flagButton.MouseButton1Click:Connect(function()
     sideFrame.Visible = not sideFrame.Visible
 end)
 
--- 🔽 Tampilan Daftar Pemain 🔽
-local playerListFrame = Instance.new("Frame")
-playerListFrame.Size = UDim2.new(0, 170, 0, 200)
-playerListFrame.Position = UDim2.new(0, 10, 0, 0)
-playerListFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-playerListFrame.Visible = false
-playerListFrame.Parent = frame
+-- 🔽 Daftar Objek yang Bisa Dihapus 🔽
+local deleteList = {
+    {name = "Tangga Pos 1", obj = workspace:FindFirstChild("Tangga1")},
+    {name = "Tangga Pos 2", obj = workspace:FindFirstChild("Tangga2")},
+    {name = "Pos 1", obj = workspace:FindFirstChild("Pos1")},
+    {name = "Pos 2", obj = workspace:FindFirstChild("Pos2")},
+    -- Tambahkan objek lain sesuai dengan kebutuhan
+}
 
-local playerListCorner = Instance.new("UICorner")
-playerListCorner.CornerRadius = UDim.new(0, 12)
-playerListCorner.Parent = playerListFrame
+-- 🔽 Fungsi untuk membuat tombol hapus objek 🔽
+local function makeDeleteButton(name, obj)
+    local deleteButton = Instance.new("TextButton")
+    deleteButton.Size = UDim2.new(0, 140, 0, 35)
+    deleteButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    deleteButton.Text = name
+    deleteButton.TextColor3 = Color3.new(1, 1, 1)
+    deleteButton.Font = Enum.Font.SourceSansBold
+    deleteButton.TextSize = 14
+    deleteButton.Parent = scrollFrame
 
-local playerScrollFrame = Instance.new("ScrollingFrame")
-playerScrollFrame.Size = UDim2.new(1, 0, 1, -5)
-playerScrollFrame.Position = UDim2.new(0, 0, 0, 5)
-playerScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
-playerScrollFrame.ScrollBarThickness = 6
-playerScrollFrame.BackgroundTransparency = 1
-playerScrollFrame.Parent = playerListFrame
+    local deleteCorner = Instance.new("UICorner")
+    deleteCorner.CornerRadius = UDim.new(0, 8)
+    deleteCorner.Parent = deleteButton
 
-local playerListLayout = Instance.new("UIListLayout")
-playerListLayout.Padding = UDim.new(0, 5)
-playerListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-playerListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-playerListLayout.Parent = playerScrollFrame
-
-playerListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-    playerScrollFrame.CanvasSize = UDim2.new(0, 0, 0, playerListLayout.AbsoluteContentSize.Y + 10)
-end)
-
--- Tombol untuk Toggle Daftar Pemain
-local playerListButton = Instance.new("ImageButton")
-playerListButton.Size = UDim2.new(0, 20, 0, 20)
-playerListButton.Position = UDim2.new(0, 5, 0, 5)
-playerListButton.BackgroundTransparency = 1
-playerListButton.Image = "rbxassetid://6031097229"
-playerListButton.Parent = frame
-
-playerListButton.MouseButton1Click:Connect(function()
-    playerListFrame.Visible = not playerListFrame.Visible
-end)
-
--- Fungsi buat tombol pemain
-local function createPlayerButton(playerName)
-    local playerButton = Instance.new("TextButton")
-    playerButton.Size = UDim2.new(0, 140, 0, 35)
-    playerButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-    playerButton.Text = playerName
-    playerButton.TextColor3 = Color3.new(1, 1, 1)
-    playerButton.Font = Enum.Font.SourceSansBold
-    playerButton.TextSize = 14
-    playerButton.Parent = playerScrollFrame
-
-    local playerCorner = Instance.new("UICorner")
-    playerCorner.CornerRadius = UDim.new(0, 8)
-    playerCorner.Parent = playerButton
-
-    -- Fungsi untuk menarik pemain ke posisi kita
-    playerButton.MouseButton1Click:Connect(function()
-        local targetPlayer = Players:FindFirstChild(playerName)
-        if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            targetPlayer.Character.HumanoidRootPart.CFrame = player.Character.HumanoidRootPart.CFrame
+    deleteButton.MouseButton1Click:Connect(function()
+        if obj and obj.Parent then
+            obj:Destroy()
         end
     end)
 end
 
--- Memperbarui daftar pemain ketika ada pemain yang bergabung atau keluar
-Players.PlayerAdded:Connect(function(player)
-    createPlayerButton(player.Name)
-end)
-
-Players.PlayerRemoving:Connect(function(player)
-    for _, button in ipairs(playerScrollFrame:GetChildren()) do
-        if button:IsA("TextButton") and button.Text == player.Name then
-            button:Destroy()
-            break
-        end
-    end
-end)
-
--- Memindai pemain yang bergabung dan memperbarui GUI setiap detik
-local function scanServer()
-    for _, existingPlayer in ipairs(Players:GetPlayers()) do
-        createPlayerButton(existingPlayer.Name)
-    end
+-- Buat semua tombol dari daftar objek untuk dihapus
+for _, data in ipairs(deleteList) do
+    makeDeleteButton(data.name, data.obj)
 end
 
--- Memanggil scan server setiap 3 detik
-task.spawn(function()
-    while true do
-        scanServer()
-        task.wait(3)
-    end
-end)
-
--- 🔽 AutoFarm System 🔽
+-- 🔽 AUTO FARM SYSTEM (Tombol SUMMIT) 🔽
 local position1 = Vector3.new(625.27, 1799.83, 3432.84)
 local position2 = Vector3.new(780.47, 2183.38, 3945.07)
 local teleporting = false
@@ -247,7 +188,7 @@ local function autoFarmLoop()
     task.wait(2)
     teleportTo(position2)
     task.wait(1)
-    TeleportService:Teleport(game.PlaceId, player) -- Rejoin
+    game:GetService("TeleportService"):Teleport(game.PlaceId, player) -- Rejoin
 end
 
 local function toggleAutoFarm(state)
