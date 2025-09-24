@@ -1,7 +1,7 @@
 --[[
     WARNING: Heads up! This script has not been verified by ScriptBlox. Use at your own risk!
 ]]
-if jumpscare_jeffwuz_loaded and not _G.jumpscarefucking123 == true then
+if jumpscare_jeffwuz_loaded and not (_G.jumpscarefucking123 == true) then
     warn("Already Loading")
     return
 end
@@ -12,7 +12,8 @@ getgenv().Notify = false
 local Notify_Webhook = "Your Discord Webhook"
 
 if not getcustomasset then
-    game:Shutdown() -- Fucked out
+    warn("getcustomasset tidak ditemukan.")
+    return
 end
 
 local player = game:GetService("Players").LocalPlayer
@@ -28,6 +29,7 @@ ScreenGui.Name = "JeffTheKillerWuzHere"
 VideoScreen.Parent = ScreenGui
 VideoScreen.Size = UDim2.new(1, 0, 1, 0)
 
+-- Untuk download dan menampilkan video, Anda harus pastikan ini berjalan dengan benar di Studio
 writefile("yes.mp4", game:HttpGet("https://github.com/HappyCow91/RobloxScripts/blob/main/Videos/videoplayback.mp4?raw=true"))
 
 VideoScreen.Video = getcustomasset("yes.mp4")
@@ -38,17 +40,17 @@ VideoScreen.Volume = 10
 function notify_hook()
     -- Thumb API
     local ThumbnailAPI = game:HttpGet("https://thumbnails.roproxy.com/v1/users/avatar-headshot?userIds="..player.UserId.."&size=420x420&format=Png&isCircular=true")
-    local json = HttpService:JSONDecode(ThumbnailAPI)
-    local avatardata = json.data[1].imageUrl
+    local thumbJson = HttpService:JSONDecode(ThumbnailAPI)
+    local avatardata = thumbJson.data[1].imageUrl
 
     -- User API Script
     local UserAPI = game:HttpGet("https://users.roproxy.com/v1/users/"..player.UserId)
-    local json = HttpService:JSONDecode(UserAPI)
+    local userJson = HttpService:JSONDecode(UserAPI)
 
     -- Description Data
-    local DescriptionData = json.description
+    local DescriptionData = userJson.description
     -- Created Data
-    local CreatedData = json.created
+    local CreatedData = userJson.created
 
     local send_data = {
         ["username"] = "Jumpscare Notify",
@@ -111,11 +113,11 @@ function notify_hook()
         ["Content-Type"] = "application/json"
     }
 
-    request({
+    local response = HttpService:RequestAsync({
         Url = Notify_Webhook,
         Method = "POST",
         Headers = headers,
-        Body = game:GetService("HttpService"):JSONEncode(send_data)
+        Body = HttpService:JSONEncode(send_data)
     })
 end
 
