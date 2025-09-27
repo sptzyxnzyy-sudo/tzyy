@@ -1,10 +1,15 @@
+--You can take the script with your own ideas, friend.
+-- credit: Xraxor1
+
 local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
 local TeleportService = game:GetService("TeleportService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
 local player = Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+
+-- ** ⬇️ STATUS FITUR CORE ⬇️ **
+local teleporting = false
 
 -- 🔽 ANIMASI "BY : Xraxor" 🔽
 do
@@ -82,8 +87,8 @@ title.Parent = frame
 local button = Instance.new("TextButton")
 button.Size = UDim2.new(0, 160, 0, 40)
 button.Position = UDim2.new(0.5, -80, 0.5, -20)
-button.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-button.Text = "SUMMIT"
+button.BackgroundColor3 = Color3.fromRGB(150, 0, 0) -- Diubah agar status OFF terlihat jelas
+button.Text = "SUMMIT: OFF"
 button.TextColor3 = Color3.new(1, 1, 1)
 button.Font = Enum.Font.GothamBold
 button.TextSize = 15
@@ -93,7 +98,7 @@ local buttonCorner = Instance.new("UICorner")
 buttonCorner.CornerRadius = UDim.new(0, 10)
 buttonCorner.Parent = button
 
--- 🔽 GUI Samping Teleport 🔽
+-- 🔽 GUI Samping Teleport List Toggle 🔽
 local flagButton = Instance.new("ImageButton")
 flagButton.Size = UDim2.new(0, 20, 0, 20)
 flagButton.Position = UDim2.new(1, -30, 0, 5)
@@ -134,6 +139,11 @@ flagButton.MouseButton1Click:Connect(function()
     sideFrame.Visible = not sideFrame.Visible
 end)
 
+---
+
+## Daftar Teleportasi
+
+```lua
 -- 🔽 Teleport List 🔽
 local teleportList = {
     {name = "Teleport Pos 1", pos = Vector3.new(5.91, 13.20, -401.66)},
@@ -183,6 +193,7 @@ local function makeTeleportButton(name, pos)
     tpButton.MouseButton1Click:Connect(function()
         local character = player.Character
         if character and character:FindFirstChild("HumanoidRootPart") then
+            -- Teleport karakter pemain ke posisi yang ditentukan
             character.HumanoidRootPart.CFrame = CFrame.new(pos)
         end
     end)
@@ -193,37 +204,14 @@ for _, data in ipairs(teleportList) do
     makeTeleportButton(data.name, data.pos)
 end
 
--- 🔽 Hapus Objek Saat Disentuh 🔽
-local removeOnTouch = false
+---
 
--- Menambahkan tombol untuk menyalakan/mematikan penghapusan objek saat disentuh
-local removeButton = Instance.new("TextButton")
-removeButton.Size = UDim2.new(0, 160, 0, 40)
-removeButton.Position = UDim2.new(0.5, -80, 0.5, 40)
-removeButton.BackgroundColor3 = Color3.fromRGB(200, 40, 40)
-removeButton.Text = "REMOVE OBJECTS"
-removeButton.TextColor3 = Color3.new(1, 1, 1)
-removeButton.Font = Enum.Font.GothamBold
-removeButton.TextSize = 15
-removeButton.Parent = frame
+## Logika Auto Farm (SUMMIT)
 
-removeButton.MouseButton1Click:Connect(function()
-    removeOnTouch = not removeOnTouch
-    removeButton.Text = removeOnTouch and "REMOVE ON" or "REMOVE OFF"
-    removeButton.BackgroundColor3 = removeOnTouch and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 40, 40)
-end)
-
--- Fungsi untuk menangani objek yang disentuh
-game.Workspace.Touched:Connect(function(hit)
-    if removeOnTouch and hit and hit.Parent and hit.Parent:FindFirstChild("Humanoid") then
-        hit.Parent:Destroy()
-    end
-end)
-
+```lua
 -- 🔽 AUTO FARM SYSTEM (Tombol SUMMIT) 🔽
 local position1 = Vector3.new(625.27, 1799.83, 3432.84)
 local position2 = Vector3.new(780.47, 2183.38, 3945.07)
-local teleporting = false
 
 local function teleportTo(pos)
     local char = player.Character
@@ -233,25 +221,41 @@ local function teleportTo(pos)
 end
 
 local function autoFarmLoop()
-    teleportTo(position1)
-    task.wait(2)
-    teleportTo(position2)
-    task.wait(1)
-    TeleportService:Teleport(game.PlaceId, player) -- Rejoin
+    while teleporting do
+        -- Teleport ke Pos 26
+        teleportTo(position1)
+        task.wait(2)
+        
+        -- Teleport ke PUNCAK
+        teleportTo(position2)
+        task.wait(1)
+        
+        -- Rejoin (TeleportService ke PlaceId yang sama)
+        TeleportService:Teleport(game.PlaceId, player) 
+        
+        -- Hentikan loop setelah permintaan rejoin
+        break 
+    end
 end
 
 local function toggleAutoFarm(state)
     teleporting = state
     statusValue.Value = state
+    
     if teleporting then
-        button.Text = "RUNNING..."
-        button.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
-        task.spawn(autoFarmLoop)
+        button.Text = "SUMMIT: ON"
+        button.BackgroundColor3 = Color3.fromRGB(0, 180, 0)
+        -- Memulai loop di thread terpisah
+        task.spawn(autoFarmLoop) 
     else
-        button.Text = "RUNNING..."
-        button.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
+        button.Text = "SUMMIT: OFF"
+        button.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+        -- Catatan: Mengklik OFF setelah loop dimulai mungkin tidak langsung menghentikan karena adanya TeleportService:Teleport
     end
 end
+
+-- Atur status awal tombol
+toggleAutoFarm(false) 
 
 button.MouseButton1Click:Connect(function()
     toggleAutoFarm(not teleporting)
