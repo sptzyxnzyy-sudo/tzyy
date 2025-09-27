@@ -1,10 +1,12 @@
+-- credit: Xraxor1 (Original GUI/Intro structure)
+-- Modification: Only includes Player List GUI with Teleport Target TO YOU feature.
+
 local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
-local TeleportService = game:GetService("TeleportService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+-- TeleportService dihapus
+
 local player = Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
 
 -- 🔽 ANIMASI "BY : Xraxor" 🔽
 do
@@ -40,24 +42,21 @@ do
     end)
 end
 
--- 🔽 Status AutoFarm 🔽
-local statusValue = ReplicatedStorage:FindFirstChild("AutoFarmStatus")
-if not statusValue then
-    statusValue = Instance.new("BoolValue")
-    statusValue.Name = "AutoFarmStatus"
-    statusValue.Value = false
-    statusValue.Parent = ReplicatedStorage
-end
+-- 🔽 STATUS VALUE (Dihapus karena tidak digunakan) 🔽
+-- local statusValue = ReplicatedStorage:FindFirstChild("AutoFarmStatus")
+-- if not statusValue then ...
 
--- 🔽 GUI Utama 🔽
+-- 🔽 GUI UTAMA (Frame Toggle untuk Player List) 🔽
+
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "AutoFarmGUI"
+screenGui.Name = "TeleportGUI"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = player:WaitForChild("PlayerGui")
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 220, 0, 160)
-frame.Position = UDim2.new(0.4, -110, 0.5, -80)
+-- Frame kecil di sisi layar untuk menampung tombol toggle
+frame.Size = UDim2.new(0, 50, 0, 50) 
+frame.Position = UDim2.new(0.9, -50, 0.5, -25)
 frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 frame.BorderSizePixel = 0
 frame.Active = true
@@ -68,42 +67,17 @@ local corner = Instance.new("UICorner")
 corner.CornerRadius = UDim.new(0, 15)
 corner.Parent = frame
 
--- Judul GUI
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 0, 30)
-title.BackgroundTransparency = 1
-title.Text = "Mount Atin V2"
-title.TextColor3 = Color3.new(1, 1, 1)
-title.Font = Enum.Font.GothamBold
-title.TextSize = 16
-title.Parent = frame
 
--- Tombol SUMMIT
-local button = Instance.new("TextButton")
-button.Size = UDim2.new(0, 160, 0, 40)
-button.Position = UDim2.new(0.5, -80, 0.5, -20)
-button.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-button.Text = "SUMMIT"
-button.TextColor3 = Color3.new(1, 1, 1)
-button.Font = Enum.Font.GothamBold
-button.TextSize = 15
-button.Parent = frame
-
-local buttonCorner = Instance.new("UICorner")
-buttonCorner.CornerRadius = UDim.new(0, 10)
-buttonCorner.Parent = button
-
--- 🔽 GUI Samping Teleport 🔽
+-- 🔽 GUI Samping Player List 🔽
 local flagButton = Instance.new("ImageButton")
-flagButton.Size = UDim2.new(0, 20, 0, 20)
-flagButton.Position = UDim2.new(1, -30, 0, 5)
+flagButton.Size = UDim2.new(1, 0, 1, 0)
 flagButton.BackgroundTransparency = 1
-flagButton.Image = "rbxassetid://6031097229"
+flagButton.Image = "rbxassetid://5854746698" -- Ikon Pemain/Orang
 flagButton.Parent = frame
 
 local sideFrame = Instance.new("Frame")
-sideFrame.Size = UDim2.new(0, 170, 0, 200)
-sideFrame.Position = UDim2.new(1, 10, 0, 0)
+sideFrame.Size = UDim2.new(0, 170, 0, 250)
+sideFrame.Position = UDim2.new(1, 10, 0, 0) -- Posisi di samping frame utama
 sideFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 sideFrame.Visible = false
 sideFrame.Parent = frame
@@ -130,47 +104,13 @@ listLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
     scrollFrame.CanvasSize = UDim2.new(0, 0, 0, listLayout.AbsoluteContentSize.Y + 10)
 end)
 
-flagButton.MouseButton1Click:Connect(function()
-    sideFrame.Visible = not sideFrame.Visible
-end)
+-- 🔽 Logika Tombol Teleport (Target ke Anda) 🔽
 
--- 🔽 Teleport List 🔽
-local teleportList = {
-    {name = "Teleport Pos 1", pos = Vector3.new(5.91, 13.20, -401.66)},
-    {name = "Teleport Pos 2", pos = Vector3.new(-183.98, 128.67, 409.35)},
-    {name = "Teleport Pos 3", pos = Vector3.new(-165.62, 230.20, 653.26)},
-    {name = "Teleport Pos 4", pos = Vector3.new(-37.75, 407.22, 616.05)},
-    {name = "Teleport Pos 5", pos = Vector3.new(130.81, 652.40, 613.81)},
-    {name = "Teleport Pos 6", pos = Vector3.new(-246.32, 666.33, 734.26)},
-    {name = "Teleport Pos 7", pos = Vector3.new(-684.34, 641.34, 867.82)},
-    {name = "Teleport Pos 8", pos = Vector3.new(-658.35, 689.06, 1458.58)},
-    {name = "Teleport Pos 9", pos = Vector3.new(-507.38, 903.54, 1867.65)},
-    {name = "Teleport Pos 10", pos = Vector3.new(60.53, 950.50, 2088.49)},
-    {name = "Teleport Pos 11", pos = Vector3.new(51.97, 982.12, 2450.11)},
-    {name = "Teleport Pos 12", pos = Vector3.new(72.71, 1097.56, 2456.81)},
-    {name = "Teleport Pos 13", pos = Vector3.new(262.32, 1270.73, 2037.32)},
-    {name = "Teleport Pos 14", pos = Vector3.new(-418.16, 1302.79, 2393.94)},
-    {name = "Teleport Pos 15", pos = Vector3.new(-773.07, 1314.52, 2664.33)},
-    {name = "Teleport Pos 16", pos = Vector3.new(-837.85, 1475.55, 2625.13)},
-    {name = "Teleport Pos 17", pos = Vector3.new(-468.79, 1466.25, 2769.38)},
-    {name = "Teleport Pos 18", pos = Vector3.new(-385.24, 1640.90, 2794.93)},
-    {name = "Teleport Pos 19", pos = Vector3.new(-385.24, 1640.90, 2794.93)},
-    {name = "Teleport Pos 20", pos = Vector3.new(-208.03, 1666.32, 2749.07)},
-    {name = "Teleport Pos 21", pos = Vector3.new(-232.37, 1742.68, 2792.08)},
-    {name = "Teleport Pos 22", pos = Vector3.new(-424.28, 1741.32, 2797.70)},
-    {name = "Teleport Pos 23", pos = Vector3.new(-422.88, 1713.02, 3419.81)},
-    {name = "Teleport Pos 24", pos = Vector3.new(70.72, 1719.29, 3427.58)},
-    {name = "Teleport Pos 25", pos = Vector3.new(436.34, 1721.15, 3430.44)},
-    {name = "Teleport Pos 26", pos = Vector3.new(625.27, 1799.83, 3432.84)},
-    {name = "PUNCAK", pos = Vector3.new(780.47, 2183.38, 3945.07)},
-}
-
--- 🔽 Fungsi bikin tombol teleport otomatis 🔽
-local function makeTeleportButton(name, pos)
+local function makePlayerButton(targetPlayer)
     local tpButton = Instance.new("TextButton")
     tpButton.Size = UDim2.new(0, 140, 0, 35)
-    tpButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-    tpButton.Text = name
+    tpButton.BackgroundColor3 = targetPlayer == player and Color3.fromRGB(50, 100, 50) or Color3.fromRGB(40, 40, 40)
+    tpButton.Text = targetPlayer.Name .. (targetPlayer == player and " (You)" or "")
     tpButton.TextColor3 = Color3.new(1, 1, 1)
     tpButton.Font = Enum.Font.SourceSansBold
     tpButton.TextSize = 14
@@ -181,78 +121,59 @@ local function makeTeleportButton(name, pos)
     tpCorner.Parent = tpButton
 
     tpButton.MouseButton1Click:Connect(function()
-        local character = player.Character
-        if character and character:FindFirstChild("HumanoidRootPart") then
-            character.HumanoidRootPart.CFrame = CFrame.new(pos)
+        
+        -- Jangan teleport diri sendiri
+        if targetPlayer == player then 
+            print("Tidak dapat meneleport diri sendiri!")
+            return 
         end
+
+        local char = player.Character
+        local targetChar = targetPlayer.Character
+
+        if not char or not targetChar then warn("Karakter target tidak ditemukan atau belum dimuat!") return end
+
+        local playerRoot = char:FindFirstChild("HumanoidRootPart")
+        local targetRoot = targetChar:FindFirstChild("HumanoidRootPart")
+        if not playerRoot or not targetRoot then warn("HumanoidRootPart tidak ditemukan!") return end
+        
+        -- Dapatkan lokasi CFrame Anda saat ini
+        local playerCFrame = playerRoot.CFrame 
+
+        -- Aksi: Teleport Pemain Target ke lokasi Anda
+        targetRoot.CFrame = playerCFrame
+        print(targetPlayer.Name .. " telah diteleport ke lokasi Anda.")
+
     end)
 end
 
--- Buat semua tombol dari daftar
-for _, data in ipairs(teleportList) do
-    makeTeleportButton(data.name, data.pos)
+local function populatePlayerList()
+    -- Hapus tombol lama
+    for _, child in ipairs(scrollFrame:GetChildren()) do
+        if child:IsA("TextButton") then child:Destroy() end
+    end
+    
+    -- Isi daftar pemain
+    local playerList = Players:GetPlayers()
+    table.sort(playerList, function(a, b) return a.Name < b.Name end)
+
+    for _, target in ipairs(playerList) do
+        makePlayerButton(target)
+    end
 end
 
--- 🔽 Hapus Objek Saat Disentuh 🔽
-local removeOnTouch = false
-
--- Menambahkan tombol untuk menyalakan/mematikan penghapusan objek saat disentuh
-local removeButton = Instance.new("TextButton")
-removeButton.Size = UDim2.new(0, 160, 0, 40)
-removeButton.Position = UDim2.new(0.5, -80, 0.5, 40)
-removeButton.BackgroundColor3 = Color3.fromRGB(200, 40, 40)
-removeButton.Text = "REMOVE OBJECTS"
-removeButton.TextColor3 = Color3.new(1, 1, 1)
-removeButton.Font = Enum.Font.GothamBold
-removeButton.TextSize = 15
-removeButton.Parent = frame
-
-removeButton.MouseButton1Click:Connect(function()
-    removeOnTouch = not removeOnTouch
-    removeButton.Text = removeOnTouch and "REMOVE ON" or "REMOVE OFF"
-    removeButton.BackgroundColor3 = removeOnTouch and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 40, 40)
-end)
-
--- Fungsi untuk menangani objek yang disentuh
-game.Workspace.Touched:Connect(function(hit)
-    if removeOnTouch and hit and hit.Parent and hit.Parent:FindFirstChild("Humanoid") then
-        hit.Parent:Destroy()
+-- Logika Tombol Samping (Toggle Player List)
+flagButton.MouseButton1Click:Connect(function()
+    sideFrame.Visible = not sideFrame.Visible
+    if sideFrame.Visible then
+        populatePlayerList()
     end
 end)
 
--- 🔽 AUTO FARM SYSTEM (Tombol SUMMIT) 🔽
-local position1 = Vector3.new(625.27, 1799.83, 3432.84)
-local position2 = Vector3.new(780.47, 2183.38, 3945.07)
-local teleporting = false
-
-local function teleportTo(pos)
-    local char = player.Character
-    if char and char:FindFirstChild("HumanoidRootPart") then
-        char.HumanoidRootPart.CFrame = CFrame.new(pos)
-    end
-end
-
-local function autoFarmLoop()
-    teleportTo(position1)
-    task.wait(2)
-    teleportTo(position2)
-    task.wait(1)
-    TeleportService:Teleport(game.PlaceId, player) -- Rejoin
-end
-
-local function toggleAutoFarm(state)
-    teleporting = state
-    statusValue.Value = state
-    if teleporting then
-        button.Text = "RUNNING..."
-        button.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
-        task.spawn(autoFarmLoop)
-    else
-        button.Text = "RUNNING..."
-        button.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
-    end
-end
-
-button.MouseButton1Click:Connect(function()
-    toggleAutoFarm(not teleporting)
+-- Pastikan daftar di-refresh saat pemain baru bergabung/keluar
+Players.PlayerAdded:Connect(function() 
+    if sideFrame.Visible then populatePlayerList() end 
+end)
+Players.PlayerRemoving:Connect(function() 
+    if sideFrame.Visible then populatePlayerList() end 
 end)
