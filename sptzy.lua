@@ -1,7 +1,6 @@
 local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
--- local UserInputService = game:GetService("UserInputService") -- Tidak digunakan
 
 local player = Players.LocalPlayer
 
@@ -15,11 +14,11 @@ local isScanAnchoredOn = false -- Status untuk scan anchored parts
 local flyflingSpeedMultiplier = 100 
 local flyflingRadius = 30 
 
--- ** ⬇️ STATUS FITUR BARU: BRING UNANCHORED PART ⬇️ **
+-- ** ⬇️ STATUS FITUR BRING UNANCHORED PART (MAGNET) ⬇️ **
 local isBringUnanchoredPartActive = false -- Status fitur baru
 local bringUnanchoredPartRadius = 50 -- Radius part yang ditarik
 local bringUnanchoredPartSpeed = 20 -- Kekuatan tarik part (Gaya Magnet)
-local autoReleaseDistance = 5 -- **BARU:** Jarak di mana part akan dilepaskan otomatis
+local autoReleaseDistance = 5 -- Jarak di mana part akan dilepaskan otomatis
 local activeMagnetForces = {} -- Tabel untuk melacak VectorForce yang dibuat
 
 -- 🔽 ANIMASI "BY : Xraxor" 🔽
@@ -173,6 +172,18 @@ local function updateButtonStatus(button, isActive, featureName, isToggle)
 end
 
 
+-- 🔽 FUNGSI PEMBERSIH GAYA MAGNET 🔽
+local function cleanupMagnetForces()
+    for _, force in pairs(activeMagnetForces) do
+        if force and force.Parent then
+            local attachment = force.Attachment0
+            force:Destroy()
+            if attachment and attachment.Parent then attachment:Destroy() end
+        end
+    end
+    activeMagnetForces = {}
+end
+
 -- 🔽 FUNGSI INTI GABUNGAN (FLYFLING + BRING PART) 🔽
 
 -- FUNGSI FLYFLING
@@ -220,7 +231,7 @@ local function doFlyfling()
     end
 end
 
--- FUNGSI BRING UNANCHORED PART (LOGIKA MAGNET BARU + AUTO RELEASE)
+-- FUNGSI BRING UNANCHORED PART (LOGIKA MAGNET + AUTO RELEASE)
 local function doBringUnanchoredPart()
     if not isBringUnanchoredPartActive or not player.Character then return end
 
@@ -244,7 +255,11 @@ local function doBringUnanchoredPart()
                 if distance <= autoReleaseDistance and activeMagnetForces[obj] then
                      -- Part sudah sangat dekat, lepaskan gaya magnetnya
                      local force = activeMagnetForces[obj]
-                     force:Destroy()
+                     if force and force.Parent then
+                         local attachment = force.Attachment0
+                         force:Destroy()
+                         if attachment and attachment.Parent then attachment:Destroy() end
+                     end
                      activeMagnetForces[obj] = nil
                      continue -- Lanjut ke part berikutnya
                 end
@@ -274,7 +289,7 @@ local function doBringUnanchoredPart()
                     -- Hitung Gaya Tarik (Magnet)
                     local directionToPlayer = (myRoot.Position - obj.Position).Unit
                     
-                    -- Gaya Tarik = Massa Part * Kecepatan Target (Speed)
+                    -- Gaya Tarik = Massa Part * Kekuatan Target (Speed)
                     local forceMagnitude = obj:GetMass() * bringUnanchoredPartSpeed
                     
                     -- Terapkan Gaya
@@ -287,22 +302,14 @@ local function doBringUnanchoredPart()
     -- Cleanup VectorForce yang berada di luar jangkauan atau yang tidak lagi ada
     for part, force in pairs(activeMagnetForces) do
         if not currentParts[part] or not part.Parent or (myRoot.Position - part.Position).Magnitude > bringUnanchoredPartRadius + 5 then 
-            force:Destroy()
+            if force and force.Parent then
+                local attachment = force.Attachment0
+                force:Destroy()
+                if attachment and attachment.Parent then attachment:Destroy() end
+            end
             activeMagnetForces[part] = nil
         end
     end
-end
-
--- Fungsi untuk membersihkan semua VectorForce yang tersisa
-local function cleanupMagnetForces()
-    for _, force in pairs(activeMagnetForces) do
-        if force and force.Parent then
-            local attachment = force.Attachment0
-            force:Destroy()
-            if attachment and attachment.Parent then attachment:Destroy() end
-        end
-    end
-    activeMagnetForces = {}
 end
 
 -- FUNGSI GABUNGAN HEARTBEAT
