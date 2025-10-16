@@ -6,20 +6,20 @@ local player = Players.LocalPlayer
 
 -- ** ⬇️ STATUS FITUR FLYFLING PART ⬇️ **
 local isFlyflingActive = false
-local flyflingConnection = nil -- Digunakan untuk koneksi gabungan (Flyfling dan Bring Part)
+local flyflingConnection = nil 
 local isFlyflingRadiusOn = true 
 local isFlyflingSpeedOn = true 
 local isPartFollowActive = false 
-local isScanAnchoredOn = false -- Status untuk scan anchored parts
+local isScanAnchoredOn = false 
 local flyflingSpeedMultiplier = 100 
 local flyflingRadius = 30 
 
--- ** ⬇️ STATUS FITUR BRING UNANCHORED PART (MAGNET) ⬇️ **
-local isBringUnanchoredPartActive = false -- Status fitur baru
+-- ** ⬇️ STATUS FITUR BRING UNANCHORED PART (MAGNET KUAT) ⬇️ **
+local isBringUnanchoredPartActive = false 
 local bringUnanchoredPartRadius = 50 -- Radius part yang ditarik
-local bringUnanchoredPartSpeed = 20 -- Kekuatan tarik part (Gaya Magnet)
-local autoReleaseDistance = 5 -- Jarak di mana part akan dilepaskan otomatis
-local activeMagnetForces = {} -- Tabel untuk melacak VectorForce yang dibuat
+local bringUnanchoredPartSpeed = 70 -- **DIUBAH: Kekuatan tarik lebih kuat (agar part copot/goyang)**
+local autoReleaseDistance = 3 -- **DIUBAH: Jarak di mana part akan dilepaskan otomatis (agar menempel)**
+local activeMagnetForces = {} 
 
 -- 🔽 ANIMASI "BY : Xraxor" 🔽
 do
@@ -111,7 +111,6 @@ end)
 
 -- 🔽 FUNGSI UTILITY GLOBAL 🔽
 
--- FUNGSI BARU: Notifikasi dengan Animasi
 local function showNotification(message)
     local notifGui = Instance.new("ScreenGui")
     notifGui.Name = "Notification"
@@ -133,9 +132,7 @@ local function showNotification(message)
     corner.CornerRadius = UDim.new(0, 8)
     corner.Parent = notifLabel
 
-    -- Animation: Fade In (with background)
     local fadeIn = TweenService:Create(notifLabel, TweenInfo.new(0.3), {TextTransparency = 0, BackgroundTransparency = 0.2, BackgroundColor3 = Color3.fromRGB(0, 100, 200)})
-    -- Animation: Fade Out (with background fade)
     local fadeOut = TweenService:Create(notifLabel, TweenInfo.new(0.5), {TextTransparency = 1, BackgroundTransparency = 1})
 
     fadeIn:Play()
@@ -186,7 +183,7 @@ end
 
 -- 🔽 FUNGSI INTI GABUNGAN (FLYFLING + BRING PART) 🔽
 
--- FUNGSI FLYFLING
+-- FUNGSI FLYFLING (TIDAK BERUBAH)
 local function doFlyfling()
     if not isFlyflingActive or not player.Character then return end
 
@@ -197,14 +194,12 @@ local function doFlyfling()
     local speed = isFlyflingSpeedOn and flyflingSpeedMultiplier or 0
     local targetParts = {}
 
-    -- Ambil semua part di Workspace
     for _, obj in ipairs(game.Workspace:GetDescendants()) do
         if obj:IsA("BasePart") and obj.Name ~= "Baseplate" then
             if Players:GetPlayerFromCharacter(obj.Parent) or obj.Parent:FindFirstChildOfClass("Humanoid") then
                 continue
             end
             
-            -- Mendukung Scan Anchored Parts 
             if (not isScanAnchoredOn) and obj.Anchored then
                 continue
             end
@@ -231,7 +226,7 @@ local function doFlyfling()
     end
 end
 
--- FUNGSI BRING UNANCHORED PART (LOGIKA MAGNET + AUTO RELEASE)
+-- FUNGSI BRING UNANCHORED PART (LOGIKA MAGNET KUAT + AUTO RELEASE KETAT)
 local function doBringUnanchoredPart()
     if not isBringUnanchoredPartActive or not player.Character then return end
 
@@ -240,9 +235,7 @@ local function doBringUnanchoredPart()
 
     local currentParts = {}
 
-    -- Ambil semua part di Workspace dan perbarui VectorForce
     for _, obj in ipairs(game.Workspace:GetDescendants()) do
-        -- Kriteria: BasePart, TIDAK Anchored, bukan Baseplate, bukan bagian karakter/Humanoid
         if obj:IsA("BasePart") and not obj.Anchored and obj.Name ~= "Baseplate" then
             if Players:GetPlayerFromCharacter(obj.Parent) or obj.Parent:FindFirstChildOfClass("Humanoid") then
                 continue
@@ -250,10 +243,9 @@ local function doBringUnanchoredPart()
             
             if obj:GetMass() < 1000 then
                 local distance = (myRoot.Position - obj.Position).Magnitude
-            
-                -- ** LOGIKA PELEPASAN OTOMATIS **
+                
+                -- ** LOGIKA PELEPASAN OTOMATIS KETAT (Menempel) **
                 if distance <= autoReleaseDistance and activeMagnetForces[obj] then
-                     -- Part sudah sangat dekat, lepaskan gaya magnetnya
                      local force = activeMagnetForces[obj]
                      if force and force.Parent then
                          local attachment = force.Attachment0
@@ -261,14 +253,13 @@ local function doBringUnanchoredPart()
                          if attachment and attachment.Parent then attachment:Destroy() end
                      end
                      activeMagnetForces[obj] = nil
-                     continue -- Lanjut ke part berikutnya
+                     continue 
                 end
                 
                 -- Cek Radius Tarik
                 if distance <= bringUnanchoredPartRadius then 
                     currentParts[obj] = true
                     
-                    -- Dapatkan atau buat VectorForce
                     local force = activeMagnetForces[obj]
                     if not force or not force.Parent then
                         force = Instance.new("VectorForce")
@@ -277,7 +268,7 @@ local function doBringUnanchoredPart()
                         force.Attachment0.Parent = obj
                         force.Parent = obj
                         activeMagnetForces[obj] = force
-                        -- Bersihkan saat part dihancurkan
+                        
                         obj.AncestryChanged:Connect(function()
                             if not obj.Parent then
                                 if activeMagnetForces[obj] then activeMagnetForces[obj]:Destroy() end
@@ -286,14 +277,16 @@ local function doBringUnanchoredPart()
                         end)
                     end
                     
-                    -- Hitung Gaya Tarik (Magnet)
+                    -- ** GAYA TARIK KUAT **
                     local directionToPlayer = (myRoot.Position - obj.Position).Unit
+                    local forceMagnitude = obj:GetMass() * bringUnanchoredPartSpeed * 1.5 -- Sedikit diperkuat lagi
                     
-                    -- Gaya Tarik = Massa Part * Kekuatan Target (Speed)
-                    local forceMagnitude = obj:GetMass() * bringUnanchoredPartSpeed
-                    
-                    -- Terapkan Gaya
                     force.Force = directionToPlayer * forceMagnitude
+                    
+                    -- ** PASTIKAN PART TIDAK 'TIDUR' (WAKE UP) **
+                    -- Ini membantu jika part stuck karena fisika Roblox yang menghemat performa
+                    obj.AssemblyLinearVelocity = obj.AssemblyLinearVelocity + Vector3.new(0.01, 0.01, 0.01)
+
                 end
             end
         end
@@ -321,12 +314,11 @@ local function updateCombinedFeatures()
         doBringUnanchoredPart()
     end
     
-    -- Jaga agar koneksi Heartbeat tetap berjalan selama salah satu fitur aktif
     if not isFlyflingActive and not isBringUnanchoredPartActive then
         if flyflingConnection then
             flyflingConnection:Disconnect()
             flyflingConnection = nil
-            cleanupMagnetForces() -- Bersihkan Gaya Magnet saat loop berhenti
+            cleanupMagnetForces() 
         end
     end
 end
@@ -360,11 +352,11 @@ local function toggleBringUnanchoredPart(button)
     if isBringUnanchoredPartActive then
         updateButtonStatus(button, true, "BRING PART UNANCHORED")
         ensureHeartbeatRunning()
-        showNotification("BRING PART UNANCHORED AKTIF (Radius: " .. bringUnanchoredPartRadius .. ", Speed: " .. bringUnanchoredPartSpeed .. ")")
+        showNotification("BRING PART UNANCHORED AKTIF (Magnet Kuat: " .. bringUnanchoredPartSpeed .. ", Lepas Otomatis: " .. autoReleaseDistance .. "s)")
     else
         updateButtonStatus(button, false, "BRING PART UNANCHORED")
         cleanupMagnetForces() -- Membersihkan gaya magnet segera saat dimatikan (INI UNTUK BUANG)
-        showNotification("BRING PART UNANCHORED NONAKTIF.")
+        showNotification("BRING PART UNANCHORED NONAKTIF. Semua gaya tarik dihapus.")
     end
 end
 
@@ -396,10 +388,7 @@ end
 
 -- 🔽 PENAMBAHAN TOMBOL KE FEATURE LIST 🔽
 
--- Tombol BARU: BRING PART UNANCHORED (Tombol Utama)
 local bringPartButton = makeFeatureButton("BRING PART UNANCHORED: OFF", Color3.fromRGB(120, 0, 0), toggleBringUnanchoredPart)
-
--- Tombol FLYFLING PART (Tombol Utama)
 local flyflingButton = makeFeatureButton("FLYFLING PART: OFF", Color3.fromRGB(120, 0, 0), toggleFlyfling)
 
 
@@ -419,14 +408,14 @@ FlyflingLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 FlyflingLayout.SortOrder = Enum.SortOrder.LayoutOrder
 FlyflingLayout.Parent = FlyflingFrame
 
--- Tombol PART FOLLOW
+-- (Semua tombol Flyfling Submenu lainnya sama seperti sebelumnya)
+
 local partFollowButton = makeFeatureButton("PART FOLLOW: OFF", Color3.fromRGB(150, 0, 0), function(button)
     isPartFollowActive = not isPartFollowActive
     updateButtonStatus(button, isPartFollowActive, "PART FOLLOW", true)
     showNotification("PART FOLLOW diatur ke: " .. (isPartFollowActive and "ON" or "OFF")) 
 end, FlyflingFrame)
 
--- Tombol SCAN ANCHORED
 local scanAnchoredButton = makeFeatureButton("SCAN ANCHORED: OFF", Color3.fromRGB(150, 0, 0), function(button)
     isScanAnchoredOn = not isScanAnchoredOn
     updateButtonStatus(button, isScanAnchoredOn, "SCAN ANCHORED", true)
@@ -434,14 +423,12 @@ local scanAnchoredButton = makeFeatureButton("SCAN ANCHORED: OFF", Color3.fromRG
 end, FlyflingFrame)
 
 
--- Tombol Radius ON/OFF
 local radiusButton = makeFeatureButton("RADIUS ON/OFF", Color3.fromRGB(0, 180, 0), function(button)
     isFlyflingRadiusOn = not isFlyflingRadiusOn
     updateButtonStatus(button, isFlyflingRadiusOn, "RADIUS", true)
     showNotification("RADIUS FLING diatur ke: " .. (isFlyflingRadiusOn and "ON" or "OFF")) 
 end, FlyflingFrame)
 
--- Input Jumlah Radius
 local radiusInput = Instance.new("TextBox")
 radiusInput.Name = "RadiusInput"
 radiusInput.Size = UDim2.new(0, 180, 0, 40)
@@ -470,7 +457,6 @@ radiusInput.FocusLost:Connect(function(enterPressed)
 end)
 
 
--- Tombol Speed ON/OFF
 local speedToggleButton = makeFeatureButton("SPEED ON/OFF", Color3.fromRGB(0, 180, 0), function(button)
     isFlyflingSpeedOn = not isFlyflingSpeedOn
     updateButtonStatus(button, isFlyflingSpeedOn, "SPEED", true)
@@ -482,7 +468,6 @@ local speedToggleButton = makeFeatureButton("SPEED ON/OFF", Color3.fromRGB(0, 18
     end
 end, FlyflingFrame)
 
--- Input Jumlah Speed
 local speedInput = Instance.new("TextBox")
 speedInput.Name = "SpeedInput"
 speedInput.Size = UDim2.new(0, 180, 0, 40)
@@ -511,18 +496,12 @@ speedInput.FocusLost:Connect(function(enterPressed)
 end)
 
 
--- Button Speed List (Jumlah x)
 local speedListFrame = Instance.new("Frame")
 speedListFrame.Name = "SpeedListFrame"
 speedListFrame.Size = UDim2.new(0, 180, 0, 40) 
 speedListFrame.BackgroundTransparency = 1
 speedListFrame.Parent = FlyflingFrame
 
-local speedListLayout = Instance.new("UIListLayout")
-speedListLayout.Padding = UDim.new(0, 5)
-speedListLayout.FillDirection = Enum.FillDirection.Horizontal
-speedListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-speedListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 local speedListLayout = Instance.new("UIListLayout")
 speedListLayout.Padding = UDim.new(0, 5)
 speedListLayout.FillDirection = Enum.FillDirection.Horizontal
@@ -556,17 +535,14 @@ for i, speedValue in ipairs(speedOptions) do
     end)
 end
 
--- Pastikan FlyflingLayout dan featureListLayout diperbarui
 FlyflingLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
     FlyflingFrame.Size = UDim2.new(1, -20, 0, FlyflingLayout.AbsoluteContentSize.Y + 10)
-    -- Perluas featureListLayout untuk mengakomodasi FlyflingFrame saat terlihat
     featureListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Fire() 
 end)
 
 
 -- 🔽 LOGIKA CHARACTER ADDED (PENTING UNTUK MEMPERTAHANKAN STATUS) 🔽
 player.CharacterAdded:Connect(function(char)
-    -- Pertahankan status Flyfling Part dan Bring Part
     ensureHeartbeatRunning()
 end)
 
