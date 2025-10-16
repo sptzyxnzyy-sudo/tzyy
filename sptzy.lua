@@ -20,12 +20,12 @@ local isUnanchoredEspActive = false
 local unanchoredEspConnection = nil
 local espMaxDistance = 100 
 
--- ** ⬇️ STATUS FITUR PART CARRIER BARU (Menggantikan Teleporter) ⬇️ **
-local isCarrierActive = false -- Status untuk Part Carrier
+-- ** ⬇️ STATUS FITUR PART CARRIER BARU ⬇️ **
+local isCarrierActive = false 
 local carrierConnection = nil
-local carriedPart = nil -- Part yang sedang dipegang/dibawa
-local carryRadius = 15 -- Radius pencarian part
-local rotationSpeed = 20 -- Kecepatan rotasi part (derajat per Heartbeat)
+local carriedPart = nil 
+local carryRadius = 15 
+local rotationSpeed = 20 
 
 -- 🔽 ANIMASI "BY : Xraxor" 🔽
 do
@@ -176,9 +176,8 @@ end
 
 
 -- 🔽 FUNGSI FLYFLING PART 🔽
--- (Tidak ada perubahan pada logika Flyfling)
-
 local function doFlyfling()
+    -- [Logika Flyfling tetap sama]
     if not isFlyflingActive or not player.Character then return end
 
     local myRoot = player.Character:FindFirstChild("HumanoidRootPart")
@@ -241,8 +240,6 @@ end
 
 
 -- 🔽 FUNGSI UNANCHORED ESP 🔽
--- (Logika ESP dihilangkan dari sini untuk fokus pada Part Carrier, namun ESP tetap berfungsi)
-
 local partEsp = {} 
 local espContainer = Workspace:FindFirstChild("UnanchoredEspContainer") or Instance.new("Folder")
 if not espContainer.Parent then
@@ -259,6 +256,7 @@ local function removeEsp(part)
 end
 
 local function doUnanchoredEsp()
+    -- [Logika ESP tetap sama]
     if not isUnanchoredEspActive or not player.Character then 
         for part, espObjects in pairs(partEsp) do
             removeEsp(part)
@@ -290,8 +288,7 @@ local function doUnanchoredEsp()
         local esp = partEsp[part]
         if not esp then
             esp = {}
-            
-            -- Text Label dan Line (Beam) seperti sebelumnya...
+            -- [Pembuatan Text Label dan Line (Beam) seperti sebelumnya...]
             local textLabel = Instance.new("TextLabel")
             textLabel.BackgroundTransparency = 1
             textLabel.TextScaled = true
@@ -372,14 +369,15 @@ local function toggleUnanchoredEsp(button)
     end
 end
 
--- 🔽 FUNGSI PART CARRIER BARU 🔽
+-- 🔽 FUNGSI PART CARRIER (MODIFIKASI: Constraint Breaker) 🔽
 
 local function findTargetPart(myRoot)
     local closestPart = nil
     local shortestDistance = carryRadius
     
     for _, obj in ipairs(Workspace:GetDescendants()) do
-        if obj:IsA("BasePart") and not obj.Anchored and obj.CanCollide and obj.Name ~= "Baseplate" and obj:GetMass() < 1000 then
+        if obj:IsA("BasePart") and obj.CanCollide and obj.Name ~= "Baseplate" and obj:GetMass() < 1000 then
+            
             -- Lewati jika part adalah bagian dari karakter atau sudah dipegang
             if Players:GetPlayerFromCharacter(obj.Parent) or obj.Parent:FindFirstChildOfClass("Humanoid") then
                 continue
@@ -387,7 +385,7 @@ local function findTargetPart(myRoot)
             if obj == carriedPart then
                 continue
             end
-
+            
             local distance = (myRoot.Position - obj.Position).Magnitude
             
             if distance < shortestDistance then
@@ -399,6 +397,29 @@ local function findTargetPart(myRoot)
     return closestPart
 end
 
+-- FUNGSI BARU: MENGHANCURKAN TALI/KABEL (Constraints)
+local function breakPartConstraints(part)
+    local broken = 0
+    -- Cari Constraints yang terhubung ke Part ini
+    for _, attachment in ipairs(part:GetChildren()) do
+        if attachment:IsA("Attachment") then
+            for _, constraint in ipairs(attachment:GetChildren()) do
+                -- Targetkan Constraints yang biasanya digunakan untuk menggantung atau menghubungkan part
+                if constraint:IsA("RopeConstraint") or constraint:IsA("SpringConstraint") or constraint:IsA("WeldConstraint") then
+                    constraint:Destroy()
+                    broken = broken + 1
+                end
+            end
+        end
+    end
+    
+    -- Cek juga di Parent dan objek di sekitarnya (jika Constraints diletakkan di tempat lain)
+    -- Ini lebih sulit dan bisa menyebabkan False Positives, jadi kita fokus pada part itu sendiri.
+    
+    return broken > 0
+end
+
+
 local function updatePartCarrier()
     if not isCarrierActive or not player.Character then return end
 
@@ -406,40 +427,49 @@ local function updatePartCarrier()
     if not myRoot then return end
 
     if not carriedPart or not carriedPart.Parent then
-        -- Mencari part baru jika tidak ada atau hilang
+        -- Mencari part baru
         carriedPart = findTargetPart(myRoot)
+        
         if carriedPart then
-            -- 1. Buat Weld/Constraint untuk memegang part
+            
+            -- LANGKAH BARU 1: HANCURKAN CONSTRAINTS DULU
+            local wasBroken = breakPartConstraints(carriedPart)
+            if wasBroken then
+                showNotification("Tali/Kabel part " .. carriedPart.Name .. " diputus!")
+                carriedPart.Anchored = false -- Pastikan part bisa bergerak jika Anchored setelah tali putus
+            end
+            
+            -- Jika part masih Anchored setelah Constraints putus (mungkin memang Anchored)
+            if carriedPart.Anchored then
+                showNotification("Part " .. carriedPart.Name .. " Anchored, tidak bisa dibawa.")
+                carriedPart = nil -- Tidak bisa dibawa, batalkan
+                return
+            end
+            
+            -- LANGKAH 2: BUAT WELD UNTUK MEMBAWA PART
             local weld = Instance.new("WeldConstraint")
             weld.Part0 = myRoot
             weld.Part1 = carriedPart
-            weld.Parent = carriedPart -- Disimpan di part yang dibawa
+            weld.Parent = carriedPart 
             carriedPart:SetAttribute("CarrierWeld", weld)
             
             showNotification("Part berhasil diambil: " .. carriedPart.Name)
-            print("Part berhasil diambil: " .. carriedPart.Name)
         else
-            return -- Tidak ada part untuk dibawa
+            return 
         end
     end
 
-    -- 2. Rotasi Part
+    -- LANGKAH 3: ROTASI PART
     local weld = carriedPart:GetAttribute("CarrierWeld")
     if weld and weld.Part0 == myRoot and weld.Part1 == carriedPart then
-        -- Hitung posisi target CFrame yang berputar
-        local offset = Vector3.new(0, 3, -5) -- Di belakang dan di atas karakter
-        
-        -- Aplikasikan rotasi berdasarkan waktu Heartbeat atau variabel rotasi
+        local offset = Vector3.new(0, 3, -5) 
         local rotationAngle = RunService.Heartbeat:Wait() * rotationSpeed 
         
-        -- Rotasi Part di sekitar HumanoidRootPart
-        local currentCFrame = carriedPart.CFrame
-        local newCFrame = currentCFrame * CFrame.Angles(0, math.rad(rotationAngle), 0)
-        
-        -- Update posisi part relatif terhadap pemain + rotasi
-        carriedPart.CFrame = myRoot.CFrame * CFrame.new(offset) * CFrame.fromAxisAngle(Vector3.new(0, 1, 0), rotationAngle)
+        -- Perbarui posisi part agar berputar mengelilingi pemain
+        -- Tambahkan rotasi visual agar part terlihat berputar, bukan hanya mengikuti
+        carriedPart.CFrame = myRoot.CFrame * CFrame.new(offset) * CFrame.Angles(0, math.rad(rotationAngle), 0)
     else
-        -- Jika weld terputus atau rusak
+        -- Jika part terputus, jatuhkan
         carriedPart = nil
     end
 end
@@ -451,6 +481,7 @@ local function dropCarriedPart()
             weld:Destroy()
             carriedPart:SetAttribute("CarrierWeld", nil)
         end
+        carriedPart.AssemblyLinearVelocity = Vector3.new(0,0,0) -- Hentikan gerakan saat dijatuhkan
     end
     carriedPart = nil
 end
@@ -460,24 +491,22 @@ local function togglePartCarrier(button)
 
     if isCarrierActive then
         updateButtonStatus(button, true, "PART CARRIER")
-        -- Mulai mencari dan membawa part
         carrierConnection = RunService.Heartbeat:Connect(updatePartCarrier)
-        showNotification("PART CARRIER AKTIF. Berjalan mendekatlah ke part Unanchored.")
+        showNotification("PART CARRIER (BREAKER) AKTIF. Dekati part yang digantung.")
     else
         updateButtonStatus(button, false, "PART CARRIER")
         if carrierConnection then
             carrierConnection:Disconnect()
             carrierConnection = nil
         end
-        -- Jatuhkan part yang dibawa
         dropCarriedPart()
         showNotification("PART CARRIER NONAKTIF. Part dijatuhkan.")
     end
 end
 
 
--- 🔽 FUNGSI PEMBUAT TOMBOL FITUR 🔽
-
+-- 🔽 FUNGSI PEMBUAT TOMBOL FITUR & GUI 🔽
+-- (Kode GUI dan Tombol tetap sama)
 local function makeFeatureButton(name, color, callback, parent)
     local parentContainer = parent or featureScrollFrame
 
@@ -503,16 +532,11 @@ end
 
 -- 🔽 PENAMBAHAN TOMBOL KE FEATURE LIST 🔽
 
--- GANTI: Tombol TELEPORTER diubah menjadi PART CARRIER
 local partCarrierButton = makeFeatureButton("PART CARRIER: OFF", Color3.fromRGB(120, 0, 0), togglePartCarrier)
-
--- Tombol UNANCHORED ESP
 local unanchoredEspButton = makeFeatureButton("UNANCHORED ESP: OFF", Color3.fromRGB(120, 0, 0), toggleUnanchoredEsp)
-
--- Tombol FLYFLING PART (Tombol Utama)
 local flyflingButton = makeFeatureButton("FLYFLING PART: OFF", Color3.fromRGB(120, 0, 0), toggleFlyfling)
 
--- [Submenu Flyfling tetap sama...]
+-- [Sisanya dari kode GUI dan Flyfling Frame]
 
 local FlyflingFrame = Instance.new("Frame")
 FlyflingFrame.Name = "FlyflingSettings"
@@ -523,7 +547,6 @@ FlyflingFrame.Visible = false
 FlyflingFrame.Parent = featureScrollFrame
 
 local FlyflingLayout = Instance.new("UIListLayout")
--- [Layout dan tombol di dalam FlyflingFrame seperti sebelumnya...]
 FlyflingLayout.Padding = UDim.new(0, 5)
 FlyflingLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 FlyflingLayout.SortOrder = Enum.SortOrder.LayoutOrder
@@ -685,7 +708,7 @@ end)
 
 
 -- Atur status awal tombol
-updateButtonStatus(partCarrierButton, isCarrierActive, "PART CARRIER") -- BARU
+updateButtonStatus(partCarrierButton, isCarrierActive, "PART CARRIER") 
 updateButtonStatus(unanchoredEspButton, isUnanchoredEspActive, "UNANCHORED ESP") 
 updateButtonStatus(flyflingButton, isFlyflingActive, "FLYFLING PART")
 updateButtonStatus(partFollowButton, isPartFollowActive, "PART FOLLOW", true)
