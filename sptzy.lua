@@ -9,14 +9,14 @@ local isPartInteractionActive = false -- Status umum (Flyfling atau Bring)
 local interactionConnection = nil
 
 local isFlyflingActive = false
-local isBringPartActive = false -- FITUR BARU: Menarik Part
+local isBringPartActive = false 
 
 local isFlyflingRadiusOn = true 
 local isFlyflingSpeedOn = true 
 local isPartFollowActive = false 
 local isScanAnchoredOn = false 
-local partInteractionSpeedMultiplier = 100 -- DIGUNAKAN UNTUK FLYFLING DAN BRING
-local partInteractionRadius = 30 -- DIGUNAKAN UNTUK FLYFLING DAN BRING
+local partInteractionSpeedMultiplier = 100 
+local partInteractionRadius = 30 
 
 -- 🔽 ANIMASI "BY : Xraxor" 🔽
 do
@@ -52,6 +52,7 @@ do
     end)
 end
 
+--------------------------------------------------
 
 -- 🔽 GUI Utama 🔽
 local screenGui = Instance.new("ScreenGui")
@@ -105,6 +106,7 @@ featureListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(functi
     frame.Size = UDim2.new(0, 220, 0, newHeight)
 end)
 
+--------------------------------------------------
 
 -- 🔽 FUNGSI UTILITY GLOBAL 🔽
 
@@ -185,6 +187,7 @@ local function updateButtonStatus(button, isActive, featureName, isToggle)
     end
 end
 
+--------------------------------------------------
 
 -- 🔽 FUNGSI UTAMA PART INTERACTION (FLYFLING/BRING) 🔽
 
@@ -241,7 +244,6 @@ local function doPartInteraction()
         part.Velocity = part.Velocity + (force / part:GetMass())
         
         -- Part Follow: Membuat part mengikuti pemain
-        -- Ini umumnya hanya efektif dan masuk akal saat Flyfling (mendorong)
         if isPartFollowActive and isFlyflingActive then 
              part.AssemblyLinearVelocity = Vector3.new(myVelocity.X, part.AssemblyLinearVelocity.Y, myVelocity.Z) 
         end
@@ -250,32 +252,45 @@ end
 
 -- 🔽 FUNGSI TOGGLE UTAMA (Mengelola Flyfling dan Bring) 🔽
 
-local function startPartInteraction(interactionType, button)
-    -- Dapatkan status sebelum dinonaktifkan
-    local wasType = isFlyflingActive and "Flyfling" or (isBringPartActive and "Bring" or nil)
+local function startPartInteraction(interactionType)
+    local wasFlyfling = isFlyflingActive
+    local wasBringPart = isBringPartActive
 
-    -- Matikan semua interaksi
-    isFlyflingActive = false
-    isBringPartActive = false
-    isPartInteractionActive = false
-    
+    -- Logika Baru:
+    if interactionType == "Flyfling" then
+        if wasFlyfling then
+            -- Jika Flyfling sudah aktif, matikan
+            isFlyflingActive = false
+        else
+            -- Jika Flyfling tidak aktif, aktifkan Flyfling dan matikan BringPart
+            isFlyflingActive = true
+            isBringPartActive = false
+        end
+    elseif interactionType == "Bring" then
+        if wasBringPart then
+            -- Jika BringPart sudah aktif, matikan
+            isBringPartActive = false
+        else
+            -- Jika BringPart tidak aktif, aktifkan BringPart dan matikan Flyfling
+            isBringPartActive = true
+            isFlyflingActive = false
+        end
+    end
+
+    isPartInteractionActive = (isFlyflingActive or isBringPartActive)
+
+    -- Manajemen Connection
     if interactionConnection then
         interactionConnection:Disconnect()
         interactionConnection = nil
     end
 
-    -- Atur status baru HANYA jika interaksi yang diklik BERBEDA dengan yang sedang aktif
-    if interactionType == "Flyfling" and wasType ~= "Flyfling" then
-        isFlyflingActive = true
-    elseif interactionType == "Bring" and wasType ~= "Bring" then
-        isBringPartActive = true
-    end
+    -- Update GUI dan Connection
+    local flyflingButton = featureScrollFrame:FindFirstChild("FlyflingPartButton")
+    local bringPartButton = featureScrollFrame:FindFirstChild("BringPartButton")
 
-    isPartInteractionActive = (isFlyflingActive or isBringPartActive)
-
-    -- Update semua tombol utama
-    updateButtonStatus(featureScrollFrame:FindFirstChild("FlyflingPartButton"), isFlyflingActive, "FLYFLING PART")
-    updateButtonStatus(featureScrollFrame:FindFirstChild("BringPartButton"), isBringPartActive, "BRING PART")
+    updateButtonStatus(flyflingButton, isFlyflingActive, "FLYFLING PART")
+    updateButtonStatus(bringPartButton, isBringPartActive, "BRING PART")
 
     if isPartInteractionActive then
         interactionConnection = RunService.Heartbeat:Connect(doPartInteraction)
@@ -287,6 +302,8 @@ local function startPartInteraction(interactionType, button)
         showNotification("PART INTERACTION NONAKTIF.")
     end
 end
+
+--------------------------------------------------
 
 -- 🔽 FUNGSI PEMBUAT TOMBOL FITUR 🔽
 
@@ -316,13 +333,13 @@ end
 -- 🔽 PENAMBAHAN TOMBOL KE FEATURE LIST 🔽
 
 -- Tombol FLYFLING PART (Tombol Utama)
-local flyflingButton = makeFeatureButton("FLYFLING PART: OFF", Color3.fromRGB(120, 0, 0), function(button)
-    startPartInteraction("Flyfling", button)
+local flyflingButton = makeFeatureButton("FLYFLING PART: OFF", Color3.fromRGB(120, 0, 0), function()
+    startPartInteraction("Flyfling")
 end)
 
 -- Tombol BRING PART (Tombol Utama)
-local bringPartButton = makeFeatureButton("BRING PART: OFF", Color3.fromRGB(120, 0, 0), function(button)
-    startPartInteraction("Bring", button)
+local bringPartButton = makeFeatureButton("BRING PART: OFF", Color3.fromRGB(120, 0, 0), function()
+    startPartInteraction("Bring")
 end)
 
 -- 🔽 SUBMENU FLYFLING/BRING PART (Frame) 🔽
@@ -440,6 +457,7 @@ speedListLayout.Padding = UDim.new(0, 5)
 speedListLayout.FillDirection = Enum.FillDirection.Horizontal
 speedListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 speedListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+local speedListLayout_Original = speedListLayout.Parent -- Simpan referensi Parent sebelum diubah
 speedListLayout.Parent = speedListFrame
 
 local speedOptions = {100, 200, 500, 1000} 
@@ -473,6 +491,7 @@ FlyflingLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function(
     featureListLayout.AbsoluteContentSize = featureListLayout.AbsoluteContentSize 
 end)
 
+--------------------------------------------------
 
 -- 🔽 LOGIKA CHARACTER ADDED (PENTING UNTUK MEMPERTAHANKAN STATUS) 🔽
 player.CharacterAdded:Connect(function(char)
@@ -483,7 +502,6 @@ player.CharacterAdded:Connect(function(char)
         end
     end
 end)
-
 
 -- Atur status awal tombol
 updateButtonStatus(flyflingButton, isFlyflingActive, "FLYFLING PART")
