@@ -5,18 +5,18 @@ local RunService = game:GetService("RunService")
 local player = Players.LocalPlayer
 
 -- ** ⬇️ STATUS FITUR PART INTERACTION ⬇️ **
-local isPartInteractionActive = false 
+local isPartInteractionActive = false -- Status umum (Flyfling atau Bring)
 local interactionConnection = nil
 
 local isFlyflingActive = false
-local isBringPartActive = false 
+local isBringPartActive = false -- FITUR BARU: Menarik Part
 
 local isFlyflingRadiusOn = true 
 local isFlyflingSpeedOn = true 
 local isPartFollowActive = false 
 local isScanAnchoredOn = false 
-local partInteractionSpeedMultiplier = 100 
-local partInteractionRadius = 30 
+local partInteractionSpeedMultiplier = 100 -- DIGUNAKAN UNTUK FLYFLING DAN BRING
+local partInteractionRadius = 30 -- DIGUNAKAN UNTUK FLYFLING DAN BRING
 
 -- 🔽 ANIMASI "BY : Xraxor" 🔽
 do
@@ -108,7 +108,7 @@ end)
 
 -- 🔽 FUNGSI UTILITY GLOBAL 🔽
 
--- FUNGSI NOTIFIKASI YANG DIMODIFIKASI
+-- FUNGSI NOTIFIKASI GAYA ROBLOX
 local function showNotification(message)
     local notifGui = Instance.new("ScreenGui")
     notifGui.Name = "Notification"
@@ -118,25 +118,17 @@ local function showNotification(message)
 
     local notifFrame = Instance.new("Frame")
     notifFrame.Size = UDim2.new(0, 300, 0, 40)
-    -- Posisi: Kanan Bawah
     notifFrame.AnchorPoint = Vector2.new(1, 1)
     notifFrame.Position = UDim2.new(1, -10, 1, -10)
-    notifFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40) -- Warna gelap seperti notifikasi sistem
-    notifFrame.BackgroundTransparency = 1 -- Dimulai transparan
+    notifFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40) 
+    notifFrame.BackgroundTransparency = 1 
     notifFrame.BorderSizePixel = 0
     notifFrame.Parent = notifGui
     
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 8)
     corner.Parent = notifFrame
-    
-    -- Efek Blur (Opsional, tergantung konteks game)
-    -- local blur = Instance.new("Frame")
-    -- blur.Size = UDim2.new(1, 0, 1, 0)
-    -- blur.BackgroundColor3 = Color3.new(0, 0, 0)
-    -- blur.BackgroundTransparency = 0.5
-    -- blur.Parent = notifFrame
-    
+        
     local notifLabel = Instance.new("TextLabel")
     notifLabel.Size = UDim2.new(1, 0, 1, 0)
     notifLabel.BackgroundTransparency = 1
@@ -147,16 +139,14 @@ local function showNotification(message)
     notifLabel.Font = Enum.Font.Gotham
     notifLabel.TextXAlignment = Enum.TextXAlignment.Left
     notifLabel.TextWrapped = true
-    notifLabel.TextLabel.Padding = UDim.new(0, 10)
     notifLabel.Parent = notifFrame
     
     local padding = Instance.new("UIPadding")
     padding.PaddingLeft = UDim.new(0, 10)
     padding.Parent = notifLabel
 
-    -- Animation: Slide In and Fade In (like Roblox system)
-    local startPos = UDim2.new(1, 10, 1, -10) -- Mulai sedikit di luar layar
-    local endPos = UDim2.new(1, -10, 1, -10) -- Posisi akhir
+    local startPos = UDim2.new(1, 10, 1, -10) 
+    local endPos = UDim2.new(1, -10, 1, -10) 
 
     notifFrame.Position = startPos
 
@@ -208,42 +198,51 @@ local function doPartInteraction()
     local speed = isFlyflingSpeedOn and partInteractionSpeedMultiplier or 0
     local targetParts = {}
 
+    -- Tentukan arah gaya: 1 untuk Flyfling (menjauh), -1 untuk Bring (mendekat)
     local directionMultiplier = 0
     if isFlyflingActive then
-        directionMultiplier = 1 -- Dorong menjauh (Flyfling)
+        directionMultiplier = 1 
     elseif isBringPartActive then
-        directionMultiplier = -1 -- Tarik mendekat (Bring Part)
+        directionMultiplier = -1 
     else
         return 
     end
 
+    -- Ambil semua part di Workspace
     for _, obj in ipairs(game.Workspace:GetDescendants()) do
         if obj:IsA("BasePart") and obj.Name ~= "Baseplate" then
             if Players:GetPlayerFromCharacter(obj.Parent) or obj.Parent:FindFirstChildOfClass("Humanoid") then
                 continue
             end
             
+            -- Lewati part yang Anchored KECUALI fitur Scan Anchored diaktifkan
             if (not isScanAnchoredOn) and obj.Anchored then
                 continue
             end
 
             local distance = (myRoot.Position - obj.Position).Magnitude
             
+            -- Cek Radius
             if isFlyflingRadiusOn and distance > partInteractionRadius then continue end
             
+            -- Batasi massa part
             if obj:GetMass() < 1000 then 
                  table.insert(targetParts, obj)
             end
         end
     end
 
+    -- Terapkan Gaya
     for _, part in ipairs(targetParts) do
         local direction = (part.Position - myRoot.Position).Unit
         local force = direction * part:GetMass() * speed * 10 * directionMultiplier
         
+        -- Terapkan dorongan/tarikan
         part.Velocity = part.Velocity + (force / part:GetMass())
         
-        if isPartFollowActive and not isBringPartActive then 
+        -- Part Follow: Membuat part mengikuti pemain
+        -- Ini umumnya hanya efektif dan masuk akal saat Flyfling (mendorong)
+        if isPartFollowActive and isFlyflingActive then 
              part.AssemblyLinearVelocity = Vector3.new(myVelocity.X, part.AssemblyLinearVelocity.Y, myVelocity.Z) 
         end
     end
@@ -253,10 +252,9 @@ end
 
 local function startPartInteraction(interactionType, button)
     -- Dapatkan status sebelum dinonaktifkan
-    local wasActive = isFlyflingActive or isBringPartActive
     local wasType = isFlyflingActive and "Flyfling" or (isBringPartActive and "Bring" or nil)
 
-    -- Matikan semua
+    -- Matikan semua interaksi
     isFlyflingActive = false
     isBringPartActive = false
     isPartInteractionActive = false
@@ -283,7 +281,7 @@ local function startPartInteraction(interactionType, button)
         interactionConnection = RunService.Heartbeat:Connect(doPartInteraction)
         FlyflingFrame.Visible = true
         local featureName = isBringPartActive and "BRING PART" or "FLYFLING PART"
-        showNotification(featureName .. " AKTIF (Speed: " .. partInteractionSpeedMultiplier .. "x, Radius: " .. partInteractionRadius .. ")")
+        showNotification(featureName .. " AKTIF (Speed: " .. partInteractionSpeedMultiplier .. "x)")
     else
         FlyflingFrame.Visible = false 
         showNotification("PART INTERACTION NONAKTIF.")
@@ -322,7 +320,7 @@ local flyflingButton = makeFeatureButton("FLYFLING PART: OFF", Color3.fromRGB(12
     startPartInteraction("Flyfling", button)
 end)
 
--- Tombol BRING PART (Tombol Utama BARU)
+-- Tombol BRING PART (Tombol Utama)
 local bringPartButton = makeFeatureButton("BRING PART: OFF", Color3.fromRGB(120, 0, 0), function(button)
     startPartInteraction("Bring", button)
 end)
@@ -480,11 +478,8 @@ end)
 player.CharacterAdded:Connect(function(char)
     -- Pertahankan status Part Interaction
     if isPartInteractionActive then
-        local button = featureScrollFrame:FindFirstChild("FlyflingPartButton")
-        if button then 
-            if not interactionConnection then
-                interactionConnection = RunService.Heartbeat:Connect(doPartInteraction)
-            end
+        if not interactionConnection then
+            interactionConnection = RunService.Heartbeat:Connect(doPartInteraction)
         end
     end
 end)
