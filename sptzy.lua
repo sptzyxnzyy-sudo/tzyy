@@ -191,11 +191,11 @@ local function doFlyfling()
         -- Cek kriteria: BasePart, bukan Baseplate, bukan bagian karakter/Humanoid
         if obj:IsA("BasePart") and obj.Name ~= "Baseplate" then
             -- Lewati jika part tersebut adalah bagian dari karakter pemain lain atau NPC
-            if Players:GetPlayerFromPlayerFromCharacter(obj.Parent) or obj.Parent:FindFirstChildOfClass("Humanoid") then
+            if Players:GetPlayerFromCharacter(obj.Parent) or obj.Parent:FindFirstChildOfClass("Humanoid") then
                 continue
             end
             
-            -- ** MODIFIKASI: Mendukung Scan Anchored Parts **
+            -- MODIFIKASI: Mendukung Scan Anchored Parts
             -- Lewati part yang ditambatkan (Anchored) KECUALI fitur Scan Anchored diaktifkan
             if (not isScanAnchoredOn) and obj.Anchored then
                 continue
@@ -261,7 +261,7 @@ local function doBringPart()
 
     local targetParts = {}
     local myPosition = myRoot.CFrame.Position
-    -- Target 5 stud di depan pemain
+    -- Target 5 stud di depan pemain dan sedikit di atas
     local targetPosition = myPosition + myRoot.CFrame.LookVector * 5 + Vector3.new(0, 1, 0) 
 
     -- Ambil semua part di Workspace
@@ -287,17 +287,17 @@ local function doBringPart()
 
     -- Pindahkan Part
     for _, part in ipairs(targetParts) do
-        -- ** Logika Utama: Unanchor dan Pindah **
+        -- ** PENTING 1: Jadikan Unanchored (Agar part bisa bergerak dan tidak di-freeze) **
         if part.Anchored then
-            part.Anchored = false -- Penting: jadikan Unanchored
+            part.Anchored = false 
         end
         
-        -- Set Network Owner ke pemain untuk kontrol yang lebih baik
+        -- ** PENTING 2: Set Network Owner ke pemain (Agar pergerakan terlihat oleh pemain lain) **
         if part:CanSetNetworkOwnership() then
             part:SetNetworkOwner(player)
         end
 
-        -- Tarik part ke posisi target
+        -- Tarik part ke posisi target menggunakan kecepatan
         local direction = (targetPosition - part.Position).Unit
         local speed = 50 -- Kecepatan tarik
         part.AssemblyLinearVelocity = direction * speed
