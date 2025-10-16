@@ -9,7 +9,7 @@ local isPartInteractionActive = false -- Status umum (Flyfling atau Bring)
 local interactionConnection = nil
 
 local isFlyflingActive = false
-local isBringPartActive = false -- Status untuk Bring Part (Tarik)
+local isBringPartActive = false -- FITUR BARU: Status untuk Bring Part (Tarik)
 
 local isFlyflingRadiusOn = true 
 local isFlyflingSpeedOn = true 
@@ -204,7 +204,7 @@ local function doPartInteraction()
     if isFlyflingActive then
         directionMultiplier = 1 
     elseif isBringPartActive then
-        directionMultiplier = -1 
+        directionMultiplier = -1 -- INI LOGIKA BARU UNTUK MENARIK PART
     else
         return 
     end
@@ -246,7 +246,6 @@ end
 
 
 -- 🔽 FUNGSI TOGGLE UTAMA (Mengelola Flyfling dan Bring) 🔽
--- FUNGSI INI SUDAH DIPERBAIKI DENGAN LOGIKA TOGGLE BERSIH
 local function startPartInteraction(interactionType)
     local wasFlyfling = isFlyflingActive
     local wasBringPart = isBringPartActive
@@ -263,7 +262,7 @@ local function startPartInteraction(interactionType)
         if wasBringPart then
             isBringPartActive = false -- Matikan
         else
-            isBringPartActive = true -- Aktifkan Bring
+            isBringPartActive = true -- Aktifkan Bring (FITUR BARU)
             isFlyflingActive = false -- Pastikan Flyfling mati
         end
     end
@@ -327,7 +326,7 @@ local flyflingButton = makeFeatureButton("FLYFLING PART: OFF", Color3.fromRGB(12
     startPartInteraction("Flyfling")
 end)
 
--- Tombol BRING PART (Tombol Utama)
+-- Tombol BRING PART (Tombol Utama BARU)
 local bringPartButton = makeFeatureButton("BRING PART: OFF", Color3.fromRGB(120, 0, 0), function()
     startPartInteraction("Bring")
 end)
