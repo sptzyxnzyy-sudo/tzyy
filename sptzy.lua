@@ -18,7 +18,8 @@ local flyflingRadius = 30
 -- ** ⬇️ STATUS FITUR BARU: BRING UNANCHORED PART ⬇️ **
 local isBringUnanchoredPartActive = false -- Status fitur baru
 local bringUnanchoredPartRadius = 50 -- Radius part yang ditarik
-local bringUnanchoredPartSpeed = 20 -- Kecepatan tarik part
+local bringUnanchoredPartSpeed = 20 -- Kecepatan tarik part (Sekarang mewakili kekuatan gaya)
+local activeMagnetForces = {} -- **BARU:** Tabel untuk melacak VectorForce yang dibuat
 
 -- 🔽 ANIMASI "BY : Xraxor" 🔽
 do
@@ -191,7 +192,7 @@ local function doFlyfling()
                 continue
             end
             
-            -- Mendukung Scan Anchored Parts (HANYA untuk Fling, BringPart punya logikanya sendiri)
+            -- Mendukung Scan Anchored Parts 
             if (not isScanAnchoredOn) and obj.Anchored then
                 continue
             end
@@ -218,15 +219,17 @@ local function doFlyfling()
     end
 end
 
--- FUNGSI BRING UNANCHORED PART
+-- ** FUNGSI BRING UNANCHORED PART (LOGIKA MAGNET BARU) **
 local function doBringUnanchoredPart()
     if not isBringUnanchoredPartActive or not player.Character then return end
 
     local myRoot = player.Character:FindFirstChild("HumanoidRootPart")
     if not myRoot then return end
 
-    local targetParts = {}
+    local partsToCleanup = {}
+    local currentParts = {}
 
+    -- Ambil semua part di Workspace dan perbarui VectorForce
     for _, obj in ipairs(game.Workspace:GetDescendants()) do
         -- Kriteria: BasePart, TIDAK Anchored, bukan Baseplate, bukan bagian karakter/Humanoid
         if obj:IsA("BasePart") and not obj.Anchored and obj.Name ~= "Baseplate" then
@@ -234,26 +237,63 @@ local function doBringUnanchoredPart()
                 continue
             end
             
-            local distance = (myRoot.Position - obj.Position).Magnitude
+            if obj:GetMass() < 1000 then
+                local distance = (myRoot.Position - obj.Position).Magnitude
             
-            -- Cek Radius Bring
-            if distance > bringUnanchoredPartRadius then continue end
-            
-            if obj:GetMass() < 1000 then 
-                 table.insert(targetParts, obj)
+                -- Cek Radius Bring
+                if distance <= bringUnanchoredPartRadius then 
+                    currentParts[obj] = true
+                    
+                    -- Dapatkan atau buat VectorForce
+                    local force = activeMagnetForces[obj]
+                    if not force or not force.Parent then
+                        force = Instance.new("VectorForce")
+                        force.Force = Vector3.new(0, 0, 0) 
+                        force.Attachment0 = Instance.new("Attachment")
+                        force.Attachment0.Parent = obj
+                        force.Parent = obj
+                        activeMagnetForces[obj] = force
+                        -- Bersihkan saat part dihancurkan
+                        obj.AncestryChanged:Connect(function()
+                            if not obj.Parent then
+                                if activeMagnetForces[obj] then activeMagnetForces[obj]:Destroy() end
+                                activeMagnetForces[obj] = nil
+                            end
+                        end)
+                    end
+                    
+                    -- Hitung Gaya Tarik (Magnet)
+                    local directionToPlayer = (myRoot.Position - obj.Position).Unit
+                    
+                    -- Gaya Tarik = Massa Part * Kecepatan Target (Speed)
+                    local forceMagnitude = obj:GetMass() * bringUnanchoredPartSpeed
+                    
+                    -- Terapkan Gaya
+                    force.Force = directionToPlayer * forceMagnitude
+                end
             end
         end
     end
-
-    -- Terapkan Gaya Tarik
-    for _, part in ipairs(targetParts) do
-        local directionToPlayer = (myRoot.Position - part.Position).Unit
-        
-        -- Gunakan AssemblyLinearVelocity untuk menarik part langsung
-        local targetVelocity = directionToPlayer * bringUnanchoredPartSpeed
-        
-        part.AssemblyLinearVelocity = targetVelocity
+    
+    -- Cleanup VectorForce yang berada di luar jangkauan atau yang tidak lagi ada
+    for part, force in pairs(activeMagnetForces) do
+        if not currentParts[part] or not part.Parent or (myRoot.Position - part.Position).Magnitude > bringUnanchoredPartRadius + 5 then 
+            force:Destroy()
+            activeMagnetForces[part] = nil
+        end
     end
+end
+
+-- Fungsi untuk membersihkan semua VectorForce yang tersisa
+local function cleanupMagnetForces()
+    for _, force in pairs(activeMagnetForces) do
+        if force and force.Parent then
+            local attachment = force.Attachment0
+            force:Destroy()
+            if attachment and attachment.Parent then attachment:Destroy() end
+        end
+    end
+    activeMagnetForces = {}
 end
 
 -- FUNGSI GABUNGAN HEARTBEAT
@@ -270,6 +310,7 @@ local function updateCombinedFeatures()
         if flyflingConnection then
             flyflingConnection:Disconnect()
             flyflingConnection = nil
+            cleanupMagnetForces() -- Bersihkan Gaya Magnet saat loop berhenti
         end
     end
 end
@@ -294,7 +335,6 @@ local function toggleFlyfling(button)
         updateButtonStatus(button, false, "FLYFLING PART")
         FlyflingFrame.Visible = false 
         showNotification("FLYFLING PART NONAKTIF.") 
-        -- updateCombinedFeatures akan mengurus disconnecting jika tidak ada fitur lain yang aktif
     end
 end
 
@@ -307,8 +347,8 @@ local function toggleBringUnanchoredPart(button)
         showNotification("BRING PART UNANCHORED AKTIF (Radius: " .. bringUnanchoredPartRadius .. ", Speed: " .. bringUnanchoredPartSpeed .. ")")
     else
         updateButtonStatus(button, false, "BRING PART UNANCHORED")
+        cleanupMagnetForces() -- Membersihkan gaya magnet segera saat dimatikan
         showNotification("BRING PART UNANCHORED NONAKTIF.")
-        -- updateCombinedFeatures akan mengurus disconnecting jika tidak ada fitur lain yang aktif
     end
 end
 
