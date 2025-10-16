@@ -1,147 +1,672 @@
-local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/bloodball/-back-ups-for-libs/main/wizard"))()
-local Window = Library:NewWindow("Script")
-local Section = Window:NewSection("Credits: TGMANKASKE")
+local TweenService = game:GetService("TweenService")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 
-local copiedPosition = nil
+local player = Players.LocalPlayer
 
-Section:CreateButton("Copy Position", function()
-    local player = game.Players.LocalPlayer
-    local character = player.Character
-    if character and character:FindFirstChild("HumanoidRootPart") then
-        copiedPosition = character.HumanoidRootPart.Position
-        -- Opcional: copiar para a área de transferência (clipboard) se for possível
-        print("Posição copiada:", copiedPosition)
-        -- Para Roblox, copiar para clipboard pode não ser permitido, então printar já ajuda.
-    else
-        warn("Personagem ou HumanoidRootPart não encontrado!")
-    end
+-- ** ⬇️ STATUS GLOBAL ⬇️ **
+local isFlyflingActive = false
+local flyflingConnection = nil
+local isFlyflingRadiusOn = true 
+local isFlyflingSpeedOn = true 
+local isPartFollowActive = false 
+local isScanAnchoredOn = false 
+local flyflingSpeedMultiplier = 100 
+local flyflingRadius = 30 
+
+local isMagnetActive = false
+local magnetConnection = nil
+local magnetRadius = 50 
+local magnetStrength = 500 
+local magnetStatusLabel = nil 
+
+-- 🔽 ANIMASI "BY : Xraxor" 🔽
+do
+    local introGui = Instance.new("ScreenGui")
+    introGui.Name = "IntroAnimation"
+    introGui.ResetOnSpawn = false
+    introGui.Parent = player:WaitForChild("PlayerGui")
+
+    local introLabel = Instance.new("TextLabel")
+    introLabel.Size = UDim2.new(0, 300, 0, 50)
+    introLabel.Position = UDim2.new(0.5, -150, 0.4, 0)
+    introLabel.BackgroundTransparency = 1
+    introLabel.Text = "By : Xraxor"
+    introLabel.TextColor3 = Color3.fromRGB(40, 40, 40)
+    introLabel.TextScaled = true
+    introLabel.Font = Enum.Font.GothamBold
+    introLabel.Parent = introGui
+
+    local tweenInfoMove = TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true)
+    local tweenMove = TweenService:Create(introLabel, tweenInfoMove, {Position = UDim2.new(0.5, -150, 0.42, 0)})
+
+    local tweenInfoColor = TweenInfo.new(2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true)
+    local tweenColor = TweenService:Create(introLabel, tweenInfoColor, {TextColor3 = Color3.fromRGB(0, 0, 0)})
+
+    tweenMove:Play()
+    tweenColor:Play()
+
+    task.wait(2)
+    local fadeOut = TweenService:Create(introLabel, TweenInfo.new(0.5), {TextTransparency = 1})
+    fadeOut:Play()
+    fadeOut.Completed:Connect(function()
+        introGui:Destroy()
+    end)
+end
+
+
+-- 🔽 GUI Utama 🔽
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "CoreFeaturesGUI"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = player:WaitForChild("PlayerGui")
+
+-- Frame utama 
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 220, 0, 100) 
+frame.Position = UDim2.new(0.4, -110, 0.5, -50)
+frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+frame.BorderSizePixel = 0
+frame.Active = true
+frame.Draggable = true
+frame.Parent = screenGui
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 15)
+corner.Parent = frame
+
+-- Judul GUI
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 30)
+title.Position = UDim2.new(0, 0, 0, 0)
+title.BackgroundTransparency = 1
+title.Text = "CORE FEATURES"
+title.TextColor3 = Color3.new(1, 1, 1)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 16
+title.Parent = frame
+
+-- Label Status Magnet di atas judul
+magnetStatusLabel = Instance.new("TextLabel")
+magnetStatusLabel.Name = "MagnetStatusLabel"
+magnetStatusLabel.Size = UDim2.new(1, 0, 0, 15)
+magnetStatusLabel.Position = UDim2.new(0, 0, 0, -15) 
+magnetStatusLabel.BackgroundTransparency = 1
+magnetStatusLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+magnetStatusLabel.Font = Enum.Font.SourceSans
+magnetStatusLabel.TextSize = 12
+magnetStatusLabel.Parent = frame
+
+
+-- ScrollingFrame untuk Daftar Pilihan Fitur
+local featureScrollFrame = Instance.new("ScrollingFrame")
+featureScrollFrame.Name = "FeatureList"
+featureScrollFrame.Size = UDim2.new(1, -20, 1, -40)
+featureScrollFrame.Position = UDim2.new(0.5, -100, 0, 35) 
+featureScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+featureScrollFrame.ScrollBarThickness = 6
+featureScrollFrame.BackgroundTransparency = 1
+featureScrollFrame.Parent = frame
+
+local featureListLayout = Instance.new("UIListLayout")
+featureListLayout.Padding = UDim.new(0, 5)
+featureListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+featureListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+featureListLayout.Parent = featureScrollFrame
+
+featureListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    featureScrollFrame.CanvasSize = UDim2.new(0, 0, 0, featureListLayout.AbsoluteContentSize.Y + 10)
+    local newHeight = math.min(featureListLayout.AbsoluteContentSize.Y + 40 + 30 + 15, 600)
+    frame.Size = UDim2.new(0, 220, 0, newHeight)
 end)
 
-Section:CreateButton("Goto Position", function()
-    local player = game.Players.LocalPlayer
-    local character = player.Character
-    if copiedPosition and character and character:FindFirstChild("HumanoidRootPart") then
-        character.HumanoidRootPart.CFrame = CFrame.new(copiedPosition)
-        print("Teleportado para a posição:", copiedPosition)
-    else
-        warn("Posição não copiada ainda ou personagem não encontrado!")
+
+-- 🔽 FUNGSI UTILITY GLOBAL 🔽
+
+local function updateMagnetStatusLabel()
+    if magnetStatusLabel then
+        local status = isMagnetActive and "ON" or "OFF"
+        local color = isMagnetActive and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
+        magnetStatusLabel.Text = string.format("MAGNET: %s (R: %d, S: %d)", status, math.floor(magnetRadius), math.floor(magnetStrength))
+        magnetStatusLabel.TextColor3 = color
     end
-end)
+end
 
+local function showNotification(message)
+    local notifGui = Instance.new("ScreenGui")
+    notifGui.Name = "Notification"
+    notifGui.ResetOnSpawn = false
+    notifGui.Parent = player:WaitForChild("PlayerGui")
 
+    local notifLabel = Instance.new("TextLabel")
+    notifLabel.Size = UDim2.new(0, 400, 0, 50)
+    notifLabel.Position = UDim2.new(0.5, -200, 0.1, 0)
+    notifLabel.BackgroundTransparency = 1
+    notifLabel.BackgroundColor3 = Color3.new(0, 0, 0)
+    notifLabel.Text = message
+    notifLabel.TextColor3 = Color3.new(1, 1, 1)
+    notifLabel.TextScaled = true
+    notifLabel.Font = Enum.Font.GothamBold
+    notifLabel.Parent = notifGui
 
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = notifLabel
 
-Section:CreateButton("Delet Laser Wall", function()
+    local fadeIn = TweenService:Create(notifLabel, TweenInfo.new(0.3), {TextTransparency = 0, BackgroundTransparency = 0.2, BackgroundColor3 = Color3.fromRGB(0, 100, 200)})
+    local fadeOut = TweenService:Create(notifLabel, TweenInfo.new(0.5), {TextTransparency = 1, BackgroundTransparency = 1})
 
-local function deleteWalls(lasersFolder)
-    if lasersFolder then
-        for _, obj in pairs(lasersFolder:GetChildren()) do
-            if obj.Name == "Wall" then
-                obj:Destroy()
+    fadeIn:Play()
+    fadeIn.Completed:Connect(function()
+        task.wait(1.5)
+        fadeOut:Play()
+        fadeOut.Completed:Connect(function()
+            notifGui:Destroy()
+        end)
+    end)
+end
+
+-- FUNGSI UNTUK MENGGANTI STATUS TOMBOL (SWITCH STYLE)
+local function updateSwitchButtonStatus(button, isActive, featureName)
+    local name = featureName or button.Name:gsub("Button", ""):gsub("_", " "):upper()
+    
+    if isActive then
+        button.Text = name .. ": ON"
+        button.BackgroundColor3 = Color3.fromRGB(0, 180, 0) -- Hijau
+    else
+        button.Text = name .. ": OFF"
+        button.BackgroundColor3 = Color3.fromRGB(150, 0, 0) -- Merah
+    end
+end
+
+-- ** FUNGSI PEMUTUS TALI (Decoupler) **
+local function decouplePart(part)
+    local successCount = 0
+    
+    -- 1. Cek Weld (WeldConstraint, Weld, ManualWeld)
+    for _, weld in ipairs(part:GetChildren()) do
+        if weld:IsA("WeldConstraint") or weld:IsA("Weld") or weld:IsA("ManualWeld") then
+            local otherPart = nil
+            if weld:IsA("WeldConstraint") then
+                otherPart = (weld.Part0 == part and weld.Part1) or (weld.Part1 == part and weld.Part0)
+            elseif weld:IsA("Weld") or weld:IsA("ManualWeld") then
+                otherPart = (weld.Part0 == part and weld.Part1) or (weld.Part1 == part and weld.Part0)
+            end
+
+            if otherPart and otherPart:IsA("BasePart") and otherPart.Anchored then
+                weld:Destroy()
+                successCount = successCount + 1
             end
         end
-        print("Todos os 'Wall' foram deletados em " .. lasersFolder:GetFullName())
-    else
-        warn("Pasta lasers não encontrada!")
     end
-end
 
-local function deleteWallDirectly(parentObj)
-    if parentObj and parentObj:FindFirstChild("Wall") then
-        parentObj.Wall:Destroy()
-        print("Wall deletado em " .. parentObj:GetFullName())
-    else
-        warn("Wall não encontrado em " .. (parentObj and parentObj:GetFullName() or "nil"))
-    end
-end
-
-local plotsChildren = workspace.Plots:GetChildren()
-
-local plotPosLasers = workspace.Plots.plot_pos.plot_model.lasers
-deleteWalls(plotPosLasers)
-
-local indices = {1, 2, 3, 4, 5, 6, 7, 8}
-
-for _, i in ipairs(indices) do
-    local child = plotsChildren[i]
-    if child and child:FindFirstChild("plot_model") and child.plot_model:FindFirstChild("lasers") then
-        deleteWalls(child.plot_model.lasers)
-    else
-        warn("O filho de workspace.Plots na posição "..i.." não possui plot_model.lasers")
-    end
-end
-
-local miscChildren = game:GetService("ReplicatedStorage").Misc:GetChildren()
-local secondChild = miscChildren[2]
-deleteWallDirectly(secondChild)
-
-
-
-end)
-
-Section:CreateButton("Boost Speed", function()
-
-
-local player = game.Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local humanoid = character:WaitForChild("Humanoid")
-
-local normalSpeed = 16
-local boostSpeed = 70 -- change here
-
-local function applySpeedBoost()
-    if humanoid then
-        humanoid.WalkSpeed = boostSpeed
-        print("Speed boost aplicado!")
-    end
-end
-
-humanoid:GetPropertyChangedSignal("WalkSpeed"):Connect(function()
-    if humanoid.WalkSpeed ~= boostSpeed then
-        wait(0.1)
-        applySpeedBoost()
-    end
-end)
-
-player.CharacterAdded:Connect(function(char)
-    character = char
-    humanoid = character:WaitForChild("Humanoid")
-    wait(0.5)
-    applySpeedBoost()
-    humanoid:GetPropertyChangedSignal("WalkSpeed"):Connect(function()
-        if humanoid.WalkSpeed ~= boostSpeed then
-            wait(0.1)
-            applySpeedBoost()
+    -- 2. Cek Constraints (Rods, Ropes, Springs)
+    for _, constraint in ipairs(part:GetChildren()) do
+        if constraint:IsA("Constraint") and (constraint:IsA("RopeConstraint") or constraint:IsA("RodConstraint") or constraint:IsA("SpringConstraint")) then
+            local att0 = constraint.Attachment0
+            local att1 = constraint.Attachment1
+            
+            local part0 = att0 and att0.Parent:IsA("BasePart") and att0.Parent
+            local part1 = att1 and att1.Parent:IsA("BasePart") and att1.Parent
+            
+            if (part0 and part0.Anchored) or (part1 and part1.Anchored) then
+                constraint:Destroy()
+                if att0 and att0.Parent == part then att0:Destroy() end
+                if att1 and att1.Parent == part then att1:Destroy() end
+                successCount = successCount + 1
+            end
         end
+    end
+
+    return successCount > 0
+end
+
+
+-- 🔽 FUNGSI MAGNET PART 🔽
+local function doMagnet()
+    if not isMagnetActive or not player.Character then return end
+
+    local myRoot = player.Character:FindFirstChild("HumanoidRootPart")
+    if not myRoot then return end
+
+    local targetParts = {}
+
+    for _, obj in ipairs(game.Workspace:GetDescendants()) do
+        if obj:IsA("BasePart") and obj.Name ~= "Baseplate" then
+            if Players:GetPlayerFromCharacter(obj.Parent) or obj.Parent:FindFirstChildOfClass("Humanoid") then
+                continue
+            end
+            
+            if obj.Anchored then
+                continue
+            end
+            
+            local distance = (myRoot.Position - obj.Position).Magnitude
+            
+            if distance <= magnetRadius then 
+                if obj:GetMass() < 1000 then 
+                    table.insert(targetParts, obj)
+                end
+            end
+        end
+    end
+
+    for _, part in ipairs(targetParts) do
+        -- Coba putuskan tali/weld sebelum menarik
+        decouplePart(part)
+
+        local direction = (myRoot.Position - part.Position).Unit 
+        
+        local distance = (myRoot.Position - part.Position).Magnitude
+        local effectiveStrength = magnetStrength / math.max(distance * distance, 1) 
+        
+        -- Gunakan ApplyImpulse untuk dorongan sekali per frame
+        part:ApplyImpulse(direction * part:GetMass() * effectiveStrength * RunService.Heartbeat:Wait()) 
+    end
+end
+
+local function toggleMagnet(button)
+    isMagnetActive = not isMagnetActive
+    
+    if isMagnetActive then
+        updateSwitchButtonStatus(button, true, "MAGNET PART")
+        magnetConnection = RunService.Heartbeat:Connect(doMagnet)
+        local frame = featureScrollFrame:FindFirstChild("MagnetSettings")
+        if frame then frame.Visible = true end
+        showNotification("MAGNET PART AKTIF (Radius: " .. magnetRadius .. ", Strength: " .. magnetStrength .. ")")
+    else
+        updateSwitchButtonStatus(button, false, "MAGNET PART")
+        if magnetConnection then
+            magnetConnection:Disconnect()
+            magnetConnection = nil
+        end
+        local frame = featureScrollFrame:FindFirstChild("MagnetSettings")
+        if frame then frame.Visible = false end
+        showNotification("MAGNET PART NONAKTIF.")
+    end
+    updateMagnetStatusLabel() 
+end
+
+
+-- 🔽 FUNGSI FLYFLING PART 🔽
+
+local function doFlyfling()
+    if not isFlyflingActive or not player.Character then return end
+
+    local myRoot = player.Character:FindFirstChild("HumanoidRootPart")
+    if not myRoot then return end
+
+    local myVelocity = myRoot.Velocity
+    local speed = isFlyflingSpeedOn and flyflingSpeedMultiplier or 0
+    local targetParts = {}
+
+    for _, obj in ipairs(game.Workspace:GetDescendants()) do
+        if obj:IsA("BasePart") and obj.Name ~= "Baseplate" then
+            if Players:GetPlayerFromCharacter(obj.Parent) or obj.Parent:FindFirstChildOfClass("Humanoid") then
+                continue
+            end
+            
+            local isAttached = false
+            for _, child in ipairs(obj:GetChildren()) do
+                 if child:IsA("WeldConstraint") or child:IsA("Weld") or child:IsA("ManualWeld") or child:IsA("RopeConstraint") or child:IsA("RodConstraint") then
+                    isAttached = true
+                    break
+                end
+            end
+            
+            local isAnchored = obj.Anchored
+            
+            -- Lewati jika Anchored dan Scan Anchored OFF
+            if (not isScanAnchoredOn) and isAnchored then
+                continue
+            end
+            
+            -- Jika 'Scan Anchored' ON, coba putuskan tali jika part terikat (dan tidak Anchored)
+            if isScanAnchoredOn and isAttached and (not isAnchored) then
+                 decouplePart(obj)
+            end
+
+            local distance = (myRoot.Position - obj.Position).Magnitude
+            
+            if isFlyflingRadiusOn and distance > flyflingRadius then continue end
+            
+            if obj:GetMass() < 1000 then 
+                 table.insert(targetParts, obj)
+            end
+        end
+    end
+
+    for _, part in ipairs(targetParts) do
+        local direction = (part.Position - myRoot.Position).Unit
+        local force = direction * part:GetMass() * speed * 10 
+        
+        part.Velocity = part.Velocity + (force / part:GetMass())
+        
+        if isPartFollowActive then
+            part.AssemblyLinearVelocity = Vector3.new(myVelocity.X, part.AssemblyLinearVelocity.Y, myVelocity.Z) 
+        end
+    end
+end
+
+local function toggleFlyfling(button)
+    isFlyflingActive = not isFlyflingActive
+    
+    if isFlyflingActive then
+        updateSwitchButtonStatus(button, true, "FLYFLING PART")
+        flyflingConnection = RunService.Heartbeat:Connect(doFlyfling)
+        local frame = featureScrollFrame:FindFirstChild("FlyflingSettings")
+        if frame then frame.Visible = true end
+        showNotification("FLYFLING PART AKTIF (Speed: " .. flyflingSpeedMultiplier .. "x, Radius: " .. flyflingRadius .. ")") 
+    else
+        updateSwitchButtonStatus(button, false, "FLYFLING PART")
+        if flyflingConnection then
+            flyflingConnection:Disconnect()
+            flyflingConnection = nil
+        end
+        local frame = featureScrollFrame:FindFirstChild("FlyflingSettings")
+        if frame then frame.Visible = false end
+        showNotification("FLYFLING PART NONAKTIF.") 
+    end
+end
+
+
+-- 🔽 FUNGSI PEMBUAT TOMBOL FITUR 🔽
+
+local function makeFeatureButton(name, color, callback, parent)
+    local parentContainer = parent or featureScrollFrame
+
+    local featButton = Instance.new("TextButton")
+    featButton.Name = name:gsub(" ", "") .. "Button"
+    featButton.Size = UDim2.new(0, 180, 0, 40)
+    featButton.BackgroundColor3 = color
+    featButton.Text = name
+    featButton.TextColor3 = Color3.new(1, 1, 1)
+    featButton.Font = Enum.Font.GothamBold
+    featButton.TextSize = 12
+    featButton.Parent = parentContainer
+
+    local featCorner = Instance.new("UICorner")
+    featCorner.CornerRadius = UDim.new(0, 10)
+    featCorner.Parent = featButton
+
+    featButton.MouseButton1Click:Connect(function()
+        callback(featButton)
     end)
+    return featButton
+end
+
+local function makeFeatureToggleButton(name, initialStatus, callback, parent)
+    local button = makeFeatureButton(name, Color3.fromRGB(150, 0, 0), callback, parent)
+    updateSwitchButtonStatus(button, initialStatus, name)
+    return button
+end
+
+-- 🔽 PENAMBAHAN TOMBOL KE FEATURE LIST 🔽
+
+-- Tombol Utama: MAGNET PART
+local magnetButton = makeFeatureToggleButton("MAGNET PART", isMagnetActive, toggleMagnet)
+
+-- 🔽 SUBMENU MAGNET PART (Frame) 🔽
+local MagnetFrame = Instance.new("Frame")
+MagnetFrame.Name = "MagnetSettings"
+MagnetFrame.Size = UDim2.new(1, -20, 0, 140) 
+MagnetFrame.Position = UDim2.new(0, 10, 0, 0)
+MagnetFrame.BackgroundTransparency = 1
+MagnetFrame.Visible = isMagnetActive 
+MagnetFrame.Parent = featureScrollFrame
+
+local MagnetLayout = Instance.new("UIListLayout")
+MagnetLayout.Padding = UDim.new(0, 5)
+MagnetLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+MagnetLayout.SortOrder = Enum.SortOrder.LayoutOrder
+MagnetLayout.Parent = MagnetFrame
+
+-- Input Radius Magnet
+local magnetRadiusInput = Instance.new("TextBox")
+magnetRadiusInput.Name = "MagnetRadiusInput"
+magnetRadiusInput.Size = UDim2.new(0, 180, 0, 40)
+magnetRadiusInput.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+magnetRadiusInput.PlaceholderText = "Atur Radius Magnet: " .. tostring(magnetRadius) 
+magnetRadiusInput.Text = ""
+magnetRadiusInput.TextColor3 = Color3.new(1, 1, 1)
+magnetRadiusInput.Font = Enum.Font.Gotham
+magnetRadiusInput.TextSize = 12
+magnetRadiusInput.Parent = MagnetFrame
+
+local radiusCorner = Instance.new("UICorner")
+radiusCorner.CornerRadius = UDim.new(0, 10)
+radiusCorner.Parent = magnetRadiusInput
+
+magnetRadiusInput.FocusLost:Connect(function(enterPressed)
+    if enterPressed then
+        local newRadius = tonumber(magnetRadiusInput.Text)
+        if newRadius and newRadius >= 0 then
+            magnetRadius = newRadius
+            magnetRadiusInput.PlaceholderText = "Atur Radius Magnet: " .. tostring(magnetRadius)
+            magnetRadiusInput.Text = "" 
+            showNotification("Radius Magnet diatur ke: " .. tostring(newRadius))
+            updateMagnetStatusLabel() 
+        else
+            magnetRadiusInput.Text = "Invalid Number!"
+            task.wait(1)
+            magnetRadiusInput.Text = ""
+        end
+    end
 end)
 
-applySpeedBoost()
+-- Input Kekuatan Magnet
+local magnetStrengthInput = Instance.new("TextBox")
+magnetStrengthInput.Name = "MagnetStrengthInput"
+magnetStrengthInput.Size = UDim2.new(0, 180, 0, 40)
+magnetStrengthInput.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+magnetStrengthInput.PlaceholderText = "Atur Kekuatan Magnet: " .. tostring(magnetStrength) 
+magnetStrengthInput.Text = ""
+magnetStrengthInput.TextColor3 = Color3.new(1, 1, 1)
+magnetStrengthInput.Font = Enum.Font.Gotham
+magnetStrengthInput.TextSize = 12
+magnetStrengthInput.Parent = MagnetFrame
 
-game:GetService("Players").LocalPlayer.Idled:Connect(function()
-    game:GetService("VirtualUser"):Button2Down(Vector2.new(0,0),workspace.CurrentCamera.CFrame)
-    wait(1)
-    game:GetService("VirtualUser"):Button2Up(Vector2.new(0,0),workspace.CurrentCamera.CFrame)
+local strengthCorner = Instance.new("UICorner")
+strengthCorner.CornerRadius = UDim.new(0, 10)
+strengthCorner.Parent = magnetStrengthInput
+
+magnetStrengthInput.FocusLost:Connect(function(enterPressed)
+    if enterPressed then
+        local newStrength = tonumber(magnetStrengthInput.Text)
+        if newStrength and newStrength >= 0 then
+            magnetStrength = newStrength
+            magnetStrengthInput.PlaceholderText = "Atur Kekuatan Magnet: " .. tostring(magnetStrength)
+            magnetStrengthInput.Text = "" 
+            showNotification("Kekuatan Magnet diatur ke: " .. tostring(newStrength))
+            updateMagnetStatusLabel() 
+        else
+            magnetStrengthInput.Text = "Invalid Number!"
+            task.wait(1)
+            magnetStrengthInput.Text = ""
+        end
+    end
 end)
 
-print("Boost speed com bypass e anti-kick ativado.")
+-- Tombol Utama: FLYFLING PART
+local flyflingButton = makeFeatureToggleButton("FLYFLING PART", isFlyflingActive, toggleFlyfling)
 
+-- 🔽 SUBMENU FLYFLING PART (Frame) 🔽
+local FlyflingFrame = Instance.new("Frame")
+FlyflingFrame.Name = "FlyflingSettings"
+FlyflingFrame.Size = UDim2.new(1, -20, 0, 310) 
+FlyflingFrame.Position = UDim2.new(0, 10, 0, 0)
+FlyflingFrame.BackgroundTransparency = 1
+FlyflingFrame.Visible = isFlyflingActive
+FlyflingFrame.Parent = featureScrollFrame
+
+local FlyflingLayout = Instance.new("UIListLayout")
+FlyflingLayout.Padding = UDim.new(0, 5)
+FlyflingLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+FlyflingLayout.SortOrder = Enum.SortOrder.LayoutOrder
+FlyflingLayout.Parent = FlyflingFrame
+
+-- Tombol PART FOLLOW (Toggle)
+local partFollowButton = makeFeatureToggleButton("PART FOLLOW", isPartFollowActive, function(button)
+    isPartFollowActive = not isPartFollowActive
+    updateSwitchButtonStatus(button, isPartFollowActive, "PART FOLLOW")
+    showNotification("PART FOLLOW diatur ke: " .. (isPartFollowActive and "ON" or "OFF"))
+end, FlyflingFrame)
+
+-- Tombol SCAN ANCHORED (Toggle)
+local scanAnchoredButton = makeFeatureToggleButton("SCAN ANCHORED (DECOUPLE)", isScanAnchoredOn, function(button)
+    isScanAnchoredOn = not isScanAnchoredOn
+    updateSwitchButtonStatus(button, isScanAnchoredOn, "SCAN ANCHORED (DECOUPLE)")
+    showNotification("SCAN ANCHORED (DECOUPLE) diatur ke: " .. (isScanAnchoredOn and "ON" or "OFF"))
+end, FlyflingFrame)
+
+
+-- Tombol Radius ON/OFF (Toggle)
+local radiusButton = makeFeatureToggleButton("RADIUS ON/OFF", isFlyflingRadiusOn, function(button)
+    isFlyflingRadiusOn = not isFlyflingRadiusOn
+    updateSwitchButtonStatus(button, isFlyflingRadiusOn, "RADIUS ON/OFF")
+    showNotification("RADIUS FLING diatur ke: " .. (isFlyflingRadiusOn and "ON" or "OFF"))
+end, FlyflingFrame)
+
+-- Input Jumlah Radius
+local radiusInput = Instance.new("TextBox")
+radiusInput.Name = "RadiusInput"
+radiusInput.Size = UDim2.new(0, 180, 0, 40)
+radiusInput.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+radiusInput.PlaceholderText = "Atur Radius: " .. tostring(flyflingRadius) 
+radiusInput.Text = ""
+radiusInput.TextColor3 = Color3.new(1, 1, 1)
+radiusInput.Font = Enum.Font.Gotham
+radiusInput.TextSize = 12
+radiusInput.Parent = FlyflingFrame
+
+local radiusCornerFling = Instance.new("UICorner")
+radiusCornerFling.CornerRadius = UDim.new(0, 10)
+radiusCornerFling.Parent = radiusInput
+
+radiusInput.FocusLost:Connect(function(enterPressed)
+    if enterPressed then
+        local newRadius = tonumber(radiusInput.Text)
+        if newRadius and newRadius >= 0 then
+            flyflingRadius = newRadius
+            radiusInput.PlaceholderText = "Atur Radius: " .. tostring(flyflingRadius)
+            radiusInput.Text = "" 
+            showNotification("Radius diatur ke: " .. tostring(newRadius))
+        else
+            radiusInput.Text = "Invalid Number!"
+            task.wait(1)
+            radiusInput.Text = ""
+        end
+    end
 end)
 
-local Section = Window:NewSection("Links")
- 
-Section:CreateButton("Discord Group", function()
-print("HI")
- 
-setclipboard("https://discord.gg/8A6k73JqCM")
-toclipboard("https://discord.gg/8A6k73JqCM")
- 
+
+-- Tombol Speed ON/OFF (Toggle)
+local speedToggleButton = makeFeatureToggleButton("SPEED ON/OFF", isFlyflingSpeedOn, function(button)
+    isFlyflingSpeedOn = not isFlyflingSpeedOn
+    updateSwitchButtonStatus(button, isFlyflingSpeedOn, "SPEED ON/OFF")
+    showNotification("SPEED FLING diatur ke: " .. (isFlyflingSpeedOn and "ON" or "OFF"))
+    
+    local speedInput = FlyflingFrame:FindFirstChild("SpeedInput")
+    if speedInput then
+        speedInput.PlaceholderText = "Speed: " .. tostring(flyflingSpeedMultiplier)
+    end
+end, FlyflingFrame)
+
+-- Input Jumlah Speed
+local speedInput = Instance.new("TextBox")
+speedInput.Name = "SpeedInput"
+speedInput.Size = UDim2.new(0, 180, 0, 40)
+speedInput.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+speedInput.PlaceholderText = "Atur Speed: " .. tostring(flyflingSpeedMultiplier) 
+speedInput.Text = ""
+speedInput.TextColor3 = Color3.new(1, 1, 1)
+speedInput.Font = Enum.Font.Gotham
+speedInput.TextSize = 12
+speedInput.Parent = FlyflingFrame
+
+local speedCornerFling = Instance.new("UICorner")
+speedCornerFling.CornerRadius = UDim.new(0, 10)
+speedCornerFling.Parent = speedInput
+
+speedInput.FocusLost:Connect(function(enterPressed)
+    if enterPressed then
+        local newSpeed = tonumber(speedInput.Text)
+        if newSpeed and newSpeed >= 0 then
+            flyflingSpeedMultiplier = newSpeed
+            speedInput.PlaceholderText = "Atur Speed: " .. tostring(flyflingSpeedMultiplier)
+            speedInput.Text = "" 
+            showNotification("Speed diatur ke: " .. tostring(newSpeed) .. "x") 
+        else
+            speedInput.Text = "Invalid Number!"
+            task.wait(1)
+            speedInput.Text = ""
+        end
+    end
 end)
- 
-Section:CreateButton("Youtube", function()
-print("HI")
- 
-setclipboard("https://www.youtube.com/@TGMANKASKE")
-toclipboard("https://www.youtube.com/@TGMANKASKE")
- 
+
+
+-- Button Speed List (Jumlah x)
+local speedListFrame = Instance.new("Frame")
+speedListFrame.Name = "SpeedListFrame"
+speedListFrame.Size = UDim2.new(0, 180, 0, 40) 
+speedListFrame.BackgroundTransparency = 1
+speedListFrame.Parent = FlyflingFrame
+
+local speedListLayout = Instance.new("UIListLayout")
+speedListLayout.Padding = UDim.new(0, 5)
+speedListLayout.FillDirection = Enum.FillDirection.Horizontal
+speedListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+speedListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+speedListLayout.Parent = speedListFrame
+
+local speedOptions = {100, 200, 500, 1000} 
+
+for i, speedValue in ipairs(speedOptions) do
+    local speedListItem = Instance.new("TextButton")
+    speedListItem.Name = "SpeedList" .. speedValue .. "Button"
+    speedListItem.Size = UDim2.new(1 / #speedOptions, -5, 1, 0) 
+    speedListItem.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    speedListItem.Text = tostring(speedValue) .. "x"
+    speedListItem.TextColor3 = Color3.new(1, 1, 1)
+    speedListItem.Font = Enum.Font.GothamBold
+    speedListItem.TextSize = 10
+    speedListItem.Parent = speedListFrame
+
+    local listItemCorner = Instance.new("UICorner")
+    listItemCorner.CornerRadius = UDim.new(0, 5)
+    listItemCorner.Parent = speedListItem
+
+    speedListItem.MouseButton1Click:Connect(function()
+        flyflingSpeedMultiplier = speedValue
+        speedInput.PlaceholderText = "Atur Speed: " .. tostring(flyflingSpeedMultiplier)
+        speedInput.Text = "" 
+        showNotification("Flyfling Speed diatur ke: " .. tostring(speedValue) .. "x") 
+    end)
+end
+
+-- Update layout size
+MagnetLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    MagnetFrame.Size = UDim2.new(1, -20, 0, MagnetLayout.AbsoluteContentSize.Y + 10)
+    featureListLayout.AbsoluteContentSize = featureListLayout.AbsoluteContentSize 
 end)
+
+FlyflingLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    FlyflingFrame.Size = UDim2.new(1, -20, 0, FlyflingLayout.AbsoluteContentSize.Y + 10)
+    featureListLayout.AbsoluteContentSize = featureListLayout.AbsoluteContentSize 
+end)
+
+
+-- 🔽 LOGIKA CHARACTER ADDED 🔽
+player.CharacterAdded:Connect(function(char)
+    if isFlyflingActive and not flyflingConnection then
+        flyflingConnection = RunService.Heartbeat:Connect(doFlyfling)
+    end
+    if isMagnetActive and not magnetConnection then
+        magnetConnection = RunService.Heartbeat:Connect(doMagnet)
+    end
+    updateMagnetStatusLabel() 
+end)
+
+
+-- Atur status awal
+updateMagnetStatusLabel()
