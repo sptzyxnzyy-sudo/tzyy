@@ -1,31 +1,22 @@
 local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local Workspace = game:GetService("Workspace")
 
 local player = Players.LocalPlayer
 
--- ** ⬇️ STATUS FITUR FLYFLING PART ⬇️ **
+-- ** ⬇️ STATUS FITUR PART INTERACTION ⬇️ **
+local isPartInteractionActive = false 
+local interactionConnection = nil
+
 local isFlyflingActive = false
-local flyflingConnection = nil
+local isBringPartActive = false 
+
 local isFlyflingRadiusOn = true 
 local isFlyflingSpeedOn = true 
 local isPartFollowActive = false 
 local isScanAnchoredOn = false 
-local flyflingSpeedMultiplier = 100 
-local flyflingRadius = 30 
-
--- ** ⬇️ STATUS FITUR UNANCHORED ESP ⬇️ **
-local isUnanchoredEspActive = false 
-local unanchoredEspConnection = nil
-local espMaxDistance = 100 
-
--- ** ⬇️ STATUS FITUR PART CARRIER BARU ⬇️ **
-local isCarrierActive = false 
-local carrierConnection = nil
-local carriedPart = nil 
-local carryRadius = 15 
-local rotationSpeed = 20 
+local partInteractionSpeedMultiplier = 100 
+local partInteractionRadius = 30 
 
 -- 🔽 ANIMASI "BY : Xraxor" 🔽
 do
@@ -117,35 +108,65 @@ end)
 
 -- 🔽 FUNGSI UTILITY GLOBAL 🔽
 
+-- FUNGSI NOTIFIKASI YANG DIMODIFIKASI
 local function showNotification(message)
     local notifGui = Instance.new("ScreenGui")
     notifGui.Name = "Notification"
     notifGui.ResetOnSpawn = false
+    notifGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     notifGui.Parent = player:WaitForChild("PlayerGui")
 
-    local notifLabel = Instance.new("TextLabel")
-    notifLabel.Size = UDim2.new(0, 400, 0, 50)
-    notifLabel.Position = UDim2.new(0.5, -200, 0.1, 0)
-    notifLabel.BackgroundTransparency = 1
-    notifLabel.BackgroundColor3 = Color3.new(0, 0, 0)
-    notifLabel.Text = message
-    notifLabel.TextColor3 = Color3.new(1, 1, 1)
-    notifLabel.TextScaled = true
-    notifLabel.Font = Enum.Font.GothamBold
-    notifLabel.Parent = notifGui
-
+    local notifFrame = Instance.new("Frame")
+    notifFrame.Size = UDim2.new(0, 300, 0, 40)
+    -- Posisi: Kanan Bawah
+    notifFrame.AnchorPoint = Vector2.new(1, 1)
+    notifFrame.Position = UDim2.new(1, -10, 1, -10)
+    notifFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40) -- Warna gelap seperti notifikasi sistem
+    notifFrame.BackgroundTransparency = 1 -- Dimulai transparan
+    notifFrame.BorderSizePixel = 0
+    notifFrame.Parent = notifGui
+    
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 8)
-    corner.Parent = notifLabel
+    corner.Parent = notifFrame
+    
+    -- Efek Blur (Opsional, tergantung konteks game)
+    -- local blur = Instance.new("Frame")
+    -- blur.Size = UDim2.new(1, 0, 1, 0)
+    -- blur.BackgroundColor3 = Color3.new(0, 0, 0)
+    -- blur.BackgroundTransparency = 0.5
+    -- blur.Parent = notifFrame
+    
+    local notifLabel = Instance.new("TextLabel")
+    notifLabel.Size = UDim2.new(1, 0, 1, 0)
+    notifLabel.BackgroundTransparency = 1
+    notifLabel.Text = message
+    notifLabel.TextColor3 = Color3.new(1, 1, 1)
+    notifLabel.TextScaled = false
+    notifLabel.TextSize = 14
+    notifLabel.Font = Enum.Font.Gotham
+    notifLabel.TextXAlignment = Enum.TextXAlignment.Left
+    notifLabel.TextWrapped = true
+    notifLabel.TextLabel.Padding = UDim.new(0, 10)
+    notifLabel.Parent = notifFrame
+    
+    local padding = Instance.new("UIPadding")
+    padding.PaddingLeft = UDim.new(0, 10)
+    padding.Parent = notifLabel
 
-    local fadeIn = TweenService:Create(notifLabel, TweenInfo.new(0.3), {TextTransparency = 0, BackgroundTransparency = 0.2, BackgroundColor3 = Color3.fromRGB(0, 100, 200)})
-    local fadeOut = TweenService:Create(notifLabel, TweenInfo.new(0.5), {TextTransparency = 1, BackgroundTransparency = 1})
+    -- Animation: Slide In and Fade In (like Roblox system)
+    local startPos = UDim2.new(1, 10, 1, -10) -- Mulai sedikit di luar layar
+    local endPos = UDim2.new(1, -10, 1, -10) -- Posisi akhir
 
-    fadeIn:Play()
-    fadeIn.Completed:Connect(function()
-        task.wait(1.5)
-        fadeOut:Play()
-        fadeOut.Completed:Connect(function()
+    notifFrame.Position = startPos
+
+    local tweenIn = TweenService:Create(notifFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Position = endPos, BackgroundTransparency = 0.1})
+    local tweenOut = TweenService:Create(notifFrame, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.In, 0, false, 1.5), {Position = startPos, BackgroundTransparency = 1})
+
+    tweenIn:Play()
+    tweenIn.Completed:Connect(function()
+        tweenOut:Play()
+        tweenOut.Completed:Connect(function()
             notifGui:Destroy()
         end)
     end)
@@ -175,17 +196,26 @@ local function updateButtonStatus(button, isActive, featureName, isToggle)
 end
 
 
--- 🔽 FUNGSI FLYFLING PART 🔽
-local function doFlyfling()
-    -- [Logika Flyfling tetap sama]
-    if not isFlyflingActive or not player.Character then return end
+-- 🔽 FUNGSI UTAMA PART INTERACTION (FLYFLING/BRING) 🔽
+
+local function doPartInteraction()
+    if not isPartInteractionActive or not player.Character then return end
 
     local myRoot = player.Character:FindFirstChild("HumanoidRootPart")
     if not myRoot then return end
 
     local myVelocity = myRoot.Velocity
-    local speed = isFlyflingSpeedOn and flyflingSpeedMultiplier or 0
+    local speed = isFlyflingSpeedOn and partInteractionSpeedMultiplier or 0
     local targetParts = {}
+
+    local directionMultiplier = 0
+    if isFlyflingActive then
+        directionMultiplier = 1 -- Dorong menjauh (Flyfling)
+    elseif isBringPartActive then
+        directionMultiplier = -1 -- Tarik mendekat (Bring Part)
+    else
+        return 
+    end
 
     for _, obj in ipairs(game.Workspace:GetDescendants()) do
         if obj:IsA("BasePart") and obj.Name ~= "Baseplate" then
@@ -199,7 +229,7 @@ local function doFlyfling()
 
             local distance = (myRoot.Position - obj.Position).Magnitude
             
-            if isFlyflingRadiusOn and distance > flyflingRadius then continue end
+            if isFlyflingRadiusOn and distance > partInteractionRadius then continue end
             
             if obj:GetMass() < 1000 then 
                  table.insert(targetParts, obj)
@@ -209,304 +239,59 @@ local function doFlyfling()
 
     for _, part in ipairs(targetParts) do
         local direction = (part.Position - myRoot.Position).Unit
-        local force = direction * part:GetMass() * speed * 10 
+        local force = direction * part:GetMass() * speed * 10 * directionMultiplier
         
         part.Velocity = part.Velocity + (force / part:GetMass())
         
-        if isPartFollowActive then
-            part.AssemblyLinearVelocity = Vector3.new(myVelocity.X, part.AssemblyLinearVelocity.Y, myVelocity.Z) 
+        if isPartFollowActive and not isBringPartActive then 
+             part.AssemblyLinearVelocity = Vector3.new(myVelocity.X, part.AssemblyLinearVelocity.Y, myVelocity.Z) 
         end
     end
 end
 
-local function toggleFlyfling(button)
-    isFlyflingActive = not isFlyflingActive
+-- 🔽 FUNGSI TOGGLE UTAMA (Mengelola Flyfling dan Bring) 🔽
+
+local function startPartInteraction(interactionType, button)
+    -- Dapatkan status sebelum dinonaktifkan
+    local wasActive = isFlyflingActive or isBringPartActive
+    local wasType = isFlyflingActive and "Flyfling" or (isBringPartActive and "Bring" or nil)
+
+    -- Matikan semua
+    isFlyflingActive = false
+    isBringPartActive = false
+    isPartInteractionActive = false
     
-    if isFlyflingActive then
-        updateButtonStatus(button, true, "FLYFLING PART")
-        flyflingConnection = RunService.Heartbeat:Connect(doFlyfling)
-        FlyflingFrame.Visible = true 
-        showNotification("FLYFLING PART AKTIF (Speed: " .. flyflingSpeedMultiplier .. "x, Radius: " .. flyflingRadius .. ")") 
+    if interactionConnection then
+        interactionConnection:Disconnect()
+        interactionConnection = nil
+    end
+
+    -- Atur status baru HANYA jika interaksi yang diklik BERBEDA dengan yang sedang aktif
+    if interactionType == "Flyfling" and wasType ~= "Flyfling" then
+        isFlyflingActive = true
+    elseif interactionType == "Bring" and wasType ~= "Bring" then
+        isBringPartActive = true
+    end
+
+    isPartInteractionActive = (isFlyflingActive or isBringPartActive)
+
+    -- Update semua tombol utama
+    updateButtonStatus(featureScrollFrame:FindFirstChild("FlyflingPartButton"), isFlyflingActive, "FLYFLING PART")
+    updateButtonStatus(featureScrollFrame:FindFirstChild("BringPartButton"), isBringPartActive, "BRING PART")
+
+    if isPartInteractionActive then
+        interactionConnection = RunService.Heartbeat:Connect(doPartInteraction)
+        FlyflingFrame.Visible = true
+        local featureName = isBringPartActive and "BRING PART" or "FLYFLING PART"
+        showNotification(featureName .. " AKTIF (Speed: " .. partInteractionSpeedMultiplier .. "x, Radius: " .. partInteractionRadius .. ")")
     else
-        updateButtonStatus(button, false, "FLYFLING PART")
-        if flyflingConnection then
-            flyflingConnection:Disconnect()
-            flyflingConnection = nil
-        end
         FlyflingFrame.Visible = false 
-        showNotification("FLYFLING PART NONAKTIF.") 
+        showNotification("PART INTERACTION NONAKTIF.")
     end
 end
 
+-- 🔽 FUNGSI PEMBUAT TOMBOL FITUR 🔽
 
--- 🔽 FUNGSI UNANCHORED ESP 🔽
-local partEsp = {} 
-local espContainer = Workspace:FindFirstChild("UnanchoredEspContainer") or Instance.new("Folder")
-if not espContainer.Parent then
-    espContainer.Name = "UnanchoredEspContainer"
-    espContainer.Parent = Workspace.CurrentCamera 
-end
-
-local function removeEsp(part)
-    if partEsp[part] then
-        if partEsp[part].textLabel then partEsp[part].textLabel.Parent = nil end
-        if partEsp[part].line then partEsp[part].line.Parent = nil end
-        partEsp[part] = nil
-    end
-end
-
-local function doUnanchoredEsp()
-    -- [Logika ESP tetap sama]
-    if not isUnanchoredEspActive or not player.Character then 
-        for part, espObjects in pairs(partEsp) do
-            removeEsp(part)
-        end
-        return 
-    end
-
-    local myRoot = player.Character:FindFirstChild("HumanoidRootPart")
-    if not myRoot then return end
-
-    local validParts = {} 
-
-    for _, obj in ipairs(Workspace:GetDescendants()) do
-        if obj:IsA("BasePart") and not obj.Anchored and obj.Name ~= "Baseplate" and obj:GetMass() < 1000 then
-            if Players:GetPlayerFromCharacter(obj.Parent) or obj.Parent:FindFirstChildOfClass("Humanoid") then
-                continue
-            end
-
-            local distance = (myRoot.Position - obj.Position).Magnitude
-            
-            if distance <= espMaxDistance then
-                table.insert(validParts, obj)
-            end
-        end
-    end
-
-    -- Update/Buat ESP
-    for _, part in ipairs(validParts) do
-        local esp = partEsp[part]
-        if not esp then
-            esp = {}
-            -- [Pembuatan Text Label dan Line (Beam) seperti sebelumnya...]
-            local textLabel = Instance.new("TextLabel")
-            textLabel.BackgroundTransparency = 1
-            textLabel.TextScaled = true
-            textLabel.TextColor3 = Color3.fromRGB(255, 255, 0) 
-            textLabel.TextStrokeTransparency = 0
-            textLabel.Font = Enum.Font.GothamBold
-            
-            local adornee = Instance.new("BillboardGui")
-            adornee.AlwaysOnTop = true
-            adornee.Size = UDim2.new(1, 0, 1, 0)
-            adornee.ExtentsOffsetWorldSpace = Vector3.new(0, part.Size.Y/2 + 1, 0)
-            textLabel.Size = UDim2.new(0, 100, 0, 50)
-            textLabel.Parent = adornee
-            adornee.Adornee = part
-            adornee.Parent = espContainer
-            esp.textLabel = adornee
-
-            local line = Instance.new("Part")
-            line.Size = Vector3.new(0.2, 0.2, 0.2)
-            line.BrickColor = BrickColor.new("Bright yellow")
-            line.Material = Enum.Material.Neon
-            line.Anchored = true
-            line.CanCollide = false
-            line.CFrame = CFrame.new() 
-            line.Parent = espContainer
-            
-            local a1 = Instance.new("Attachment")
-            a1.Parent = myRoot
-            local a2 = Instance.new("Attachment")
-            a2.Parent = part
-            
-            local beam = Instance.new("Beam")
-            beam.Color = ColorSequence.new(Color3.fromRGB(255, 255, 0))
-            beam.Transparency = NumberSequence.new(0.2)
-            beam.Width0 = 0.5
-            beam.Width1 = 0.1
-            beam.Attachment0 = a1
-            beam.Attachment1 = a2
-            beam.Parent = line 
-            
-            esp.line = line
-            partEsp[part] = esp
-        end
-        
-        -- Update Teks
-        local distance = (myRoot.Position - part.Position).Magnitude
-        esp.textLabel.TextLabel.Text = string.format("UNANCHORED: %s\n(%.1fm)", part.Name, distance)
-    end
-    
-    local partsToRemove = {}
-    for part, espObjects in pairs(partEsp) do
-        local partExists = part.Parent and table.find(validParts, part)
-        if not partExists then
-            table.insert(partsToRemove, part)
-        end
-    end
-
-    for _, part in ipairs(partsToRemove) do
-        removeEsp(part)
-    end
-end
-
-local function toggleUnanchoredEsp(button)
-    isUnanchoredEspActive = not isUnanchoredEspActive
-    
-    if isUnanchoredEspActive then
-        updateButtonStatus(button, true, "UNANCHORED ESP")
-        unanchoredEspConnection = RunService.Heartbeat:Connect(doUnanchoredEsp)
-        showNotification("UNANCHORED ESP AKTIF (Jarak: " .. espMaxDistance .. "m)") 
-    else
-        updateButtonStatus(button, false, "UNANCHORED ESP")
-        if unanchoredEspConnection then
-            unanchoredEspConnection:Disconnect()
-            unanchoredEspConnection = nil
-        end
-        doUnanchoredEsp() 
-        showNotification("UNANCHORED ESP NONAKTIF.") 
-    end
-end
-
--- 🔽 FUNGSI PART CARRIER (MODIFIKASI: Constraint Breaker) 🔽
-
-local function findTargetPart(myRoot)
-    local closestPart = nil
-    local shortestDistance = carryRadius
-    
-    for _, obj in ipairs(Workspace:GetDescendants()) do
-        if obj:IsA("BasePart") and obj.CanCollide and obj.Name ~= "Baseplate" and obj:GetMass() < 1000 then
-            
-            -- Lewati jika part adalah bagian dari karakter atau sudah dipegang
-            if Players:GetPlayerFromCharacter(obj.Parent) or obj.Parent:FindFirstChildOfClass("Humanoid") then
-                continue
-            end
-            if obj == carriedPart then
-                continue
-            end
-            
-            local distance = (myRoot.Position - obj.Position).Magnitude
-            
-            if distance < shortestDistance then
-                shortestDistance = distance
-                closestPart = obj
-            end
-        end
-    end
-    return closestPart
-end
-
--- FUNGSI BARU: MENGHANCURKAN TALI/KABEL (Constraints)
-local function breakPartConstraints(part)
-    local broken = 0
-    -- Cari Constraints yang terhubung ke Part ini
-    for _, attachment in ipairs(part:GetChildren()) do
-        if attachment:IsA("Attachment") then
-            for _, constraint in ipairs(attachment:GetChildren()) do
-                -- Targetkan Constraints yang biasanya digunakan untuk menggantung atau menghubungkan part
-                if constraint:IsA("RopeConstraint") or constraint:IsA("SpringConstraint") or constraint:IsA("WeldConstraint") then
-                    constraint:Destroy()
-                    broken = broken + 1
-                end
-            end
-        end
-    end
-    
-    -- Cek juga di Parent dan objek di sekitarnya (jika Constraints diletakkan di tempat lain)
-    -- Ini lebih sulit dan bisa menyebabkan False Positives, jadi kita fokus pada part itu sendiri.
-    
-    return broken > 0
-end
-
-
-local function updatePartCarrier()
-    if not isCarrierActive or not player.Character then return end
-
-    local myRoot = player.Character:FindFirstChild("HumanoidRootPart")
-    if not myRoot then return end
-
-    if not carriedPart or not carriedPart.Parent then
-        -- Mencari part baru
-        carriedPart = findTargetPart(myRoot)
-        
-        if carriedPart then
-            
-            -- LANGKAH BARU 1: HANCURKAN CONSTRAINTS DULU
-            local wasBroken = breakPartConstraints(carriedPart)
-            if wasBroken then
-                showNotification("Tali/Kabel part " .. carriedPart.Name .. " diputus!")
-                carriedPart.Anchored = false -- Pastikan part bisa bergerak jika Anchored setelah tali putus
-            end
-            
-            -- Jika part masih Anchored setelah Constraints putus (mungkin memang Anchored)
-            if carriedPart.Anchored then
-                showNotification("Part " .. carriedPart.Name .. " Anchored, tidak bisa dibawa.")
-                carriedPart = nil -- Tidak bisa dibawa, batalkan
-                return
-            end
-            
-            -- LANGKAH 2: BUAT WELD UNTUK MEMBAWA PART
-            local weld = Instance.new("WeldConstraint")
-            weld.Part0 = myRoot
-            weld.Part1 = carriedPart
-            weld.Parent = carriedPart 
-            carriedPart:SetAttribute("CarrierWeld", weld)
-            
-            showNotification("Part berhasil diambil: " .. carriedPart.Name)
-        else
-            return 
-        end
-    end
-
-    -- LANGKAH 3: ROTASI PART
-    local weld = carriedPart:GetAttribute("CarrierWeld")
-    if weld and weld.Part0 == myRoot and weld.Part1 == carriedPart then
-        local offset = Vector3.new(0, 3, -5) 
-        local rotationAngle = RunService.Heartbeat:Wait() * rotationSpeed 
-        
-        -- Perbarui posisi part agar berputar mengelilingi pemain
-        -- Tambahkan rotasi visual agar part terlihat berputar, bukan hanya mengikuti
-        carriedPart.CFrame = myRoot.CFrame * CFrame.new(offset) * CFrame.Angles(0, math.rad(rotationAngle), 0)
-    else
-        -- Jika part terputus, jatuhkan
-        carriedPart = nil
-    end
-end
-
-local function dropCarriedPart()
-    if carriedPart and carriedPart.Parent then
-        local weld = carriedPart:GetAttribute("CarrierWeld")
-        if weld and weld.Parent then
-            weld:Destroy()
-            carriedPart:SetAttribute("CarrierWeld", nil)
-        end
-        carriedPart.AssemblyLinearVelocity = Vector3.new(0,0,0) -- Hentikan gerakan saat dijatuhkan
-    end
-    carriedPart = nil
-end
-
-local function togglePartCarrier(button)
-    isCarrierActive = not isCarrierActive
-
-    if isCarrierActive then
-        updateButtonStatus(button, true, "PART CARRIER")
-        carrierConnection = RunService.Heartbeat:Connect(updatePartCarrier)
-        showNotification("PART CARRIER (BREAKER) AKTIF. Dekati part yang digantung.")
-    else
-        updateButtonStatus(button, false, "PART CARRIER")
-        if carrierConnection then
-            carrierConnection:Disconnect()
-            carrierConnection = nil
-        end
-        dropCarriedPart()
-        showNotification("PART CARRIER NONAKTIF. Part dijatuhkan.")
-    end
-end
-
-
--- 🔽 FUNGSI PEMBUAT TOMBOL FITUR & GUI 🔽
--- (Kode GUI dan Tombol tetap sama)
 local function makeFeatureButton(name, color, callback, parent)
     local parentContainer = parent or featureScrollFrame
 
@@ -532,15 +317,21 @@ end
 
 -- 🔽 PENAMBAHAN TOMBOL KE FEATURE LIST 🔽
 
-local partCarrierButton = makeFeatureButton("PART CARRIER: OFF", Color3.fromRGB(120, 0, 0), togglePartCarrier)
-local unanchoredEspButton = makeFeatureButton("UNANCHORED ESP: OFF", Color3.fromRGB(120, 0, 0), toggleUnanchoredEsp)
-local flyflingButton = makeFeatureButton("FLYFLING PART: OFF", Color3.fromRGB(120, 0, 0), toggleFlyfling)
+-- Tombol FLYFLING PART (Tombol Utama)
+local flyflingButton = makeFeatureButton("FLYFLING PART: OFF", Color3.fromRGB(120, 0, 0), function(button)
+    startPartInteraction("Flyfling", button)
+end)
 
--- [Sisanya dari kode GUI dan Flyfling Frame]
+-- Tombol BRING PART (Tombol Utama BARU)
+local bringPartButton = makeFeatureButton("BRING PART: OFF", Color3.fromRGB(120, 0, 0), function(button)
+    startPartInteraction("Bring", button)
+end)
+
+-- 🔽 SUBMENU FLYFLING/BRING PART (Frame) 🔽
 
 local FlyflingFrame = Instance.new("Frame")
-FlyflingFrame.Name = "FlyflingSettings"
-FlyflingFrame.Size = UDim2.new(1, -20, 0, 310) 
+FlyflingFrame.Name = "InteractionSettings"
+FlyflingFrame.Size = UDim2.new(1, -20, 0, 360) 
 FlyflingFrame.Position = UDim2.new(0, 10, 0, 0)
 FlyflingFrame.BackgroundTransparency = 1
 FlyflingFrame.Visible = false 
@@ -552,12 +343,14 @@ FlyflingLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 FlyflingLayout.SortOrder = Enum.SortOrder.LayoutOrder
 FlyflingLayout.Parent = FlyflingFrame
 
+-- Tombol PART FOLLOW
 local partFollowButton = makeFeatureButton("PART FOLLOW: OFF", Color3.fromRGB(150, 0, 0), function(button)
     isPartFollowActive = not isPartFollowActive
     updateButtonStatus(button, isPartFollowActive, "PART FOLLOW", true)
     showNotification("PART FOLLOW diatur ke: " .. (isPartFollowActive and "ON" or "OFF")) 
 end, FlyflingFrame)
 
+-- Tombol SCAN ANCHORED
 local scanAnchoredButton = makeFeatureButton("SCAN ANCHORED: OFF", Color3.fromRGB(150, 0, 0), function(button)
     isScanAnchoredOn = not isScanAnchoredOn
     updateButtonStatus(button, isScanAnchoredOn, "SCAN ANCHORED", true)
@@ -565,17 +358,19 @@ local scanAnchoredButton = makeFeatureButton("SCAN ANCHORED: OFF", Color3.fromRG
 end, FlyflingFrame)
 
 
+-- Tombol Radius ON/OFF
 local radiusButton = makeFeatureButton("RADIUS ON/OFF", Color3.fromRGB(0, 180, 0), function(button)
     isFlyflingRadiusOn = not isFlyflingRadiusOn
     updateButtonStatus(button, isFlyflingRadiusOn, "RADIUS", true)
-    showNotification("RADIUS FLING diatur ke: " .. (isFlyflingRadiusOn and "ON" or "OFF")) 
+    showNotification("RADIUS INTERACTION diatur ke: " .. (isFlyflingRadiusOn and "ON" or "OFF")) 
 end, FlyflingFrame)
 
+-- Input Jumlah Radius
 local radiusInput = Instance.new("TextBox")
 radiusInput.Name = "RadiusInput"
 radiusInput.Size = UDim2.new(0, 180, 0, 40)
 radiusInput.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-radiusInput.PlaceholderText = "Atur Radius: " .. tostring(flyflingRadius) 
+radiusInput.PlaceholderText = "Atur Radius: " .. tostring(partInteractionRadius) 
 radiusInput.Text = ""
 radiusInput.TextColor3 = Color3.new(1, 1, 1)
 radiusInput.Font = Enum.Font.Gotham
@@ -586,10 +381,10 @@ radiusInput.FocusLost:Connect(function(enterPressed)
     if enterPressed then
         local newRadius = tonumber(radiusInput.Text)
         if newRadius and newRadius >= 0 then
-            flyflingRadius = newRadius
-            radiusInput.PlaceholderText = "Atur Radius: " .. tostring(flyflingRadius)
+            partInteractionRadius = newRadius
+            radiusInput.PlaceholderText = "Atur Radius: " .. tostring(partInteractionRadius)
             radiusInput.Text = "" 
-            showNotification("Radius diatur ke: " .. tostring(newRadius)) 
+            showNotification("Radius diatur ke: " .. tostring(newRadius))
         else
             radiusInput.Text = "Invalid Number!"
             task.wait(1)
@@ -599,22 +394,19 @@ radiusInput.FocusLost:Connect(function(enterPressed)
 end)
 
 
+-- Tombol Speed ON/OFF
 local speedToggleButton = makeFeatureButton("SPEED ON/OFF", Color3.fromRGB(0, 180, 0), function(button)
     isFlyflingSpeedOn = not isFlyflingSpeedOn
     updateButtonStatus(button, isFlyflingSpeedOn, "SPEED", true)
-    showNotification("SPEED FLING diatur ke: " .. (isFlyflingSpeedOn and "ON" or "OFF")) 
-    
-    local speedInput = FlyflingFrame:FindFirstChild("SpeedInput")
-    if speedInput then
-        speedInput.PlaceholderText = "Speed: " .. tostring(flyflingSpeedMultiplier)
-    end
+    showNotification("SPEED INTERACTION diatur ke: " .. (isFlyflingSpeedOn and "ON" or "OFF")) 
 end, FlyflingFrame)
 
+-- Input Jumlah Speed
 local speedInput = Instance.new("TextBox")
 speedInput.Name = "SpeedInput"
 speedInput.Size = UDim2.new(0, 180, 0, 40)
 speedInput.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-speedInput.PlaceholderText = "Atur Speed: " .. tostring(flyflingSpeedMultiplier) 
+speedInput.PlaceholderText = "Atur Speed: " .. tostring(partInteractionSpeedMultiplier) 
 speedInput.Text = ""
 speedInput.TextColor3 = Color3.new(1, 1, 1)
 speedInput.Font = Enum.Font.Gotham
@@ -625,10 +417,10 @@ speedInput.FocusLost:Connect(function(enterPressed)
     if enterPressed then
         local newSpeed = tonumber(speedInput.Text)
         if newSpeed and newSpeed >= 0 then
-            flyflingSpeedMultiplier = newSpeed
-            speedInput.PlaceholderText = "Atur Speed: " .. tostring(flyflingSpeedMultiplier)
+            partInteractionSpeedMultiplier = newSpeed
+            speedInput.PlaceholderText = "Atur Speed: " .. tostring(partInteractionSpeedMultiplier)
             speedInput.Text = "" 
-            showNotification("Speed diatur ke: " .. tostring(newSpeed) .. "x") 
+            showNotification("Speed diatur ke: " .. tostring(newSpeed) .. "x")
         else
             speedInput.Text = "Invalid Number!"
             task.wait(1)
@@ -637,6 +429,8 @@ speedInput.FocusLost:Connect(function(enterPressed)
     end
 end)
 
+
+-- Button Speed List (Jumlah x)
 local speedListFrame = Instance.new("Frame")
 speedListFrame.Name = "SpeedListFrame"
 speedListFrame.Size = UDim2.new(0, 180, 0, 40) 
@@ -668,13 +462,14 @@ for i, speedValue in ipairs(speedOptions) do
     listItemCorner.Parent = speedListItem
 
     speedListItem.MouseButton1Click:Connect(function()
-        flyflingSpeedMultiplier = speedValue
-        speedInput.PlaceholderText = "Atur Speed: " .. tostring(flyflingSpeedMultiplier)
+        partInteractionSpeedMultiplier = speedValue
+        speedInput.PlaceholderText = "Atur Speed: " .. tostring(partInteractionSpeedMultiplier)
         speedInput.Text = "" 
-        showNotification("Flyfling Speed diatur ke: " .. tostring(speedValue) .. "x") 
+        showNotification("Speed diatur ke: " .. tostring(speedValue) .. "x")
     end)
 end
 
+-- Pastikan FlyflingLayout dan featureListLayout diperbarui
 FlyflingLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
     FlyflingFrame.Size = UDim2.new(1, -20, 0, FlyflingLayout.AbsoluteContentSize.Y + 10)
     featureListLayout.AbsoluteContentSize = featureListLayout.AbsoluteContentSize 
@@ -683,34 +478,21 @@ end)
 
 -- 🔽 LOGIKA CHARACTER ADDED (PENTING UNTUK MEMPERTAHANKAN STATUS) 🔽
 player.CharacterAdded:Connect(function(char)
-    -- Pertahankan status Part Carrier
-    if isCarrierActive then
-        local button = featureScrollFrame:FindFirstChild("PartCarrierButton")
-        if button and not carrierConnection then
-            carrierConnection = RunService.Heartbeat:Connect(updatePartCarrier)
-        end
-    end
-    -- Pertahankan status Flyfling Part
-    if isFlyflingActive then
+    -- Pertahankan status Part Interaction
+    if isPartInteractionActive then
         local button = featureScrollFrame:FindFirstChild("FlyflingPartButton")
-        if button and not flyflingConnection then
-            flyflingConnection = RunService.Heartbeat:Connect(doFlyfling)
-        end
-    end
-    -- Pertahankan status Unanchored ESP
-    if isUnanchoredEspActive then
-        local button = featureScrollFrame:FindFirstChild("UnanchoredEspButton")
-        if button and not unanchoredEspConnection then
-            unanchoredEspConnection = RunService.Heartbeat:Connect(doUnanchoredEsp)
+        if button then 
+            if not interactionConnection then
+                interactionConnection = RunService.Heartbeat:Connect(doPartInteraction)
+            end
         end
     end
 end)
 
 
 -- Atur status awal tombol
-updateButtonStatus(partCarrierButton, isCarrierActive, "PART CARRIER") 
-updateButtonStatus(unanchoredEspButton, isUnanchoredEspActive, "UNANCHORED ESP") 
 updateButtonStatus(flyflingButton, isFlyflingActive, "FLYFLING PART")
+updateButtonStatus(bringPartButton, isBringPartActive, "BRING PART")
 updateButtonStatus(partFollowButton, isPartFollowActive, "PART FOLLOW", true)
 updateButtonStatus(scanAnchoredButton, isScanAnchoredOn, "SCAN ANCHORED", true)
 updateButtonStatus(radiusButton, isFlyflingRadiusOn, "RADIUS", true)
