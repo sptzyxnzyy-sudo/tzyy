@@ -18,8 +18,9 @@ local flyflingRadius = 30
 -- ** ⬇️ STATUS FITUR BARU: BRING UNANCHORED PART ⬇️ **
 local isBringUnanchoredPartActive = false -- Status fitur baru
 local bringUnanchoredPartRadius = 50 -- Radius part yang ditarik
-local bringUnanchoredPartSpeed = 20 -- Kecepatan tarik part (Sekarang mewakili kekuatan gaya)
-local activeMagnetForces = {} -- **BARU:** Tabel untuk melacak VectorForce yang dibuat
+local bringUnanchoredPartSpeed = 20 -- Kekuatan tarik part (Gaya Magnet)
+local autoReleaseDistance = 5 -- **BARU:** Jarak di mana part akan dilepaskan otomatis
+local activeMagnetForces = {} -- Tabel untuk melacak VectorForce yang dibuat
 
 -- 🔽 ANIMASI "BY : Xraxor" 🔽
 do
@@ -219,14 +220,13 @@ local function doFlyfling()
     end
 end
 
--- ** FUNGSI BRING UNANCHORED PART (LOGIKA MAGNET BARU) **
+-- FUNGSI BRING UNANCHORED PART (LOGIKA MAGNET BARU + AUTO RELEASE)
 local function doBringUnanchoredPart()
     if not isBringUnanchoredPartActive or not player.Character then return end
 
     local myRoot = player.Character:FindFirstChild("HumanoidRootPart")
     if not myRoot then return end
 
-    local partsToCleanup = {}
     local currentParts = {}
 
     -- Ambil semua part di Workspace dan perbarui VectorForce
@@ -240,7 +240,16 @@ local function doBringUnanchoredPart()
             if obj:GetMass() < 1000 then
                 local distance = (myRoot.Position - obj.Position).Magnitude
             
-                -- Cek Radius Bring
+                -- ** LOGIKA PELEPASAN OTOMATIS **
+                if distance <= autoReleaseDistance and activeMagnetForces[obj] then
+                     -- Part sudah sangat dekat, lepaskan gaya magnetnya
+                     local force = activeMagnetForces[obj]
+                     force:Destroy()
+                     activeMagnetForces[obj] = nil
+                     continue -- Lanjut ke part berikutnya
+                end
+                
+                -- Cek Radius Tarik
                 if distance <= bringUnanchoredPartRadius then 
                     currentParts[obj] = true
                     
@@ -347,7 +356,7 @@ local function toggleBringUnanchoredPart(button)
         showNotification("BRING PART UNANCHORED AKTIF (Radius: " .. bringUnanchoredPartRadius .. ", Speed: " .. bringUnanchoredPartSpeed .. ")")
     else
         updateButtonStatus(button, false, "BRING PART UNANCHORED")
-        cleanupMagnetForces() -- Membersihkan gaya magnet segera saat dimatikan
+        cleanupMagnetForces() -- Membersihkan gaya magnet segera saat dimatikan (INI UNTUK BUANG)
         showNotification("BRING PART UNANCHORED NONAKTIF.")
     end
 end
@@ -502,6 +511,11 @@ speedListFrame.Size = UDim2.new(0, 180, 0, 40)
 speedListFrame.BackgroundTransparency = 1
 speedListFrame.Parent = FlyflingFrame
 
+local speedListLayout = Instance.new("UIListLayout")
+speedListLayout.Padding = UDim.new(0, 5)
+speedListLayout.FillDirection = Enum.FillDirection.Horizontal
+speedListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+speedListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 local speedListLayout = Instance.new("UIListLayout")
 speedListLayout.Padding = UDim.new(0, 5)
 speedListLayout.FillDirection = Enum.FillDirection.Horizontal
