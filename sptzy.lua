@@ -246,7 +246,7 @@ end
 
 
 -- 🔽 FUNGSI TOGGLE UTAMA (Mengelola Flyfling dan Bring) 🔽
-
+-- FUNGSI INI SUDAH DIPERBAIKI DENGAN LOGIKA TOGGLE BERSIH
 local function startPartInteraction(interactionType)
     local wasFlyfling = isFlyflingActive
     local wasBringPart = isBringPartActive
@@ -327,7 +327,7 @@ local flyflingButton = makeFeatureButton("FLYFLING PART: OFF", Color3.fromRGB(12
     startPartInteraction("Flyfling")
 end)
 
--- Tombol BRING PART (Tombol Utama BARU)
+-- Tombol BRING PART (Tombol Utama)
 local bringPartButton = makeFeatureButton("BRING PART: OFF", Color3.fromRGB(120, 0, 0), function()
     startPartInteraction("Bring")
 end)
@@ -494,7 +494,7 @@ end)
 
 -- Atur status awal tombol
 updateButtonStatus(flyflingButton, isFlyflingActive, "FLYFLING PART")
-updateButtonStatus(bringPartButton, isBringPartActive, "BRING PART") -- Diperbarui
+updateButtonStatus(bringPartButton, isBringPartActive, "BRING PART") 
 updateButtonStatus(partFollowButton, isPartFollowActive, "PART FOLLOW", true)
 updateButtonStatus(scanAnchoredButton, isScanAnchoredOn, "SCAN ANCHORED", true)
 updateButtonStatus(radiusButton, isFlyflingRadiusOn, "RADIUS", true)
