@@ -1,6 +1,7 @@
 local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local Debris = game:GetService("Debris")
 
 local player = Players.LocalPlayer
 
@@ -14,11 +15,18 @@ local isScanAnchoredOn = false
 local flyflingSpeedMultiplier = 100 
 local flyflingRadius = 30 
 
+local isStaticPartActive = false -- Status Part Statis
+
 local isMagnetActive = false
 local magnetConnection = nil
 local magnetRadius = 50 
 local magnetStrength = 500 
 local magnetStatusLabel = nil 
+
+local isPartESPAactive = false -- BARU: Status ESP Garis Part Anchor
+local espConnection = nil
+local activeESPParts = {} -- Tabel untuk menyimpan part yang sedang di-ESP
+
 
 -- 🔽 ANIMASI "BY : Xraxor" 🔽
 do
@@ -181,44 +189,184 @@ end
 
 -- ** FUNGSI PEMUTUS TALI (Decoupler) **
 local function decouplePart(part)
-    local successCount = 0
+    local success = false
     
-    -- 1. Cek Weld (WeldConstraint, Weld, ManualWeld)
-    for _, weld in ipairs(part:GetChildren()) do
-        if weld:IsA("WeldConstraint") or weld:IsA("Weld") or weld:IsA("ManualWeld") then
-            local otherPart = nil
-            if weld:IsA("WeldConstraint") then
-                otherPart = (weld.Part0 == part and weld.Part1) or (weld.Part1 == part and weld.Part0)
-            elseif weld:IsA("Weld") or weld:IsA("ManualWeld") then
-                otherPart = (weld.Part0 == part and weld.Part1) or (weld.Part1 == part and weld.Part0)
-            end
+    -- Cek Weld/Constraint di Part dan Attachment
+    for _, obj in ipairs(part:GetChildren()) do
+        if obj:IsA("WeldConstraint") or obj:IsA("Weld") or obj:IsA("ManualWeld") or 
+           obj:IsA("RopeConstraint") or obj:IsA("RodConstraint") or obj:IsA("SpringConstraint") then
+            -- Cari part yang terhubung. Jika salah satunya Anchored, hancurkan.
+            local part0 = obj.Attachment0 and obj.Attachment0.Parent or obj.Part0
+            local part1 = obj.Attachment1 and obj.Attachment1.Parent or obj.Part1
 
-            if otherPart and otherPart:IsA("BasePart") and otherPart.Anchored then
-                weld:Destroy()
-                successCount = successCount + 1
+            if (part0 and part0:IsA("BasePart") and part0.Anchored) or 
+               (part1 and part1:IsA("BasePart") and part1.Anchored) then
+                obj:Destroy()
+                success = true
+            end
+        elseif obj:IsA("Attachment") then
+            for _, constraint in ipairs(obj:GetChildren()) do
+                if constraint:IsA("Constraint") then
+                     constraint:Destroy()
+                     success = true
+                end
+            end
+        end
+    end
+    return success
+end
+
+-- 🔽 FUNGSI ESP PART ANCHOR (BARU) 🔽
+local function createBeamESP(targetPart, rootPart)
+    local attachment0 = Instance.new("Attachment")
+    attachment0.CFrame = CFrame.new(0, 0, 0)
+    attachment0.Parent = rootPart
+    
+    local attachment1 = Instance.new("Attachment")
+    attachment1.CFrame = CFrame.new(0, 0, 0)
+    attachment1.Parent = targetPart
+    
+    local beam = Instance.new("Beam")
+    beam.Attachment0 = attachment0
+    beam.Attachment1 = attachment1
+    beam.Color = TweenService:Create(beam, TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {Color = Color3.fromRGB(0, 255, 255)})
+    beam.Color:Play()
+    beam.Width0 = 0.2
+    beam.Width1 = 0.2
+    beam.Transparency = 0
+    beam.LightEmission = 1
+    beam.ZOffset = 0.1
+    beam.Parent = targetPart
+    
+    return {
+        Beam = beam,
+        Att0 = attachment0,
+        Att1 = attachment1
+    }
+end
+
+local function doPartESP()
+    if not isPartESPAactive or not player.Character then return end
+
+    local myRoot = player.Character:FindFirstChild("HumanoidRootPart")
+    if not myRoot then return end
+    
+    local partsInRadius = {}
+
+    -- 1. Cari Part Anchor atau part yang terikat dalam radius
+    for _, obj in ipairs(game.Workspace:GetDescendants()) do
+        if obj:IsA("BasePart") and obj.Name ~= "Baseplate" and obj:GetMass() < 1000 then
+            
+            local distance = (myRoot.Position - obj.Position).Magnitude
+            if distance > flyflingRadius * 2 then continue end -- Gunakan Radius dua kali lipat untuk ESP
+
+            -- Filter: Part yang Anchored ATAU Unanchored tapi terikat
+            local isAttached = false
+            for _, child in ipairs(obj:GetChildren()) do
+                if child:IsA("WeldConstraint") or child:IsA("RopeConstraint") then
+                    isAttached = true
+                    break
+                end
+            end
+            
+            if obj.Anchored or (not obj.Anchored and isAttached) then
+                 partsInRadius[obj] = true
+            end
+        end
+    end
+    
+    -- 2. Hapus ESP yang sudah jauh atau hilang
+    for part, espObjects in pairs(activeESPParts) do
+        if not partsInRadius[part] or not part.Parent then
+            espObjects.Beam:Destroy()
+            espObjects.Att0:Destroy()
+            espObjects.Att1:Destroy()
+            activeESPParts[part] = nil
+        end
+    end
+    
+    -- 3. Tambahkan ESP baru
+    for part, _ in pairs(partsInRadius) do
+        if not activeESPParts[part] then
+            activeESPParts[part] = createBeamESP(part, myRoot)
+        end
+    end
+end
+
+local function togglePartESP(button)
+    isPartESPAactive = not isPartESPAactive
+    
+    if isPartESPAactive then
+        updateSwitchButtonStatus(button, true, "ESP PART ANCHOR")
+        espConnection = RunService.Heartbeat:Connect(doPartESP)
+        showNotification("ESP PART ANCHOR AKTIF (Radius Scan: " .. flyflingRadius * 2 .. ")")
+    else
+        updateSwitchButtonStatus(button, false, "ESP PART ANCHOR")
+        if espConnection then
+            espConnection:Disconnect()
+            espConnection = nil
+        end
+        -- Hapus semua ESP saat dinonaktifkan
+        for part, espObjects in pairs(activeESPParts) do
+            espObjects.Beam:Destroy()
+            espObjects.Att0:Destroy()
+            espObjects.Att1:Destroy()
+        end
+        activeESPParts = {}
+        showNotification("ESP PART ANCHOR NONAKTIF.")
+    end
+end
+
+
+-- 🔽 FUNGSI PART STATIS 🔽
+
+local function doStaticPart()
+    if not isStaticPartActive or not player.Character then return end
+
+    local myRoot = player.Character:FindFirstChild("HumanoidRootPart")
+    if not myRoot then return end
+
+    local partsToAnchor = {}
+
+    for _, obj in ipairs(game.Workspace:GetDescendants()) do
+        if obj:IsA("BasePart") and obj.Name ~= "Baseplate" and obj.Anchored == false and obj:GetMass() < 1000 then
+            if Players:GetPlayerFromCharacter(obj.Parent) or obj.Parent:FindFirstChildOfClass("Humanoid") then
+                continue
+            end
+            
+            local distance = (myRoot.Position - obj.Position).Magnitude
+            
+            if distance <= flyflingRadius then 
+                 table.insert(partsToAnchor, obj)
             end
         end
     end
 
-    -- 2. Cek Constraints (Rods, Ropes, Springs)
-    for _, constraint in ipairs(part:GetChildren()) do
-        if constraint:IsA("Constraint") and (constraint:IsA("RopeConstraint") or constraint:IsA("RodConstraint") or constraint:IsA("SpringConstraint")) then
-            local att0 = constraint.Attachment0
-            local att1 = constraint.Attachment1
-            
-            local part0 = att0 and att0.Parent:IsA("BasePart") and att0.Parent
-            local part1 = att1 and att1.Parent:IsA("BasePart") and att1.Parent
-            
-            if (part0 and part0.Anchored) or (part1 and part1.Anchored) then
-                constraint:Destroy()
-                if att0 and att0.Parent == part then att0:Destroy() end
-                if att1 and att1.Parent == part then att1:Destroy() end
-                successCount = successCount + 1
-            end
-        end
+    for _, part in ipairs(partsToAnchor) do
+        part.Anchored = true
+        part.Velocity = Vector3.new(0, 0, 0) 
+        part.RotationalVelocity = Vector3.new(0, 0, 0)
     end
+end
 
-    return successCount > 0
+local staticPartConnection = nil
+local function toggleStaticPart(button)
+    isStaticPartActive = not isStaticPartActive
+    
+    if isStaticPartActive then
+        updateSwitchButtonStatus(button, true, "PART STATIS")
+        if not staticPartConnection then 
+            staticPartConnection = RunService.Heartbeat:Connect(doStaticPart)
+        end
+        showNotification("PART STATIS AKTIF (Radius: " .. flyflingRadius .. ")") 
+    else
+        updateSwitchButtonStatus(button, false, "PART STATIS")
+        if staticPartConnection then
+            staticPartConnection:Disconnect()
+            staticPartConnection = nil
+        end
+        showNotification("PART STATIS NONAKTIF.") 
+    end
 end
 
 
@@ -232,12 +380,8 @@ local function doMagnet()
     local targetParts = {}
 
     for _, obj in ipairs(game.Workspace:GetDescendants()) do
-        if obj:IsA("BasePart") and obj.Name ~= "Baseplate" then
+        if obj:IsA("BasePart") and obj.Name ~= "Baseplate" and (not obj.Anchored) then
             if Players:GetPlayerFromCharacter(obj.Parent) or obj.Parent:FindFirstChildOfClass("Humanoid") then
-                continue
-            end
-            
-            if obj.Anchored then
                 continue
             end
             
@@ -252,15 +396,14 @@ local function doMagnet()
     end
 
     for _, part in ipairs(targetParts) do
-        -- Coba putuskan tali/weld sebelum menarik
+        -- Putuskan tali/weld sebelum menarik (agar part bisa bergerak)
         decouplePart(part)
 
         local direction = (myRoot.Position - part.Position).Unit 
         
         local distance = (myRoot.Position - part.Position).Magnitude
-        local effectiveStrength = magnetStrength / math.max(distance * distance, 1) 
-        
-        -- Gunakan ApplyImpulse untuk dorongan sekali per frame
+        local effectiveStrength = magnetStrength / math.max(distance * distance, 1) * 0.1 -- Pengali 0.1 untuk mengontrol kecepatan
+
         part:ApplyImpulse(direction * part:GetMass() * effectiveStrength * RunService.Heartbeat:Wait()) 
     end
 end
@@ -306,14 +449,6 @@ local function doFlyfling()
                 continue
             end
             
-            local isAttached = false
-            for _, child in ipairs(obj:GetChildren()) do
-                 if child:IsA("WeldConstraint") or child:IsA("Weld") or child:IsA("ManualWeld") or child:IsA("RopeConstraint") or child:IsA("RodConstraint") then
-                    isAttached = true
-                    break
-                end
-            end
-            
             local isAnchored = obj.Anchored
             
             -- Lewati jika Anchored dan Scan Anchored OFF
@@ -321,8 +456,8 @@ local function doFlyfling()
                 continue
             end
             
-            -- Jika 'Scan Anchored' ON, coba putuskan tali jika part terikat (dan tidak Anchored)
-            if isScanAnchoredOn and isAttached and (not isAnchored) then
+            -- Jika 'Scan Anchored' ON, coba putuskan tali/weld
+            if isScanAnchoredOn then
                  decouplePart(obj)
             end
 
@@ -402,6 +537,12 @@ local function makeFeatureToggleButton(name, initialStatus, callback, parent)
 end
 
 -- 🔽 PENAMBAHAN TOMBOL KE FEATURE LIST 🔽
+
+-- Tombol Utama: ESP PART ANCHOR
+local partESPButton = makeFeatureToggleButton("ESP PART ANCHOR", isPartESPAactive, togglePartESP)
+
+-- Tombol Utama: PART STATIS
+local staticPartButton = makeFeatureToggleButton("PART STATIS", isStaticPartActive, toggleStaticPart)
 
 -- Tombol Utama: MAGNET PART
 local magnetButton = makeFeatureToggleButton("MAGNET PART", isMagnetActive, toggleMagnet)
@@ -663,6 +804,12 @@ player.CharacterAdded:Connect(function(char)
     end
     if isMagnetActive and not magnetConnection then
         magnetConnection = RunService.Heartbeat:Connect(doMagnet)
+    end
+    if isStaticPartActive and not staticPartConnection then
+        staticPartConnection = RunService.Heartbeat:Connect(doStaticPart)
+    end
+    if isPartESPAactive and not espConnection then
+        espConnection = RunService.Heartbeat:Connect(doPartESP)
     end
     updateMagnetStatusLabel() 
 end)
