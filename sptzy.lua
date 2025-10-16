@@ -9,14 +9,14 @@ local isPartInteractionActive = false -- Status umum (Flyfling atau Bring)
 local interactionConnection = nil
 
 local isFlyflingActive = false
-local isBringPartActive = false 
+local isBringPartActive = false -- Status untuk Bring Part (Tarik)
 
 local isFlyflingRadiusOn = true 
 local isFlyflingSpeedOn = true 
 local isPartFollowActive = false 
 local isScanAnchoredOn = false 
-local partInteractionSpeedMultiplier = 100 
-local partInteractionRadius = 30 
+local partInteractionSpeedMultiplier = 100 -- Digunakan untuk kedua mode (Flyfling & Bring)
+local partInteractionRadius = 30 -- Digunakan untuk kedua mode
 
 -- 🔽 ANIMASI "BY : Xraxor" 🔽
 do
@@ -52,7 +52,6 @@ do
     end)
 end
 
---------------------------------------------------
 
 -- 🔽 GUI Utama 🔽
 local screenGui = Instance.new("ScreenGui")
@@ -106,7 +105,6 @@ featureListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(functi
     frame.Size = UDim2.new(0, 220, 0, newHeight)
 end)
 
---------------------------------------------------
 
 -- 🔽 FUNGSI UTILITY GLOBAL 🔽
 
@@ -177,6 +175,7 @@ local function updateButtonStatus(button, isActive, featureName, isToggle)
             button.BackgroundColor3 = Color3.fromRGB(150, 0, 0) 
         end
     else 
+        -- Untuk tombol utama Flyfling/Bring
         if isActive then
             button.Text = name .. ": ON"
             button.BackgroundColor3 = Color3.fromRGB(0, 150, 0) 
@@ -187,7 +186,6 @@ local function updateButtonStatus(button, isActive, featureName, isToggle)
     end
 end
 
---------------------------------------------------
 
 -- 🔽 FUNGSI UTAMA PART INTERACTION (FLYFLING/BRING) 🔽
 
@@ -218,17 +216,14 @@ local function doPartInteraction()
                 continue
             end
             
-            -- Lewati part yang Anchored KECUALI fitur Scan Anchored diaktifkan
             if (not isScanAnchoredOn) and obj.Anchored then
                 continue
             end
 
             local distance = (myRoot.Position - obj.Position).Magnitude
             
-            -- Cek Radius
             if isFlyflingRadiusOn and distance > partInteractionRadius then continue end
             
-            -- Batasi massa part
             if obj:GetMass() < 1000 then 
                  table.insert(targetParts, obj)
             end
@@ -240,15 +235,15 @@ local function doPartInteraction()
         local direction = (part.Position - myRoot.Position).Unit
         local force = direction * part:GetMass() * speed * 10 * directionMultiplier
         
-        -- Terapkan dorongan/tarikan
         part.Velocity = part.Velocity + (force / part:GetMass())
         
-        -- Part Follow: Membuat part mengikuti pemain
+        -- Part Follow: hanya efektif/masuk akal saat Flyfling aktif (mendorong)
         if isPartFollowActive and isFlyflingActive then 
              part.AssemblyLinearVelocity = Vector3.new(myVelocity.X, part.AssemblyLinearVelocity.Y, myVelocity.Z) 
         end
     end
 end
+
 
 -- 🔽 FUNGSI TOGGLE UTAMA (Mengelola Flyfling dan Bring) 🔽
 
@@ -256,24 +251,20 @@ local function startPartInteraction(interactionType)
     local wasFlyfling = isFlyflingActive
     local wasBringPart = isBringPartActive
 
-    -- Logika Baru:
+    -- Logika Toggle: Hanya satu mode yang boleh aktif
     if interactionType == "Flyfling" then
         if wasFlyfling then
-            -- Jika Flyfling sudah aktif, matikan
-            isFlyflingActive = false
+            isFlyflingActive = false -- Matikan
         else
-            -- Jika Flyfling tidak aktif, aktifkan Flyfling dan matikan BringPart
-            isFlyflingActive = true
-            isBringPartActive = false
+            isFlyflingActive = true  -- Aktifkan Flyfling
+            isBringPartActive = false -- Pastikan Bring mati
         end
     elseif interactionType == "Bring" then
         if wasBringPart then
-            -- Jika BringPart sudah aktif, matikan
-            isBringPartActive = false
+            isBringPartActive = false -- Matikan
         else
-            -- Jika BringPart tidak aktif, aktifkan BringPart dan matikan Flyfling
-            isBringPartActive = true
-            isFlyflingActive = false
+            isBringPartActive = true -- Aktifkan Bring
+            isFlyflingActive = false -- Pastikan Flyfling mati
         end
     end
 
@@ -303,7 +294,6 @@ local function startPartInteraction(interactionType)
     end
 end
 
---------------------------------------------------
 
 -- 🔽 FUNGSI PEMBUAT TOMBOL FITUR 🔽
 
@@ -337,7 +327,7 @@ local flyflingButton = makeFeatureButton("FLYFLING PART: OFF", Color3.fromRGB(12
     startPartInteraction("Flyfling")
 end)
 
--- Tombol BRING PART (Tombol Utama)
+-- Tombol BRING PART (Tombol Utama BARU)
 local bringPartButton = makeFeatureButton("BRING PART: OFF", Color3.fromRGB(120, 0, 0), function()
     startPartInteraction("Bring")
 end)
@@ -457,7 +447,6 @@ speedListLayout.Padding = UDim.new(0, 5)
 speedListLayout.FillDirection = Enum.FillDirection.Horizontal
 speedListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 speedListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-local speedListLayout_Original = speedListLayout.Parent -- Simpan referensi Parent sebelum diubah
 speedListLayout.Parent = speedListFrame
 
 local speedOptions = {100, 200, 500, 1000} 
@@ -491,7 +480,6 @@ FlyflingLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function(
     featureListLayout.AbsoluteContentSize = featureListLayout.AbsoluteContentSize 
 end)
 
---------------------------------------------------
 
 -- 🔽 LOGIKA CHARACTER ADDED (PENTING UNTUK MEMPERTAHANKAN STATUS) 🔽
 player.CharacterAdded:Connect(function(char)
@@ -503,9 +491,10 @@ player.CharacterAdded:Connect(function(char)
     end
 end)
 
+
 -- Atur status awal tombol
 updateButtonStatus(flyflingButton, isFlyflingActive, "FLYFLING PART")
-updateButtonStatus(bringPartButton, isBringPartActive, "BRING PART")
+updateButtonStatus(bringPartButton, isBringPartActive, "BRING PART") -- Diperbarui
 updateButtonStatus(partFollowButton, isPartFollowActive, "PART FOLLOW", true)
 updateButtonStatus(scanAnchoredButton, isScanAnchoredOn, "SCAN ANCHORED", true)
 updateButtonStatus(radiusButton, isFlyflingRadiusOn, "RADIUS", true)
