@@ -5,23 +5,17 @@ local RunService = game:GetService("RunService")
 
 local player = Players.LocalPlayer
 
--- ** ⬇️ STATUS FITUR FLYFLING PART ⬇️ **
+-- ** ⬇️ STATUS FITUR GLOBAL ⬇️ **
 local isFlyflingActive = false
 local flyflingConnection = nil
 local isFlyflingRadiusOn = true 
 local isFlyflingSpeedOn = true 
 local isPartFollowActive = false 
-local isScanAnchoredOn = false -- Status untuk scan anchored parts
-local flyflingSpeedMultiplier = 100 -- DIUBAH: Default langsung 100x
-local flyflingRadius = 30 -- DIUBAH: Default langsung 30
-
--- ** ⬇️ STATUS FITUR BRING PART BARU ⬇️ **
-local isBringPartActive = false -- Status aktif/nonaktif Bring Part
-local bringPartConnection = nil
-local isBringPartRadiusOn = true 
-local bringPartRadius = 50 -- Radius default untuk Bring Part
-local bringPartMaxMass = 5000 -- Batas massa part yang bisa dibawa
-
+local isScanAnchoredOn = false 
+local flyflingSpeedMultiplier = 100 
+local flyflingRadius = 30 
+-- ** BARU: Status Blokir Notifikasi **
+local isNotificationBlocked = false 
 
 -- 🔽 ANIMASI "BY : Xraxor" 🔽
 do
@@ -113,8 +107,14 @@ end)
 
 -- 🔽 FUNGSI UTILITY GLOBAL 🔽
 
--- FUNGSI BARU: Notifikasi dengan Animasi
+-- FUNGSI BARU: Notifikasi dengan Animasi (MODIFIKASI)
 local function showNotification(message)
+    -- ** MODIFIKASI: Cek status blokir notifikasi **
+    if isNotificationBlocked then
+        -- Jika notifikasi diblokir, keluar dari fungsi dan jangan tampilkan apa pun
+        return
+    end
+
     local notifGui = Instance.new("ScreenGui")
     notifGui.Name = "Notification"
     notifGui.ResetOnSpawn = false
@@ -191,7 +191,7 @@ local function doFlyfling()
         -- Cek kriteria: BasePart, bukan Baseplate, bukan bagian karakter/Humanoid
         if obj:IsA("BasePart") and obj.Name ~= "Baseplate" then
             -- Lewati jika part tersebut adalah bagian dari karakter pemain lain atau NPC
-            if Players:GetPlayerFromPlayerFromCharacter(obj.Parent) or obj.Parent:FindFirstChildOfClass("Humanoid") then
+            if Players:GetPlayerFromCharacter(obj.Parent) or obj.Parent:FindFirstChildOfClass("Humanoid") then
                 continue
             end
             
@@ -250,79 +250,23 @@ local function toggleFlyfling(button)
     end
 end
 
-
--- 🔽 FUNGSI BRING PART BARU 🔽
-
-local function doBringPart()
-    if not isBringPartActive or not player.Character then return end
-
-    local myRoot = player.Character:FindFirstChild("HumanoidRootPart")
-    if not myRoot then return end
-
-    local targetParts = {}
-    local myPosition = myRoot.CFrame.Position
-    -- Target 5 stud di depan pemain
-    local targetPosition = myPosition + myRoot.CFrame.LookVector * 5 + Vector3.new(0, 1, 0) 
-
-    -- Ambil semua part di Workspace
-    for _, obj in ipairs(game.Workspace:GetDescendants()) do
-        -- Cek kriteria: BasePart, bukan Baseplate, bukan bagian karakter/Humanoid
-        if obj:IsA("BasePart") and obj.Name ~= "Baseplate" then
-            -- Lewati jika part tersebut adalah bagian dari karakter pemain lain atau NPC
-            if Players:GetPlayerFromCharacter(obj.Parent) or obj.Parent:FindFirstChildOfClass("Humanoid") then
-                continue
-            end
-            
-            local distance = (myPosition - obj.Position).Magnitude
-            
-            -- Cek Radius
-            if isBringPartRadiusOn and distance > bringPartRadius then continue end
-            
-            -- Cek Batas Massa
-            if obj:GetMass() <= bringPartMaxMass then 
-                 table.insert(targetParts, obj)
-            end
-        end
-    end
-
-    -- Pindahkan Part
-    for _, part in ipairs(targetParts) do
-        -- ** Logika Utama: Unanchor dan Pindah **
-        if part.Anchored then
-            part.Anchored = false -- Penting: jadikan Unanchored
-        end
-        
-        -- Set Network Owner ke pemain untuk kontrol yang lebih baik
-        if part:CanSetNetworkOwnership() then
-            part:SetNetworkOwner(player)
-        end
-
-        -- Tarik part ke posisi target
-        local direction = (targetPosition - part.Position).Unit
-        local speed = 50 -- Kecepatan tarik
-        part.AssemblyLinearVelocity = direction * speed
-    end
-end
-
-local function toggleBringPart(button)
-    isBringPartActive = not isBringPartActive
+-- ** BARU: Fungsi untuk Toggle Blokir Notifikasi **
+local function toggleNotificationBlock(button)
+    isNotificationBlocked = not isNotificationBlocked
+    updateButtonStatus(button, isNotificationBlocked, "BLOCK NOTIF", true)
     
-    if isBringPartActive then
-        updateButtonStatus(button, true, "BRING PART")
-        bringPartConnection = RunService.Heartbeat:Connect(doBringPart)
-        BringPartFrame.Visible = true 
-        showNotification("BRING PART AKTIF (Radius: " .. bringPartRadius .. ", Max Mass: " .. bringPartMaxMass .. ")") 
-        print("Bring Part AKTIF.")
+    if isNotificationBlocked then
+        -- Tampilkan notifikasi terakhir kali sebelum diblokir
+        local message = "BLOKIR NOTIFIKASI AKTIF. Tidak ada lagi notifikasi yang akan muncul."
+        local originalStatus = isNotificationBlocked
+        isNotificationBlocked = false -- Matikan sementara untuk notif ini
+        showNotification(message)
+        isNotificationBlocked = originalStatus -- Kembalikan status
     else
-        updateButtonStatus(button, false, "BRING PART")
-        if bringPartConnection then
-            bringPartConnection:Disconnect()
-            bringPartConnection = nil
-        end
-        BringPartFrame.Visible = false 
-        showNotification("BRING PART NONAKTIF.")
-        print("Bring Part NONAKTIF.")
+        showNotification("BLOKIR NOTIFIKASI NONAKTIF. Notifikasi akan muncul kembali.")
     end
+    
+    print("Blokir Notifikasi diatur ke: " .. (isNotificationBlocked and "AKTIF" or "NONAKTIF"))
 end
 
 
@@ -353,11 +297,12 @@ end
 
 -- 🔽 PENAMBAHAN TOMBOL KE FEATURE LIST 🔽
 
+-- ** BARU: Tombol Blokir Notifikasi (Diletakkan di atas) **
+local notifBlockButton = makeFeatureButton("BLOCK NOTIF: OFF", Color3.fromRGB(150, 0, 0), toggleNotificationBlock)
+updateButtonStatus(notifBlockButton, isNotificationBlocked, "BLOCK NOTIF", true) -- Atur status awal
+
 -- Tombol FLYFLING PART (Tombol Utama)
 local flyflingButton = makeFeatureButton("FLYFLING PART: OFF", Color3.fromRGB(120, 0, 0), toggleFlyfling)
-
--- Tombol BRING PART BARU (Tombol Utama)
-local bringPartButton = makeFeatureButton("BRING PART: OFF", Color3.fromRGB(120, 0, 0), toggleBringPart)
 
 -- 🔽 SUBMENU FLYFLING PART (Frame) 🔽
 
@@ -513,92 +458,6 @@ FlyflingLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function(
     featureListLayout.AbsoluteContentSize = featureListLayout.AbsoluteContentSize 
 end)
 
--- 🔽 SUBMENU BRING PART BARU (Frame) 🔽
-
-local BringPartFrame = Instance.new("Frame")
-BringPartFrame.Name = "BringPartSettings"
-BringPartFrame.Size = UDim2.new(1, -20, 0, 260) 
-BringPartFrame.Position = UDim2.new(0, 10, 0, 0)
-BringPartFrame.BackgroundTransparency = 1
-BringPartFrame.Visible = false 
-BringPartFrame.Parent = featureScrollFrame
-
-local BringPartLayout = Instance.new("UIListLayout")
-BringPartLayout.Padding = UDim.new(0, 5)
-BringPartLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-BringPartLayout.SortOrder = Enum.SortOrder.LayoutOrder
-BringPartLayout.Parent = BringPartFrame
-
--- Tombol Radius ON/OFF (BRING PART)
-local bringRadiusButton = makeFeatureButton("BRING RADIUS ON/OFF", Color3.fromRGB(0, 180, 0), function(button)
-    isBringPartRadiusOn = not isBringPartRadiusOn
-    updateButtonStatus(button, isBringPartRadiusOn, "BRING RADIUS", true)
-    showNotification("RADIUS BRING diatur ke: " .. (isBringPartRadiusOn and "ON" or "OFF")) 
-end, BringPartFrame)
-
--- Input Jumlah Radius (BRING PART)
-local bringRadiusInput = Instance.new("TextBox")
-bringRadiusInput.Name = "BringRadiusInput"
-bringRadiusInput.Size = UDim2.new(0, 180, 0, 40)
-bringRadiusInput.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-bringRadiusInput.PlaceholderText = "Atur Radius: " .. tostring(bringPartRadius) 
-bringRadiusInput.Text = ""
-bringRadiusInput.TextColor3 = Color3.new(1, 1, 1)
-bringRadiusInput.Font = Enum.Font.Gotham
-bringRadiusInput.TextSize = 12
-bringRadiusInput.Parent = BringPartFrame
-
-bringRadiusInput.FocusLost:Connect(function(enterPressed)
-    if enterPressed then
-        local newRadius = tonumber(bringRadiusInput.Text)
-        if newRadius and newRadius >= 0 then
-            bringPartRadius = newRadius
-            bringRadiusInput.PlaceholderText = "Atur Radius: " .. tostring(bringPartRadius)
-            bringRadiusInput.Text = "" 
-            showNotification("Bring Part Radius diatur ke: " .. tostring(newRadius)) 
-        else
-            bringRadiusInput.Text = "Invalid Number!"
-            task.wait(1)
-            bringRadiusInput.Text = ""
-        end
-    end
-end)
-
-
--- Input Max Mass (BRING PART)
-local maxMassInput = Instance.new("TextBox")
-maxMassInput.Name = "MaxMassInput"
-maxMassInput.Size = UDim2.new(0, 180, 0, 40)
-maxMassInput.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-maxMassInput.PlaceholderText = "Max Mass: " .. tostring(bringPartMaxMass) 
-maxMassInput.Text = ""
-maxMassInput.TextColor3 = Color3.new(1, 1, 1)
-maxMassInput.Font = Enum.Font.Gotham
-maxMassInput.TextSize = 12
-maxMassInput.Parent = BringPartFrame
-
-maxMassInput.FocusLost:Connect(function(enterPressed)
-    if enterPressed then
-        local newMass = tonumber(maxMassInput.Text)
-        if newMass and newMass >= 0 then
-            bringPartMaxMass = newMass
-            maxMassInput.PlaceholderText = "Max Mass: " .. tostring(bringPartMaxMass)
-            maxMassInput.Text = "" 
-            showNotification("Bring Part Max Mass diatur ke: " .. tostring(newMass)) 
-        else
-            maxMassInput.Text = "Invalid Number!"
-            task.wait(1)
-            maxMassInput.Text = ""
-        end
-    end
-end)
-
--- Layout Update untuk BringPartFrame
-BringPartLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-    BringPartFrame.Size = UDim2.new(1, -20, 0, BringPartLayout.AbsoluteContentSize.Y + 10)
-    featureListLayout.AbsoluteContentSize = featureListLayout.AbsoluteContentSize 
-end)
-
 
 -- 🔽 LOGIKA CHARACTER ADDED (PENTING UNTUK MEMPERTAHANKAN STATUS) 🔽
 player.CharacterAdded:Connect(function(char)
@@ -611,16 +470,6 @@ player.CharacterAdded:Connect(function(char)
             end
         end
     end
-    
-    -- Pertahankan status Bring Part
-    if isBringPartActive then
-        local button = featureScrollFrame:FindFirstChild("BringPartButton")
-        if button then 
-            if not bringPartConnection then
-                bringPartConnection = RunService.Heartbeat:Connect(doBringPart)
-            end
-        end
-    end
 end)
 
 
@@ -630,7 +479,3 @@ updateButtonStatus(partFollowButton, isPartFollowActive, "PART FOLLOW", true)
 updateButtonStatus(scanAnchoredButton, isScanAnchoredOn, "SCAN ANCHORED", true)
 updateButtonStatus(radiusButton, isFlyflingRadiusOn, "RADIUS", true)
 updateButtonStatus(speedToggleButton, isFlyflingSpeedOn, "SPEED", true)
-
--- Status awal Bring Part BARU
-updateButtonStatus(bringPartButton, isBringPartActive, "BRING PART")
-updateButtonStatus(bringRadiusButton, isBringPartRadiusOn, "BRING RADIUS", true)
