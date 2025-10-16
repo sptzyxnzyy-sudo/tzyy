@@ -11,8 +11,8 @@ local isFlyflingRadiusOn = true
 local isFlyflingSpeedOn = true 
 local isPartFollowActive = false 
 local isScanAnchoredOn = false 
-local flyflingSpeedMultiplier = 300 
-local flyflingRadius = 100 
+local flyflingSpeedMultiplier = 100 
+local flyflingRadius = 30 
 
 local isMagnetActive = false
 local magnetConnection = nil
