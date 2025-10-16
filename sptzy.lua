@@ -1,23 +1,24 @@
 local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+-- local UserInputService = game:GetService("UserInputService") -- Tidak digunakan
 
 local player = Players.LocalPlayer
 
--- ** ⬇️ STATUS FITUR FLYFLING PART & BRING PART ⬇️ **
+-- ** ⬇️ STATUS FITUR FLYFLING PART ⬇️ **
 local isFlyflingActive = false
-local flyflingConnection = nil
-local isBringPartActive = false 
-local bringPartConnection = nil
-
+local flyflingConnection = nil -- Digunakan untuk koneksi gabungan (Flyfling dan Bring Part)
 local isFlyflingRadiusOn = true 
 local isFlyflingSpeedOn = true 
 local isPartFollowActive = false 
--- isScanAnchoredOn dihilangkan, sekarang hanya menargetkan Unanchored parts.
-
+local isScanAnchoredOn = false -- Status untuk scan anchored parts
 local flyflingSpeedMultiplier = 100 
 local flyflingRadius = 30 
 
+-- ** ⬇️ STATUS FITUR BARU: BRING UNANCHORED PART ⬇️ **
+local isBringUnanchoredPartActive = false -- Status fitur baru
+local bringUnanchoredPartRadius = 50 -- Radius part yang ditarik
+local bringUnanchoredPartSpeed = 20 -- Kecepatan tarik part
 
 -- 🔽 ANIMASI "BY : Xraxor" 🔽
 do
@@ -109,6 +110,7 @@ end)
 
 -- 🔽 FUNGSI UTILITY GLOBAL 🔽
 
+-- FUNGSI BARU: Notifikasi dengan Animasi
 local function showNotification(message)
     local notifGui = Instance.new("ScreenGui")
     notifGui.Name = "Notification"
@@ -130,7 +132,9 @@ local function showNotification(message)
     corner.CornerRadius = UDim.new(0, 8)
     corner.Parent = notifLabel
 
+    -- Animation: Fade In (with background)
     local fadeIn = TweenService:Create(notifLabel, TweenInfo.new(0.3), {TextTransparency = 0, BackgroundTransparency = 0.2, BackgroundColor3 = Color3.fromRGB(0, 100, 200)})
+    -- Animation: Fade Out (with background fade)
     local fadeOut = TweenService:Create(notifLabel, TweenInfo.new(0.5), {TextTransparency = 1, BackgroundTransparency = 1})
 
     fadeIn:Play()
@@ -167,8 +171,9 @@ local function updateButtonStatus(button, isActive, featureName, isToggle)
 end
 
 
--- 🔽 FUNGSI FLYFLING PART 🔽
+-- 🔽 FUNGSI INTI GABUNGAN (FLYFLING + BRING PART) 🔽
 
+-- FUNGSI FLYFLING
 local function doFlyfling()
     if not isFlyflingActive or not player.Character then return end
 
@@ -179,14 +184,15 @@ local function doFlyfling()
     local speed = isFlyflingSpeedOn and flyflingSpeedMultiplier or 0
     local targetParts = {}
 
+    -- Ambil semua part di Workspace
     for _, obj in ipairs(game.Workspace:GetDescendants()) do
         if obj:IsA("BasePart") and obj.Name ~= "Baseplate" then
             if Players:GetPlayerFromCharacter(obj.Parent) or obj.Parent:FindFirstChildOfClass("Humanoid") then
                 continue
             end
             
-            -- HANYA TARGET PART YANG UNANCHORED
-            if obj.Anchored then
+            -- Mendukung Scan Anchored Parts (HANYA untuk Fling, BringPart punya logikanya sendiri)
+            if (not isScanAnchoredOn) and obj.Anchored then
                 continue
             end
 
@@ -212,91 +218,97 @@ local function doFlyfling()
     end
 end
 
-local function toggleFlyfling(button)
-    isFlyflingActive = not isFlyflingActive
-    
-    if isFlyflingActive then
-        updateButtonStatus(button, true, "FLYFLING PART")
-        flyflingConnection = RunService.Heartbeat:Connect(doFlyfling)
-        showNotification("FLYFLING PART AKTIF (Hanya Unanchored)")
-        print("Flyfling Part AKTIF.")
-    else
-        updateButtonStatus(button, false, "FLYFLING PART")
-        if flyflingConnection then
-            flyflingConnection:Disconnect()
-            flyflingConnection = nil
-        end
-        showNotification("FLYFLING PART NONAKTIF.")
-        print("Flyfling Part NONAKTIF.")
-    end
-end
-
-
--- 🔽 FUNGSI BRING PART (Hanya Unanchored) 🔽
-
-local function doBringPart()
-    if not isBringPartActive or not player.Character then return end
+-- FUNGSI BRING UNANCHORED PART
+local function doBringUnanchoredPart()
+    if not isBringUnanchoredPartActive or not player.Character then return end
 
     local myRoot = player.Character:FindFirstChild("HumanoidRootPart")
     if not myRoot then return end
 
-    local speed = isFlyflingSpeedOn and flyflingSpeedMultiplier or 0
-    
     local targetParts = {}
-    local myPosition = myRoot.CFrame.Position
-    local maxMass = 5000 
 
     for _, obj in ipairs(game.Workspace:GetDescendants()) do
-        if obj:IsA("BasePart") and obj.Name ~= "Baseplate" then
+        -- Kriteria: BasePart, TIDAK Anchored, bukan Baseplate, bukan bagian karakter/Humanoid
+        if obj:IsA("BasePart") and not obj.Anchored and obj.Name ~= "Baseplate" then
             if Players:GetPlayerFromCharacter(obj.Parent) or obj.Parent:FindFirstChildOfClass("Humanoid") then
                 continue
             end
             
-            -- HANYA TARGET PART YANG UNANCHORED
-            if obj.Anchored then
-                continue
-            end
+            local distance = (myRoot.Position - obj.Position).Magnitude
             
-            local distance = (myPosition - obj.Position).Magnitude
+            -- Cek Radius Bring
+            if distance > bringUnanchoredPartRadius then continue end
             
-            if isFlyflingRadiusOn and distance > flyflingRadius then continue end
-            
-            if obj:GetMass() <= maxMass then 
+            if obj:GetMass() < 1000 then 
                  table.insert(targetParts, obj)
             end
         end
     end
 
+    -- Terapkan Gaya Tarik
     for _, part in ipairs(targetParts) do
-        -- PENTING: Set Network Owner ke pemain (Agar pergerakan disinkronkan ke pemain lain)
-        if part:CanSetNetworkOwnership() then
-            part:SetNetworkOwner(player)
-        end
+        local directionToPlayer = (myRoot.Position - part.Position).Unit
         
-        -- Logika Tarik
-        local direction = (myRoot.Position - part.Position).Unit 
-        local force = direction * part:GetMass() * speed * 10 
+        -- Gunakan AssemblyLinearVelocity untuk menarik part langsung
+        local targetVelocity = directionToPlayer * bringUnanchoredPartSpeed
         
-        part.Velocity = part.Velocity + (force / part:GetMass())
+        part.AssemblyLinearVelocity = targetVelocity
     end
 end
 
-local function toggleBringPart(button)
-    isBringPartActive = not isBringPartActive
+-- FUNGSI GABUNGAN HEARTBEAT
+local function updateCombinedFeatures()
+    if isFlyflingActive then
+        doFlyfling()
+    end
+    if isBringUnanchoredPartActive then
+        doBringUnanchoredPart()
+    end
     
-    if isBringPartActive then
-        updateButtonStatus(button, true, "BRING PART")
-        bringPartConnection = RunService.Heartbeat:Connect(doBringPart)
-        showNotification("BRING PART AKTIF (Hanya Unanchored)") 
-        print("Bring Part AKTIF.")
-    else
-        updateButtonStatus(button, false, "BRING PART")
-        if bringPartConnection then
-            bringPartConnection:Disconnect()
-            bringPartConnection = nil
+    -- Jaga agar koneksi Heartbeat tetap berjalan selama salah satu fitur aktif
+    if not isFlyflingActive and not isBringUnanchoredPartActive then
+        if flyflingConnection then
+            flyflingConnection:Disconnect()
+            flyflingConnection = nil
         end
-        showNotification("BRING PART NONAKTIF.")
-        print("Bring Part NONAKTIF.")
+    end
+end
+
+local function ensureHeartbeatRunning()
+    if (isFlyflingActive or isBringUnanchoredPartActive) and not flyflingConnection then
+        flyflingConnection = RunService.Heartbeat:Connect(updateCombinedFeatures)
+    end
+end
+
+-- 🔽 FUNGSI TOGGLE 🔽
+
+local function toggleFlyfling(button)
+    isFlyflingActive = not isFlyflingActive
+    
+    if isFlyflingActive then
+        updateButtonStatus(button, true, "FLYFLING PART")
+        ensureHeartbeatRunning()
+        FlyflingFrame.Visible = true 
+        showNotification("FLYFLING PART AKTIF (Speed: " .. flyflingSpeedMultiplier .. "x, Radius: " .. flyflingRadius .. ")") 
+    else
+        updateButtonStatus(button, false, "FLYFLING PART")
+        FlyflingFrame.Visible = false 
+        showNotification("FLYFLING PART NONAKTIF.") 
+        -- updateCombinedFeatures akan mengurus disconnecting jika tidak ada fitur lain yang aktif
+    end
+end
+
+local function toggleBringUnanchoredPart(button)
+    isBringUnanchoredPartActive = not isBringUnanchoredPartActive
+    
+    if isBringUnanchoredPartActive then
+        updateButtonStatus(button, true, "BRING PART UNANCHORED")
+        ensureHeartbeatRunning()
+        showNotification("BRING PART UNANCHORED AKTIF (Radius: " .. bringUnanchoredPartRadius .. ", Speed: " .. bringUnanchoredPartSpeed .. ")")
+    else
+        updateButtonStatus(button, false, "BRING PART UNANCHORED")
+        showNotification("BRING PART UNANCHORED NONAKTIF.")
+        -- updateCombinedFeatures akan mengurus disconnecting jika tidak ada fitur lain yang aktif
     end
 end
 
@@ -328,17 +340,21 @@ end
 
 -- 🔽 PENAMBAHAN TOMBOL KE FEATURE LIST 🔽
 
+-- Tombol BARU: BRING PART UNANCHORED (Tombol Utama)
+local bringPartButton = makeFeatureButton("BRING PART UNANCHORED: OFF", Color3.fromRGB(120, 0, 0), toggleBringUnanchoredPart)
+
+-- Tombol FLYFLING PART (Tombol Utama)
 local flyflingButton = makeFeatureButton("FLYFLING PART: OFF", Color3.fromRGB(120, 0, 0), toggleFlyfling)
-local bringPartButton = makeFeatureButton("BRING PART: OFF", Color3.fromRGB(120, 0, 0), toggleBringPart)
 
 
 -- 🔽 SUBMENU FLYFLING PART (Frame) 🔽
 
 local FlyflingFrame = Instance.new("Frame")
 FlyflingFrame.Name = "FlyflingSettings"
-FlyflingFrame.Size = UDim2.new(1, -20, 0, 260) -- Ukuran dikurangi
+FlyflingFrame.Size = UDim2.new(1, -20, 0, 310) 
 FlyflingFrame.Position = UDim2.new(0, 10, 0, 0)
 FlyflingFrame.BackgroundTransparency = 1
+FlyflingFrame.Visible = false 
 FlyflingFrame.Parent = featureScrollFrame
 
 local FlyflingLayout = Instance.new("UIListLayout")
@@ -351,14 +367,22 @@ FlyflingLayout.Parent = FlyflingFrame
 local partFollowButton = makeFeatureButton("PART FOLLOW: OFF", Color3.fromRGB(150, 0, 0), function(button)
     isPartFollowActive = not isPartFollowActive
     updateButtonStatus(button, isPartFollowActive, "PART FOLLOW", true)
-    showNotification("PART FOLLOW diatur ke: " .. (isPartFollowActive and "ON" or "OFF"))
+    showNotification("PART FOLLOW diatur ke: " .. (isPartFollowActive and "ON" or "OFF")) 
 end, FlyflingFrame)
+
+-- Tombol SCAN ANCHORED
+local scanAnchoredButton = makeFeatureButton("SCAN ANCHORED: OFF", Color3.fromRGB(150, 0, 0), function(button)
+    isScanAnchoredOn = not isScanAnchoredOn
+    updateButtonStatus(button, isScanAnchoredOn, "SCAN ANCHORED", true)
+    showNotification("SCAN ANCHORED diatur ke: " .. (isScanAnchoredOn and "ON" or "OFF")) 
+end, FlyflingFrame)
+
 
 -- Tombol Radius ON/OFF
 local radiusButton = makeFeatureButton("RADIUS ON/OFF", Color3.fromRGB(0, 180, 0), function(button)
     isFlyflingRadiusOn = not isFlyflingRadiusOn
     updateButtonStatus(button, isFlyflingRadiusOn, "RADIUS", true)
-    showNotification("RADIUS FLING/BRING diatur ke: " .. (isFlyflingRadiusOn and "ON" or "OFF"))
+    showNotification("RADIUS FLING diatur ke: " .. (isFlyflingRadiusOn and "ON" or "OFF")) 
 end, FlyflingFrame)
 
 -- Input Jumlah Radius
@@ -380,7 +404,7 @@ radiusInput.FocusLost:Connect(function(enterPressed)
             flyflingRadius = newRadius
             radiusInput.PlaceholderText = "Atur Radius: " .. tostring(flyflingRadius)
             radiusInput.Text = "" 
-            showNotification("Radius diatur ke: " .. tostring(newRadius))
+            showNotification("Radius diatur ke: " .. tostring(newRadius)) 
         else
             radiusInput.Text = "Invalid Number!"
             task.wait(1)
@@ -394,7 +418,7 @@ end)
 local speedToggleButton = makeFeatureButton("SPEED ON/OFF", Color3.fromRGB(0, 180, 0), function(button)
     isFlyflingSpeedOn = not isFlyflingSpeedOn
     updateButtonStatus(button, isFlyflingSpeedOn, "SPEED", true)
-    showNotification("SPEED FLING/BRING diatur ke: " .. (isFlyflingSpeedOn and "ON" or "OFF"))
+    showNotification("SPEED FLING diatur ke: " .. (isFlyflingSpeedOn and "ON" or "OFF")) 
     
     local speedInput = FlyflingFrame:FindFirstChild("SpeedInput")
     if speedInput then
@@ -407,7 +431,7 @@ local speedInput = Instance.new("TextBox")
 speedInput.Name = "SpeedInput"
 speedInput.Size = UDim2.new(0, 180, 0, 40)
 speedInput.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-speedInput.PlaceholderText = "Atur Speed: " .. tostring(flyflingSpeedMultiplier)
+speedInput.PlaceholderText = "Atur Speed: " .. tostring(flyflingSpeedMultiplier) 
 speedInput.Text = ""
 speedInput.TextColor3 = Color3.new(1, 1, 1)
 speedInput.Font = Enum.Font.Gotham
@@ -421,7 +445,7 @@ speedInput.FocusLost:Connect(function(enterPressed)
             flyflingSpeedMultiplier = newSpeed
             speedInput.PlaceholderText = "Atur Speed: " .. tostring(flyflingSpeedMultiplier)
             speedInput.Text = "" 
-            showNotification("Speed diatur ke: " .. tostring(newSpeed) .. "x")
+            showNotification("Speed diatur ke: " .. tostring(newSpeed) .. "x") 
         else
             speedInput.Text = "Invalid Number!"
             task.wait(1)
@@ -466,35 +490,30 @@ for i, speedValue in ipairs(speedOptions) do
         flyflingSpeedMultiplier = speedValue
         speedInput.PlaceholderText = "Atur Speed: " .. tostring(flyflingSpeedMultiplier)
         speedInput.Text = "" 
-        showNotification("Flyfling/Bring Speed diatur ke: " .. tostring(speedValue) .. "x")
+        showNotification("Flyfling Speed diatur ke: " .. tostring(speedValue) .. "x") 
+        print("Flyfling Speed diatur ke: " .. tostring(speedValue))
     end)
 end
 
+-- Pastikan FlyflingLayout dan featureListLayout diperbarui
 FlyflingLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
     FlyflingFrame.Size = UDim2.new(1, -20, 0, FlyflingLayout.AbsoluteContentSize.Y + 10)
-    featureListLayout.AbsoluteContentSize = featureListLayout.AbsoluteContentSize 
+    -- Perluas featureListLayout untuk mengakomodasi FlyflingFrame saat terlihat
+    featureListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Fire() 
 end)
 
 
--- 🔽 LOGIKA CHARACTER ADDED (PENTING) 🔽
+-- 🔽 LOGIKA CHARACTER ADDED (PENTING UNTUK MEMPERTAHANKAN STATUS) 🔽
 player.CharacterAdded:Connect(function(char)
-    if isFlyflingActive then
-        if not flyflingConnection then
-            flyflingConnection = RunService.Heartbeat:Connect(doFlyfling)
-        end
-    end
-    
-    if isBringPartActive then
-        if not bringPartConnection then
-            bringPartConnection = RunService.Heartbeat:Connect(doBringPart)
-        end
-    end
+    -- Pertahankan status Flyfling Part dan Bring Part
+    ensureHeartbeatRunning()
 end)
 
 
 -- Atur status awal tombol
 updateButtonStatus(flyflingButton, isFlyflingActive, "FLYFLING PART")
+updateButtonStatus(bringPartButton, isBringUnanchoredPartActive, "BRING PART UNANCHORED") 
 updateButtonStatus(partFollowButton, isPartFollowActive, "PART FOLLOW", true)
-updateButtonStatus(radiusButton, isFlyflingRadiusOn, "RADIUS")
-updateButtonStatus(speedToggleButton, isFlyflingSpeedOn, "SPEED")
-updateButtonStatus(bringPartButton, isBringPartActive, "BRING PART")
+updateButtonStatus(scanAnchoredButton, isScanAnchoredOn, "SCAN ANCHORED", true)
+updateButtonStatus(radiusButton, isFlyflingRadiusOn, "RADIUS", true)
+updateButtonStatus(speedToggleButton, isFlyflingSpeedOn, "SPEED", true)
