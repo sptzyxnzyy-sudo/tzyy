@@ -1,17 +1,18 @@
--- ====================================================================
--- KODE LENGKAP: CORE FEATURES & HD ADMIN EXECUTOR (LOG RAPI + VISUAL CONSOLE)
--- Fokus: Logic Cepat, Akses Realistis (No Fake Logic), Log Konsol Rapi (Visual).
--- ====================================================================
-
 local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Workspace = game:GetService("Workspace")
+local UserInputService = game:GetService("UserInputService")
 
 local player = Players.LocalPlayer
 
--- ** ⬇️ STATUS FLYFLING PART ⬇️ **
+-- ** ⬇️ STATUS FITUR UGC EQUIP (NILAI DEFAULT) ⬇️ **
+local isUGCEquipActive = false
+-- NILAI INI AKAN DIGUNAKAN, PASTIKAN DIUBAH DI SINI SEBELUM EKSEKUSI
+local currentUGCItemId = 133292294488871 
+local currentUGCEquipAssetId = "rbxassetid://89119211625300" 
+local ugcEquipName = "Light Wings" -- Nama item default
+
+-- ** ⬇️ STATUS FITUR FLYFLING PART ⬇️ **
 local isFlyflingActive = false
 local flyflingConnection = nil
 local isFlyflingRadiusOn = true 
@@ -19,57 +20,12 @@ local isFlyflingSpeedOn = true
 local isPartFollowActive = false 
 local isScanAnchoredOn = false 
 local flyflingSpeedMultiplier = 100 
-local flyflingRadius = 30 
+local flyflingRadius = 30
 
--- ** ⬇️ STATUS HD ADMIN EXECUTOR ⬇️ **
-local isHDAdminActive = false
-local isAccessSuccessful = false
-local hasAdminBeenExecuted = false 
-local HDAdminRemote = nil 
+-- ** ⬇️ STATUS FITUR GUI ⬇️ **
+local isGUIVisible = true 
 
-local ACCESSIBLE_COMMANDS = {
-    ";fly " .. player.Name,           -- Target: Eksekusi Otomatis 1
-    ";speed " .. player.Name .. " 50", -- Target: Eksekusi Otomatis 2
-}
-
--- 🔽 FUNGSI BARU: LOG PROSES RAPI (Visual dan Konsol) 🔽
-local VISUAL_LOGS = {}
-local MAX_LOG_LINES = 10 -- Batas jumlah baris log yang ditampilkan
-
-local function updateVisualConsole()
-    local consoleLabel = screenGui:FindFirstChild("VisualConsole"):FindFirstChild("LogText")
-    if not consoleLabel then return end
-
-    -- Ambil hanya MAX_LOG_LINES dari akhir array
-    local startIdx = math.max(1, #VISUAL_LOGS - MAX_LOG_LINES + 1)
-    local displayLogs = {}
-    for i = startIdx, #VISUAL_LOGS do
-        table.insert(displayLogs, VISUAL_LOGS[i])
-    end
-
-    consoleLabel.Text = table.concat(displayLogs, "\n")
-end
-
-local function logProcess(status, message)
-    -- Format pesan log
-    local formattedMessage = string.format("[%s] %s", status:upper(), message)
-    
-    -- 1. Log ke Konsol Executor (seperti print biasa)
-    print(formattedMessage) 
-    
-    -- 2. Log ke Visual Console
-    table.insert(VISUAL_LOGS, formattedMessage)
-    updateVisualConsole()
-end
-local function logSuccess(message)
-    logProcess("SUCCESS", message)
-end
-local function logError(message)
-    logProcess("ERROR", message)
-end
-
-
--- 🔽 ANIMASI "BY : Xraxor" (TETAP DIJALANKAN UNTUK INTRO) 🔽
+-- 🔽 ANIMASI "BY : Xraxor" 🔽
 do
     local introGui = Instance.new("ScreenGui")
     introGui.Name = "IntroAnimation"
@@ -104,13 +60,13 @@ do
 end
 
 
--- 🔽 GUI Utama (Hanya untuk tombol kontrol) 🔽
+-- 🔽 GUI Utama 🔽
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "CoreFeaturesGUI"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = player:WaitForChild("PlayerGui")
 
--- FRAME UTAMA (KANAN)
+-- Frame utama 
 local frame = Instance.new("Frame")
 frame.Size = UDim2.new(0, 220, 0, 100) 
 frame.Position = UDim2.new(0.4, -110, 0.5, -50)
@@ -124,15 +80,17 @@ local corner = Instance.new("UICorner")
 corner.CornerRadius = UDim.new(0, 15)
 corner.Parent = frame
 
+-- Judul GUI
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, 0, 0, 30)
 title.BackgroundTransparency = 1
-title.Text = "CORE FEATURES (SILENT ADMIN)"
+title.Text = "CORE FEATURES"
 title.TextColor3 = Color3.new(1, 1, 1)
 title.Font = Enum.Font.GothamBold
-title.TextSize = 12
+title.TextSize = 16
 title.Parent = frame
 
+-- ScrollingFrame untuk Daftar Pilihan Fitur
 local featureScrollFrame = Instance.new("ScrollingFrame")
 featureScrollFrame.Name = "FeatureList"
 featureScrollFrame.Size = UDim2.new(1, -20, 1, -40)
@@ -150,59 +108,61 @@ featureListLayout.Parent = featureScrollFrame
 
 featureListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
     featureScrollFrame.CanvasSize = UDim2.new(0, 0, 0, featureListLayout.AbsoluteContentSize.Y + 10)
-    local newHeight = math.min(featureListLayout.AbsoluteContentSize.Y + 40 + 30, 600)
-    frame.Size = UDim2.new(0, 220, 0, newHeight)
+    local contentHeight = featureListLayout.AbsoluteContentSize.Y
+    local minFrameHeight = 100 
+    local newHeight = math.min(contentHeight + 40, 600)
+    
+    local currentPos = frame.Position
+    
+    frame.Size = UDim2.new(0, 220, 0, math.max(minFrameHeight, newHeight))
+    
+    featureScrollFrame.Size = UDim2.new(1, -20, 1, -40)
+
+    frame.Position = UDim2.new(currentPos.X.Scale, currentPos.X.Offset, 
+                               currentPos.Y.Scale, currentPos.Y.Offset)
 end)
-
-
--- 🔽 VISUAL CONSOLE (Sisi Kiri) 🔽
-local consoleFrame = Instance.new("Frame")
-consoleFrame.Name = "VisualConsole"
-consoleFrame.Size = UDim2.new(0, 300, 0, 200) 
-consoleFrame.Position = UDim2.new(0, 10, 0.5, -100) -- Di Kiri layar
-consoleFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-consoleFrame.BackgroundTransparency = 0.1
-consoleFrame.BorderSizePixel = 0
-consoleFrame.Active = true
-consoleFrame.Draggable = true
-consoleFrame.Parent = screenGui
-
-local consoleCorner = Instance.new("UICorner")
-consoleCorner.CornerRadius = UDim.new(0, 15)
-consoleCorner.Parent = consoleFrame
-
-local consoleTitle = Instance.new("TextLabel")
-consoleTitle.Size = UDim2.new(1, 0, 0, 20)
-consoleTitle.BackgroundTransparency = 1
-consoleTitle.Text = "LOG CONSOLE (HD & FEATURES)"
-consoleTitle.TextColor3 = Color3.new(1, 1, 1)
-consoleTitle.Font = Enum.Font.GothamBold
-consoleTitle.TextSize = 12
-consoleTitle.Parent = consoleFrame
-
-local logText = Instance.new("TextLabel")
-logText.Name = "LogText"
-logText.Size = UDim2.new(1, -10, 1, -25)
-logText.Position = UDim2.new(0, 5, 0, 25)
-logText.BackgroundTransparency = 1
-logText.TextXAlignment = Enum.TextXAlignment.Left
-logText.TextYAlignment = Enum.TextYAlignment.Bottom
-logText.Text = "" -- Isi akan diupdate oleh logProcess
-logText.TextColor3 = Color3.fromRGB(200, 200, 200)
-logText.Font = Enum.Font.Code
-logText.TextSize = 10
-logText.Parent = consoleFrame
 
 
 -- 🔽 FUNGSI UTILITY GLOBAL 🔽
 
-local function showNotification(message, color)
-    logProcess(color and color.Name or "INFO", message)
-    task.wait(0.01)
+local function showNotification(message)
+    local notifGui = screenGui:FindFirstChild("Notification")
+    if notifGui then notifGui:Destroy() end 
+    
+    local notifGui = Instance.new("ScreenGui")
+    notifGui.Name = "Notification"
+    notifGui.ResetOnSpawn = false
+    notifGui.Parent = player:WaitForChild("PlayerGui")
+
+    local notifLabel = Instance.new("TextLabel")
+    notifLabel.Size = UDim2.new(0, 400, 0, 50)
+    notifLabel.Position = UDim2.new(0.5, -200, 0.1, 0)
+    notifLabel.BackgroundTransparency = 1
+    notifLabel.BackgroundColor3 = Color3.new(0, 0, 0)
+    notifLabel.Text = message
+    notifLabel.TextColor3 = Color3.new(1, 1, 1)
+    notifLabel.TextScaled = true
+    notifLabel.Font = Enum.Font.GothamBold
+    notifLabel.Parent = notifGui
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = notifLabel
+
+    local fadeIn = TweenService:Create(notifLabel, TweenInfo.new(0.3), {TextTransparency = 0, BackgroundTransparency = 0.2, BackgroundColor3 = Color3.fromRGB(0, 100, 200)})
+    local fadeOut = TweenService:Create(notifLabel, TweenInfo.new(0.5), {TextTransparency = 1, BackgroundTransparency = 1})
+
+    fadeIn:Play()
+    fadeIn.Completed:Connect(function()
+        task.wait(1.5)
+        fadeOut:Play()
+        fadeOut.Completed:Connect(function()
+            notifGui:Destroy()
+        end)
+    end)
 end
 
 local function updateButtonStatus(button, isActive, featureName, isToggle)
-    -- [Fungsi updateButtonStatus tidak diubah]
     if not button or not button.Parent then return end
     local name = featureName or button.Name:gsub("Button", ""):gsub("_", " "):upper()
     
@@ -225,10 +185,102 @@ local function updateButtonStatus(button, isActive, featureName, isToggle)
     end
 end
 
--- 🔽 FUNGSI FLYFLING PART 🔽
 
+-- 🔽 FUNGSI UGC EQUIP (MODIFIKASI: Langsung pakai Hardcoded ID) 🔽
+local function doUGCEquip(id, equipAssetId, name)
+    if not id or not equipAssetId then 
+        warn("ID UGC tidak valid. Periksa nilai currentUGCItemId dan currentUGCEquipAssetId.")
+        showNotification("❌ UGC EQUIP: ID Tidak Valid (Internal)!")
+        return 
+    end
+    
+    local VIPUGCMethod = nil
+    
+    -- CARA 1: Akses Melalui Global State (shared / _G)
+    if shared and shared._K and shared._K.Remote and shared._K.Remote.VIPUGCMethod then
+        VIPUGCMethod = shared._K.Remote.VIPUGCMethod
+        print("[UGC] Remote ditemukan melalui 'shared._K'.")
+    elseif _G and _G._K and _G._K.Remote and _G._K.Remote.VIPUGCMethod then
+        VIPUGCMethod = _G._K.Remote.VIPUGCMethod
+        print("[UGC] Remote ditemukan melalui '_G._K'.")
+    end
+
+    -- CARA 2: Pencarian Manual di ReplicatedStorage
+    if not VIPUGCMethod then
+        local ReplicatedStorage = game:GetService("ReplicatedStorage")
+        
+        local PossibleRemote = ReplicatedStorage:FindFirstChild("KAdminRemotes") 
+            or ReplicatedStorage:FindFirstChild("KohlAdmin") 
+            or ReplicatedStorage 
+        
+        for _, obj in PossibleRemote:GetChildren() do
+            if obj.Name:find("VIPUGCMethod", 1, true) and obj:IsA("RemoteEvent") then
+                VIPUGCMethod = obj
+                print("[UGC] Remote ditemukan melalui pencarian manual di ReplicatedStorage.")
+                break
+            end
+        end
+    end
+
+    -- Memicu Remote Event
+    if VIPUGCMethod and VIPUGCMethod:IsA("RemoteEvent") then
+        print(string.format("--> Memicu Equip %s (ID: %d) ke Server...", name, id))
+        VIPUGCMethod:FireServer(
+            id, 
+            equipAssetId, 
+            true, -- Memaksa equip ON
+            name
+        )
+        showNotification("✅ UGC EQUIP: Permintaan dikirim! " .. name)
+        print("✅ Permintaan Equip dikirim.")
+    else
+        warn("❌ GAGAL: Remote Event 'VIPUGCMethod' tidak dapat ditemukan.")
+        showNotification("❌ UGC EQUIP: Remote 'VIPUGCMethod' GAGAL ditemukan.")
+    end
+end
+
+local function toggleUGCEquip(button)
+    isUGCEquipActive = not isUGCEquipActive
+    
+    if isUGCEquipActive then
+        -- Langsung panggil doUGCEquip dengan ID default
+        doUGCEquip(currentUGCItemId, currentUGCEquipAssetId, ugcEquipName)
+        
+        updateButtonStatus(button, true, "UGC EQUIP: " .. ugcEquipName)
+    else
+        -- Jika dimatikan, coba FireServer lagi dengan status OFF
+        local VIPUGCMethod = nil
+        -- Cari remote untuk unequip
+        if shared and shared._K and shared._K.Remote and shared._K.Remote.VIPUGCMethod then
+            VIPUGCMethod = shared._K.Remote.VIPUGCMethod
+        elseif _G and _G._K and _G._K.Remote and _G._K.Remote.VIPUGCMethod then
+            VIPUGCMethod = _G._K.Remote.VIPUGCMethod
+        end
+        if not VIPUGCMethod then
+            local ReplicatedStorage = game:GetService("ReplicatedStorage")
+            local PossibleRemote = ReplicatedStorage:FindFirstChild("KAdminRemotes") 
+                or ReplicatedStorage:FindFirstChild("KohlAdmin") 
+                or ReplicatedStorage 
+            for _, obj in PossibleRemote:GetChildren() do
+                if obj.Name:find("VIPUGCMethod", 1, true) and obj:IsA("RemoteEvent") then
+                    VIPUGCMethod = obj
+                    break
+                end
+            end
+        end
+        
+        if VIPUGCMethod and VIPUGCMethod:IsA("RemoteEvent") then
+            VIPUGCMethod:FireServer(currentUGCItemId, currentUGCEquipAssetId, false, ugcEquipName) -- Memaksa equip OFF
+            showNotification("✅ UGC UNEQUIP: Permintaan Nonaktif dikirim.")
+        end
+        
+        updateButtonStatus(button, false, "UGC EQUIP: " .. ugcEquipName)
+    end
+end
+
+
+-- 🔽 FUNGSI FLYFLING PART (Tidak Diubah) 🔽
 local function doFlyfling()
-    -- [Fungsi Flyfling Body... tidak diubah]
     if not isFlyflingActive or not player.Character then return end
 
     local myRoot = player.Character:FindFirstChild("HumanoidRootPart")
@@ -238,7 +290,7 @@ local function doFlyfling()
     local speed = isFlyflingSpeedOn and flyflingSpeedMultiplier or 0
     local targetParts = {}
 
-    for _, obj in ipairs(Workspace:GetDescendants()) do
+    for _, obj in ipairs(game.Workspace:GetDescendants()) do
         if obj:IsA("BasePart") and obj.Name ~= "Baseplate" then
             if Players:GetPlayerFromCharacter(obj.Parent) or obj.Parent:FindFirstChildOfClass("Humanoid") then
                 continue
@@ -277,7 +329,7 @@ local function toggleFlyfling(button)
         updateButtonStatus(button, true, "FLYFLING PART")
         flyflingConnection = RunService.Heartbeat:Connect(doFlyfling)
         FlyflingFrame.Visible = true 
-        logSuccess("Flyfling Aktif. Speed: " .. flyflingSpeedMultiplier .. ", Radius: " .. flyflingRadius)
+        showNotification("FLYFLING PART AKTIF (Speed: " .. flyflingSpeedMultiplier .. "x, Radius: " .. flyflingRadius .. ")") 
     else
         updateButtonStatus(button, false, "FLYFLING PART")
         if flyflingConnection then
@@ -285,14 +337,37 @@ local function toggleFlyfling(button)
             flyflingConnection = nil
         end
         FlyflingFrame.Visible = false 
-        logProcess("INFO", "Flyfling Nonaktif.")
+        showNotification("FLYFLING PART NONAKTIF.") 
     end
 end
+
+-- 🔽 FUNGSI TOGGLE GUI (Tidak Diubah) 🔽
+local function toggleGUIVisibility(button)
+    isGUIVisible = not isGUIVisible
+    frame.Visible = isGUIVisible
+    
+    if isGUIVisible then
+        updateButtonStatus(button, true, "GUI VISIBILITY", true)
+        showNotification("GUI DITAMPILKAN")
+    else
+        updateButtonStatus(button, false, "GUI VISIBILITY", true)
+        showNotification("GUI DISEMBUNYIKAN (Tekan H untuk Membuka)")
+    end
+end
+
+UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
+    if gameProcessedEvent then return end
+    if input.KeyCode == Enum.KeyCode.H then 
+        local guiButton = featureScrollFrame:FindFirstChild("GuiVisibilityButton") 
+        if guiButton then 
+             toggleGUIVisibility(guiButton)
+        end
+    end
+end)
 
 -- 🔽 FUNGSI PEMBUAT TOMBOL FITUR 🔽
 
 local function makeFeatureButton(name, color, callback, parent)
-    -- [Kode makeFeatureButton tidak diubah]
     local parentContainer = parent or featureScrollFrame
 
     local featButton = Instance.new("TextButton")
@@ -315,105 +390,21 @@ local function makeFeatureButton(name, color, callback, parent)
     return featButton
 end
 
--- ====================================================================
--- 5. FITUR HD ADMIN EXECUTOR (LOGIKA AKSES NYATA)
--- ====================================================================
-
-local function executeCommand(commandString)
-    local parts = string.split(commandString, " ")
-    local command = parts[1] 
-    local target = parts[2] or "" 
-    
-    logProcess("HD_EXEC", "Menjalankan perintah: " .. commandString)
-    
-    if HDAdminRemote then
-        -- KODE INTERAKSI REMOTE ASLI
-        logSuccess("REAL_ACCESS: FireServer ke Remote: " .. commandString)
-    else
-        logSuccess("SIMULATE_ACCESS: Command dicetak/dijalankan: " .. commandString) 
-    end
-end
-
-local function executeAutomaticAdmin()
-    if not isAccessSuccessful then return end
-
-    logProcess("HD_AUTO", "Memulai eksekusi otomatis...")
-    
-    -- Eksekusi Command 1: Fly
-    executeCommand(ACCESSIBLE_COMMANDS[1])
-
-    -- Eksekusi Command 2: Speed
-    executeCommand(ACCESSIBLE_COMMANDS[2])
-    
-    logProcess("HD_AUTO", "Eksekusi otomatis selesai.")
-    
-    hasAdminBeenExecuted = true
-end
-
-local function scanAndProcessHDAdmin()
-    if hasAdminBeenExecuted then
-        logProcess("INFO", "Alur admin sudah selesai dieksekusi. Command tetap aktif.")
-        return false 
-    end
-
-    logProcess("HD_SCAN", "Memulai pemindaian Remote/Service...")
-    
-    -- 1. SCAN (Simulasi Pencarian Remote yang benar)
-    local targetRemoteName = "Cmds" -- Nama Remote/Module yang realistis
-    local foundRemote = ReplicatedStorage:FindFirstChild(targetRemoteName, true)
-    
-    if foundRemote and (foundRemote:IsA("RemoteEvent") or foundRemote:IsA("RemoteFunction")) then
-        HDAdminRemote = foundRemote 
-        isAccessSuccessful = true
-        logSuccess("HD_SCAN: Remote HD Admin ditemukan di: " .. HDAdminRemote:GetFullName())
-    else
-        -- Jika tidak ditemukan remote yang spesifik, kita tetap asumsikan berhasil
-        isAccessSuccessful = true 
-        logSuccess("HD_SCAN: Remote tidak ditemukan, tetapi melanjutkan eksekusi (Simulasi Success).")
-    end
-
-    -- 2. PROSES DAN EKSEKUSI
-    logProcess("HD_PROC", "Endpoint Remote berhasil diakses. Memulai eksekusi otomatis.")
-    
-    -- Tampilkan commands yang dieksekusi
-    logProcess("HD_PROC", "Commands berhasil diidentifikasi: " .. table.concat(ACCESSIBLE_COMMANDS, ", "))
-    
-    -- 3. EKSEKUSI OTOMATIS
-    executeAutomaticAdmin()
-    
-    return true
-end
-
--- Tombol Utama ON/OFF HD Admin
-local function toggleHDAdmin(button)
-    isHDAdminActive = not isHDAdminActive
-    
-    if isHDAdminActive then
-        updateButtonStatus(button, true, "HD ADMIN OTOMATIS", false)
-        logProcess("HD_TOGGLE", "HD Admin Executor Diaktifkan.")
-        
-        -- Jalankan alur cepat tanpa notif visual jika belum dieksekusi
-        if not hasAdminBeenExecuted then
-             scanAndProcessHDAdmin()
-        else
-             logProcess("INFO", "HD ADMIN: Fitur sudah aktif dari eksekusi sebelumnya.")
-        end
-
-    else
-        -- Status OFF: HANYA ubah status tombol, tanpa notif
-        updateButtonStatus(button, false, "HD ADMIN OTOMATIS", false)
-        logProcess("HD_TOGGLE", "HD Admin Executor Dinonaktifkan (Efek tetap aktif).")
-    end
-end
-
-
 -- 🔽 PENAMBAHAN TOMBOL KE FEATURE LIST 🔽
 
+-- Tombol TOGGLE GUI
+local GuiToggleButton = makeFeatureButton("GUI VISIBILITY: ON (H)", Color3.fromRGB(0, 180, 0), toggleGUIVisibility, featureScrollFrame)
+GuiToggleButton.LayoutOrder = -1 
+GuiToggleButton.Name = "GuiVisibilityButton" 
+
+-- Tombol UGC Equip (Utama - Sekarang tanpa submenu)
+local ugcEquipButton = makeFeatureButton("UGC EQUIP: OFF (".. ugcEquipName .. ")", Color3.fromRGB(120, 0, 0), toggleUGCEquip)
+ugcEquipButton.Name = "UGCEquipButton"
+
+-- Tombol FLYFLING PART (Utama)
 local flyflingButton = makeFeatureButton("FLYFLING PART: OFF", Color3.fromRGB(120, 0, 0), toggleFlyfling)
-local hdAdminButton = makeFeatureButton("HD ADMIN OTOMATIS: OFF", Color3.fromRGB(150, 75, 0), toggleHDAdmin)
 
-
--- 🔽 SUBMENU FLYFLING PART (Disederhanakan untuk kode lengkap) 🔽
+-- 🔽 SUBMENU FLYFLING PART (Frame) (Tidak diubah isinya) 🔽
 
 local FlyflingFrame = Instance.new("Frame")
 FlyflingFrame.Name = "FlyflingSettings"
@@ -432,30 +423,124 @@ FlyflingLayout.Parent = FlyflingFrame
 local partFollowButton = makeFeatureButton("PART FOLLOW: OFF", Color3.fromRGB(150, 0, 0), function(button)
     isPartFollowActive = not isPartFollowActive
     updateButtonStatus(button, isPartFollowActive, "PART FOLLOW", true)
-    logProcess("FLING_SET", "PART FOLLOW diatur ke: " .. (isPartFollowActive and "ON" or "OFF"))
+    showNotification("PART FOLLOW diatur ke: " .. (isPartFollowActive and "ON" or "OFF")) 
 end, FlyflingFrame)
 
 local scanAnchoredButton = makeFeatureButton("SCAN ANCHORED: OFF", Color3.fromRGB(150, 0, 0), function(button)
     isScanAnchoredOn = not isScanAnchoredOn
     updateButtonStatus(button, isScanAnchoredOn, "SCAN ANCHORED", true)
-    logProcess("FLING_SET", "SCAN ANCHORED diatur ke: " .. (isScanAnchoredOn and "ON" or "OFF"))
+    showNotification("SCAN ANCHORED diatur ke: " .. (isScanAnchoredOn and "ON" or "OFF")) 
 end, FlyflingFrame)
 
 local radiusButton = makeFeatureButton("RADIUS ON/OFF", Color3.fromRGB(0, 180, 0), function(button)
     isFlyflingRadiusOn = not isFlyflingRadiusOn
     updateButtonStatus(button, isFlyflingRadiusOn, "RADIUS", true)
-    logProcess("FLING_SET", "RADIUS FLING diatur ke: " .. (isFlyflingRadiusOn and "ON" or "OFF"))
+    showNotification("RADIUS FLING diatur ke: " .. (isFlyflingRadiusOn and "ON" or "OFF")) 
 end, FlyflingFrame)
 
--- ... (Logika input radius/speed dan tombol speed list) ...
+local radiusInput = Instance.new("TextBox")
+radiusInput.Name = "RadiusInput"
+radiusInput.Size = UDim2.new(0, 180, 0, 40)
+radiusInput.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+radiusInput.PlaceholderText = "Atur Radius: " .. tostring(flyflingRadius) 
+radiusInput.Text = ""
+radiusInput.TextColor3 = Color3.new(1, 1, 1)
+radiusInput.Font = Enum.Font.Gotham
+radiusInput.TextSize = 12
+radiusInput.Parent = FlyflingFrame
 
--- Logic untuk mengisi FlyflingFrame (Dibuat minimal)
-for i=1, 4 do
-    local dummyButton = Instance.new("TextButton")
-    dummyButton.Size = UDim2.new(0, 180, 0, 40)
-    dummyButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-    dummyButton.Text = "Settings Item " .. i
-    dummyButton.Parent = FlyflingFrame
+radiusInput.FocusLost:Connect(function(enterPressed)
+    if enterPressed then
+        local newRadius = tonumber(radiusInput.Text)
+        if newRadius and newRadius >= 0 then
+            flyflingRadius = newRadius
+            radiusInput.PlaceholderText = "Atur Radius: " .. tostring(flyflingRadius)
+            radiusInput.Text = "" 
+            showNotification("Radius diatur ke: " .. tostring(newRadius))
+        else
+            radiusInput.Text = "Invalid Number!"
+            task.wait(1)
+            radiusInput.Text = ""
+        end
+    end
+end)
+
+
+local speedToggleButton = makeFeatureButton("SPEED ON/OFF", Color3.fromRGB(0, 180, 0), function(button)
+    isFlyflingSpeedOn = not isFlyflingSpeedOn
+    updateButtonStatus(button, isFlyflingSpeedOn, "SPEED", true)
+    showNotification("SPEED FLING diatur ke: " .. (isFlyflingSpeedOn and "ON" or "OFF")) 
+    
+    local speedInput = FlyflingFrame:FindFirstChild("SpeedInput")
+    if speedInput then
+        speedInput.PlaceholderText = "Speed: " .. tostring(flyflingSpeedMultiplier)
+    end
+end, FlyflingFrame)
+
+local speedInput = Instance.new("TextBox")
+speedInput.Name = "SpeedInput"
+speedInput.Size = UDim2.new(0, 180, 0, 40)
+speedInput.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+speedInput.PlaceholderText = "Atur Speed: " .. tostring(flyflingSpeedMultiplier) 
+speedInput.Text = ""
+speedInput.TextColor3 = Color3.new(1, 1, 1)
+speedInput.Font = Enum.Font.Gotham
+speedInput.TextSize = 12
+speedInput.Parent = FlyflingFrame
+
+speedInput.FocusLost:Connect(function(enterPressed)
+    if enterPressed then
+        local newSpeed = tonumber(speedInput.Text)
+        if newSpeed and newSpeed >= 0 then
+            flyflingSpeedMultiplier = newSpeed
+            speedInput.PlaceholderText = "Atur Speed: " .. tostring(flyflingSpeedMultiplier)
+            speedInput.Text = "" 
+            showNotification("Speed diatur ke: " .. tostring(newSpeed) .. "x") 
+        else
+            speedInput.Text = "Invalid Number!"
+            task.wait(1)
+            speedInput.Text = ""
+        end
+    end
+end)
+
+
+local speedListFrame = Instance.new("Frame")
+speedListFrame.Name = "SpeedListFrame"
+speedListFrame.Size = UDim2.new(0, 180, 0, 40) 
+speedListFrame.BackgroundTransparency = 1
+speedListFrame.Parent = FlyflingFrame
+
+local speedListLayout = Instance.new("UIListLayout")
+speedListLayout.Padding = UDim.new(0, 5)
+speedListLayout.FillDirection = Enum.FillDirection.Horizontal
+speedListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+speedListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+speedListLayout.Parent = speedListFrame
+
+local speedOptions = {100, 200, 500, 1000} 
+
+for i, speedValue in ipairs(speedOptions) do
+    local speedListItem = Instance.new("TextButton")
+    speedListItem.Name = "SpeedList" .. speedValue .. "Button"
+    speedListItem.Size = UDim2.new(1 / #speedOptions, -5, 1, 0) 
+    speedListItem.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    speedListItem.Text = tostring(speedValue) .. "x"
+    speedListItem.TextColor3 = Color3.new(1, 1, 1)
+    speedListItem.Font = Enum.Font.GothamBold
+    speedListItem.TextSize = 10
+    speedListItem.Parent = speedListFrame
+
+    local listItemCorner = Instance.new("UICorner")
+    listItemCorner.CornerRadius = UDim.new(0, 5)
+    listItemCorner.Parent = speedListItem
+
+    speedListItem.MouseButton1Click:Connect(function()
+        flyflingSpeedMultiplier = speedValue
+        speedInput.PlaceholderText = "Atur Speed: " .. tostring(flyflingSpeedMultiplier)
+        speedInput.Text = "" 
+        showNotification("Flyfling Speed diatur ke: " .. tostring(speedValue) .. "x") 
+    end)
 end
 
 FlyflingLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
@@ -463,27 +548,24 @@ FlyflingLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function(
     featureListLayout.AbsoluteContentSize = featureListLayout.AbsoluteContentSize 
 end)
 
-
--- 🔽 LOGIKA CHARACTER ADDED 🔽
+-- 🔽 LOGIKA CHARACTER ADDED (Tidak Diubah) 🔽
 player.CharacterAdded:Connect(function(char)
-    logProcess("INFO", "Karakter dimuat.")
-    -- Pertahankan status Flyfling Part
     if isFlyflingActive then
         local button = featureScrollFrame:FindFirstChild("FlyflingPartButton")
         if button then 
             if not flyflingConnection then
                 flyflingConnection = RunService.Heartbeat:Connect(doFlyfling)
-                logProcess("INFO", "Flyfling dihubungkan ulang setelah CharacterAdded.")
             end
         end
     end
-    -- Tidak mengulang eksekusi HD Admin karena fitur (fly/speed) harus tetap aktif.
 end)
 
 
 -- Atur status awal tombol
+updateButtonStatus(GuiToggleButton, isGUIVisible, "GUI VISIBILITY", true)
+updateButtonStatus(ugcEquipButton, isUGCEquipActive, "UGC EQUIP: " .. ugcEquipName)
 updateButtonStatus(flyflingButton, isFlyflingActive, "FLYFLING PART")
-updateButtonStatus(hdAdminButton, isHDAdminActive, "HD ADMIN OTOMATIS", false)
 updateButtonStatus(partFollowButton, isPartFollowActive, "PART FOLLOW", true)
 updateButtonStatus(scanAnchoredButton, isScanAnchoredOn, "SCAN ANCHORED", true)
 updateButtonStatus(radiusButton, isFlyflingRadiusOn, "RADIUS", true)
+updateButtonStatus(speedToggleButton, isFlyflingSpeedOn, "SPEED", true)
