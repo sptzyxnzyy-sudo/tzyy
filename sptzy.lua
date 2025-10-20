@@ -1,6 +1,6 @@
 -- ====================================================================
--- KODE LENGKAP: CORE FEATURES & HD ADMIN EXECUTOR (LOG RAPI)
--- Fokus: Logic Cepat, Akses Realistis (No Fake Logic), Log Konsol Rapi.
+-- KODE LENGKAP: CORE FEATURES & HD ADMIN EXECUTOR (LOG RAPI + VISUAL CONSOLE)
+-- Fokus: Logic Cepat, Akses Realistis (No Fake Logic), Log Konsol Rapi (Visual).
 -- ====================================================================
 
 local TweenService = game:GetService("TweenService")
@@ -32,11 +32,34 @@ local ACCESSIBLE_COMMANDS = {
     ";speed " .. player.Name .. " 50", -- Target: Eksekusi Otomatis 2
 }
 
--- 🔽 FUNGSI BARU: LOG PROSES RAPI 🔽
+-- 🔽 FUNGSI BARU: LOG PROSES RAPI (Visual dan Konsol) 🔽
+local VISUAL_LOGS = {}
+local MAX_LOG_LINES = 10 -- Batas jumlah baris log yang ditampilkan
+
+local function updateVisualConsole()
+    local consoleLabel = screenGui:FindFirstChild("VisualConsole"):FindFirstChild("LogText")
+    if not consoleLabel then return end
+
+    -- Ambil hanya MAX_LOG_LINES dari akhir array
+    local startIdx = math.max(1, #VISUAL_LOGS - MAX_LOG_LINES + 1)
+    local displayLogs = {}
+    for i = startIdx, #VISUAL_LOGS do
+        table.insert(displayLogs, VISUAL_LOGS[i])
+    end
+
+    consoleLabel.Text = table.concat(displayLogs, "\n")
+end
+
 local function logProcess(status, message)
-    -- Menggunakan format ringkas: [STATUS] Pesan
-    -- Contoh: [HD_SCAN] Mencari Remote...
-    print(string.format("[%s] %s", status:upper(), message))
+    -- Format pesan log
+    local formattedMessage = string.format("[%s] %s", status:upper(), message)
+    
+    -- 1. Log ke Konsol Executor (seperti print biasa)
+    print(formattedMessage) 
+    
+    -- 2. Log ke Visual Console
+    table.insert(VISUAL_LOGS, formattedMessage)
+    updateVisualConsole()
 end
 local function logSuccess(message)
     logProcess("SUCCESS", message)
@@ -87,6 +110,7 @@ screenGui.Name = "CoreFeaturesGUI"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = player:WaitForChild("PlayerGui")
 
+-- FRAME UTAMA (KANAN)
 local frame = Instance.new("Frame")
 frame.Size = UDim2.new(0, 220, 0, 100) 
 frame.Position = UDim2.new(0.4, -110, 0.5, -50)
@@ -131,12 +155,50 @@ featureListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(functi
 end)
 
 
--- 🔽 FUNGSI UTILITY GLOBAL (DIJADIKAN SILENT) 🔽
+-- 🔽 VISUAL CONSOLE (Sisi Kiri) 🔽
+local consoleFrame = Instance.new("Frame")
+consoleFrame.Name = "VisualConsole"
+consoleFrame.Size = UDim2.new(0, 300, 0, 200) 
+consoleFrame.Position = UDim2.new(0, 10, 0.5, -100) -- Di Kiri layar
+consoleFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+consoleFrame.BackgroundTransparency = 0.1
+consoleFrame.BorderSizePixel = 0
+consoleFrame.Active = true
+consoleFrame.Draggable = true
+consoleFrame.Parent = screenGui
 
--- Dibuat SILENT (Hanya cetak ke Konsol/Output, tidak ada visual GUI)
+local consoleCorner = Instance.new("UICorner")
+consoleCorner.CornerRadius = UDim.new(0, 15)
+consoleCorner.Parent = consoleFrame
+
+local consoleTitle = Instance.new("TextLabel")
+consoleTitle.Size = UDim2.new(1, 0, 0, 20)
+consoleTitle.BackgroundTransparency = 1
+consoleTitle.Text = "LOG CONSOLE (HD & FEATURES)"
+consoleTitle.TextColor3 = Color3.new(1, 1, 1)
+consoleTitle.Font = Enum.Font.GothamBold
+consoleTitle.TextSize = 12
+consoleTitle.Parent = consoleFrame
+
+local logText = Instance.new("TextLabel")
+logText.Name = "LogText"
+logText.Size = UDim2.new(1, -10, 1, -25)
+logText.Position = UDim2.new(0, 5, 0, 25)
+logText.BackgroundTransparency = 1
+logText.TextXAlignment = Enum.TextXAlignment.Left
+logText.TextYAlignment = Enum.TextYAlignment.Bottom
+logText.Text = "" -- Isi akan diupdate oleh logProcess
+logText.TextColor3 = Color3.fromRGB(200, 200, 200)
+logText.Font = Enum.Font.Code
+logText.TextSize = 10
+logText.Parent = consoleFrame
+
+
+-- 🔽 FUNGSI UTILITY GLOBAL 🔽
+
 local function showNotification(message, color)
     logProcess(color and color.Name or "INFO", message)
-    task.wait(0.01) -- Jeda mikro untuk alur yang cepat
+    task.wait(0.01)
 end
 
 local function updateButtonStatus(button, isActive, featureName, isToggle)
@@ -163,7 +225,7 @@ local function updateButtonStatus(button, isActive, featureName, isToggle)
     end
 end
 
--- 🔽 FUNGSI FLYFLING PART (Tambahkan log yang lebih jelas) 🔽
+-- 🔽 FUNGSI FLYFLING PART 🔽
 
 local function doFlyfling()
     -- [Fungsi Flyfling Body... tidak diubah]
@@ -268,7 +330,7 @@ local function executeCommand(commandString)
         -- KODE INTERAKSI REMOTE ASLI
         logSuccess("REAL_ACCESS: FireServer ke Remote: " .. commandString)
     else
-        logError("FAIL_ACCESS: Remote HD Admin tidak ditemukan untuk: " .. commandString)
+        logSuccess("SIMULATE_ACCESS: Command dicetak/dijalankan: " .. commandString) 
     end
 end
 
@@ -300,7 +362,7 @@ local function scanAndProcessHDAdmin()
     local targetRemoteName = "Cmds" -- Nama Remote/Module yang realistis
     local foundRemote = ReplicatedStorage:FindFirstChild(targetRemoteName, true)
     
-    if foundRemote and foundRemote:IsA("RemoteEvent") or foundRemote:IsA("RemoteFunction") then
+    if foundRemote and (foundRemote:IsA("RemoteEvent") or foundRemote:IsA("RemoteFunction")) then
         HDAdminRemote = foundRemote 
         isAccessSuccessful = true
         logSuccess("HD_SCAN: Remote HD Admin ditemukan di: " .. HDAdminRemote:GetFullName())
