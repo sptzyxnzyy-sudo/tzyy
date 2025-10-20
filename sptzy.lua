@@ -7,6 +7,7 @@ local player = Players.LocalPlayer
 
 -- ** ⬇️ STATUS FITUR UGC EQUIP (NILAI DEFAULT) ⬇️ **
 local isUGCEquipActive = false
+-- Ubah nilai default ini sesuai dengan item yang Anda inginkan
 local currentUGCItemId = 133292294488871 
 local currentUGCEquipAssetId = "rbxassetid://89119211625300" 
 local ugcEquipName = "Light Wings" 
@@ -21,9 +22,10 @@ local isScanAnchoredOn = false
 local flyflingSpeedMultiplier = 100 
 local flyflingRadius = 30
 
--- ** ⬇️ STATUS FITUR GUI ⬇️ **
+-- ** ⬇️ STATUS FITUR GUI & SCANNER ⬇️ **
 local isGUIVisible = true 
-local isRemoteScannerActive = false -- Status baru untuk scanner
+local isRemoteScannerActive = false 
+local oldFireServer = nil -- Untuk menyimpan fungsi FireServer asli
 
 -- 🔽 ANIMASI "BY : Xraxor" 🔽
 do
@@ -188,7 +190,7 @@ local function updateButtonStatus(button, isActive, featureName, isToggle)
 end
 
 
--- 🔽 FUNGSI REMOTE SCANNER BARU 🔽
+-- 🔽 FUNGSI REMOTE SCANNER 🔽
 local function activateRemoteScanner(button)
     if isRemoteScannerActive then
         showNotification("Scanner sudah aktif! Tidak bisa diaktifkan dua kali.", true)
@@ -198,27 +200,22 @@ local function activateRemoteScanner(button)
     print("--- Kohl's Admin Remote Event Scanner ---")
     local VIPUGCMethod = nil
     
-    -- Cari Remote Event (sesuaikan path jika perlu)
-    local ReplicatedStorage = game:GetService("ReplicatedStorage")
-    
     -- CARA 1: Akses Melalui Global State (shared / _G)
     if shared and shared._K and shared._K.Remote and shared._K.Remote.VIPUGCMethod and shared._K.Remote.VIPUGCMethod:IsA("RemoteEvent") then
         VIPUGCMethod = shared._K.Remote.VIPUGCMethod
-        print("[SCANNER] Remote Event 'VIPUGCMethod' ditemukan melalui variabel shared._K.")
     elseif _G and _G._K and _G._K.Remote and _G._K.Remote.VIPUGCMethod and _G._K.Remote.VIPUGCMethod:IsA("RemoteEvent") then
         VIPUGCMethod = _G._K.Remote.VIPUGCMethod
-        print("[SCANNER] Remote Event 'VIPUGCMethod' ditemukan melalui variabel _G._K.")
     end
 
-    -- CARA 2: Pencarian Manual di ReplicatedStorage (hanya jika Cara 1 gagal)
+    -- CARA 2: Pencarian Manual di ReplicatedStorage (jika Cara 1 gagal)
     if not VIPUGCMethod or not VIPUGCMethod:IsA("RemoteEvent") then
         warn("[SCANNER] Gagal menemukan VIPUGCMethod di global. Mencari secara manual...")
+        local ReplicatedStorage = game:GetService("ReplicatedStorage")
         local RemoteFolder = ReplicatedStorage:FindFirstChild("KAdminRemotes") or ReplicatedStorage:FindFirstChild("KohlAdmin") or ReplicatedStorage
         
         for _, obj in RemoteFolder:GetDescendants() do
             if obj.Name == "VIPUGCMethod" and obj:IsA("RemoteEvent") then
                 VIPUGCMethod = obj
-                print("[SCANNER] Remote ditemukan melalui pencarian manual.")
                 break
             end
         end
@@ -232,13 +229,14 @@ local function activateRemoteScanner(button)
         return
     end
 
-    local OldFireServer = VIPUGCMethod.FireServer
+    -- Simpan FireServer asli untuk meneruskan panggilan
+    oldFireServer = VIPUGCMethod.FireServer
     
     -- Ganti fungsi FireServer dengan versi yang memantau
     VIPUGCMethod.FireServer = function(self, ...)
         local args = {...}
         
-        -- Dapatkan informasi stack trace untuk melacak dari mana panggilan berasal
+        -- Logging ke konsol
         local info = debug.getinfo(2, "Snl")
         local source = info and info.source or "Unknown Source"
         local line = info and info.linedefined or "Unknown Line"
@@ -247,7 +245,6 @@ local function activateRemoteScanner(button)
         print("Remote Event: VIPUGCMethod")
         print("Lokasi Pemicu: " .. source .. " (Line: " .. line .. ")")
         
-        -- Menampilkan Parameter
         print("Parameter Diterima:")
         if #args >= 4 then
             print(string.format("  [1] ID UGC: %s", tostring(args[1])))
@@ -262,20 +259,19 @@ local function activateRemoteScanner(button)
         print("--------------------------------------------------")
 
         -- Meneruskan panggilan asli ke server
-        return OldFireServer(self, table.unpack(args))
+        return oldFireServer(self, table.unpack(args))
     end
     
     isRemoteScannerActive = true
     button.Text = "REMOTE SCANNER: AKTIF"
     button.BackgroundColor3 = Color3.fromRGB(0, 120, 0)
-    showNotification("✅ REMOTE SCANNER AKTIF! Coba klik tombol 'TRY/WEAR' di panel admin.")
+    showNotification("✅ REMOTE SCANNER AKTIF! Coba klik UGC Equip atau panel admin.")
 end
 
 
 -- 🔽 FUNGSI UGC EQUIP 🔽
 local function doUGCEquip(id, equipAssetId, name)
     if not id or not equipAssetId then 
-        warn("ID UGC tidak valid. Periksa nilai currentUGCItemId dan currentUGCEquipAssetId.")
         showNotification("❌ UGC EQUIP: ID Tidak Valid (Internal)!", true)
         return 
     end
@@ -285,16 +281,13 @@ local function doUGCEquip(id, equipAssetId, name)
     -- CARA 1: Akses Melalui Global State (shared / _G)
     if shared and shared._K and shared._K.Remote and shared._K.Remote.VIPUGCMethod then
         VIPUGCMethod = shared._K.Remote.VIPUGCMethod
-        print("[UGC] Remote ditemukan melalui 'shared._K'.")
     elseif _G and _G._K and _G._K.Remote and _G._K.Remote.VIPUGCMethod then
         VIPUGCMethod = _G._K.Remote.VIPUGCMethod
-        print("[UGC] Remote ditemukan melalui '_G._K'.")
     end
 
     -- CARA 2: Pencarian Manual di ReplicatedStorage
     if not VIPUGCMethod then
         local ReplicatedStorage = game:GetService("ReplicatedStorage")
-        
         local PossibleRemote = ReplicatedStorage:FindFirstChild("KAdminRemotes") 
             or ReplicatedStorage:FindFirstChild("KohlAdmin") 
             or ReplicatedStorage 
@@ -302,7 +295,6 @@ local function doUGCEquip(id, equipAssetId, name)
         for _, obj in PossibleRemote:GetChildren() do
             if obj.Name:find("VIPUGCMethod", 1, true) and obj:IsA("RemoteEvent") then
                 VIPUGCMethod = obj
-                print("[UGC] Remote ditemukan melalui pencarian manual di ReplicatedStorage.")
                 break
             end
         end
@@ -310,7 +302,7 @@ local function doUGCEquip(id, equipAssetId, name)
 
     -- Memicu Remote Event
     if VIPUGCMethod and VIPUGCMethod:IsA("RemoteEvent") then
-        print(string.format("--> Memicu Equip %s (ID: %d) ke Server...", name, id))
+        -- Jika Scanner aktif, panggilan ini akan tercatat di konsol karena FireServer sudah di-hook.
         VIPUGCMethod:FireServer(
             id, 
             equipAssetId, 
@@ -318,9 +310,7 @@ local function doUGCEquip(id, equipAssetId, name)
             name
         )
         showNotification("✅ UGC EQUIP: Permintaan dikirim! " .. name)
-        print("✅ Permintaan Equip dikirim.")
     else
-        warn("❌ GAGAL: Remote Event 'VIPUGCMethod' tidak dapat ditemukan.")
         showNotification("❌ UGC EQUIP: Remote 'VIPUGCMethod' GAGAL ditemukan.", true)
     end
 end
@@ -332,13 +322,15 @@ local function toggleUGCEquip(button)
         doUGCEquip(currentUGCItemId, currentUGCEquipAssetId, ugcEquipName)
         updateButtonStatus(button, true, "UGC EQUIP: " .. ugcEquipName)
     else
+        -- Logic unequip (FireServer dengan Equipped=false)
         local VIPUGCMethod = nil
-        -- Cari remote untuk unequip
         if shared and shared._K and shared._K.Remote and shared._K.Remote.VIPUGCMethod then
             VIPUGCMethod = shared._K.Remote.VIPUGCMethod
         elseif _G and _G._K and _G._K.Remote and _G._K.Remote.VIPUGCMethod then
             VIPUGCMethod = _G._K.Remote.VIPUGCMethod
         end
+        
+        -- Cari Remote manual jika diperlukan untuk unequip
         if not VIPUGCMethod then
             local ReplicatedStorage = game:GetService("ReplicatedStorage")
             local PossibleRemote = ReplicatedStorage:FindFirstChild("KAdminRemotes") 
@@ -484,7 +476,7 @@ GuiToggleButton.Name = "GuiVisibilityButton"
 local ugcEquipButton = makeFeatureButton("UGC EQUIP: OFF (".. ugcEquipName .. ")", Color3.fromRGB(120, 0, 0), toggleUGCEquip)
 ugcEquipButton.Name = "UGCEquipButton"
 
--- Tombol REMOTE SCANNER BARU
+-- Tombol REMOTE SCANNER 
 local remoteScannerButton = makeFeatureButton("REMOTE SCANNER (Kohl's)", Color3.fromRGB(150, 80, 0), activateRemoteScanner)
 remoteScannerButton.Name = "RemoteScannerButton"
 
