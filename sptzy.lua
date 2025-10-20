@@ -2,6 +2,7 @@ local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
+local Workspace = game:GetService("Workspace")
 
 local player = Players.LocalPlayer
 
@@ -11,6 +12,11 @@ local isUGCEquipActive = false
 local currentUGCItemId = 133292294488871 
 local currentUGCEquipAssetId = "rbxassetid://89119211625300" 
 local ugcEquipName = "Light Wings" 
+
+-- ** ⬇️ STATUS FITUR TELEPORT ALL PARTS ⬇️ **
+local isTeleportAllActive = false -- Tidak terpakai karena ini fitur sekali klik
+local isPartTeleportAnchoredOn = true 
+local isTeleportPlayerFiltered = true 
 
 -- ** ⬇️ STATUS FITUR FLYFLING PART ⬇️ **
 local isFlyflingActive = false
@@ -25,14 +31,16 @@ local flyflingRadius = 30
 -- ** ⬇️ STATUS FITUR GUI & SCANNER ⬇️ **
 local isGUIVisible = true 
 local isRemoteScannerActive = false 
-local oldFireServer = nil -- Untuk menyimpan fungsi FireServer asli
+local oldFireServer = nil 
 
 -- 🔽 ANIMASI "BY : Xraxor" 🔽
 do
     local introGui = Instance.new("ScreenGui")
     introGui.Name = "IntroAnimation"
     introGui.ResetOnSpawn = false
-    introGui.Parent = player:WaitForChild("PlayerGui")
+    -- Pengecekan jika PlayerGui sudah ada (untuk mencegah error di lingkungan tertentu)
+    local playerGui = player:FindFirstChild("PlayerGui")
+    if playerGui then introGui.Parent = playerGui end
 
     local introLabel = Instance.new("TextLabel")
     introLabel.Size = UDim2.new(0, 300, 0, 50)
@@ -66,7 +74,8 @@ end
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "CoreFeaturesGUI"
 screenGui.ResetOnSpawn = false
-screenGui.Parent = player:WaitForChild("PlayerGui")
+local playerGui = player:FindFirstChild("PlayerGui")
+if playerGui then screenGui.Parent = playerGui end
 
 -- Frame utama 
 local frame = Instance.new("Frame")
@@ -136,7 +145,8 @@ local function showNotification(message, isError)
     local notifGui = Instance.new("ScreenGui")
     notifGui.Name = "Notification"
     notifGui.ResetOnSpawn = false
-    notifGui.Parent = player:WaitForChild("PlayerGui")
+    local playerGui = player:FindFirstChild("PlayerGui")
+    if playerGui then notifGui.Parent = playerGui end
 
     local notifLabel = Instance.new("TextLabel")
     notifLabel.Size = UDim2.new(0, 400, 0, 50)
@@ -189,30 +199,94 @@ local function updateButtonStatus(button, isActive, featureName, isToggle)
     end
 end
 
+-- 🔽 FUNGSI: SCAN, PROSES, DAN EKSEKUSI (TELEPORT ALL PARTS) 🔽
 
--- 🔽 FUNGSI REMOTE SCANNER 🔽
+local function processAndTeleportParts(button)
+    if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then
+        showNotification("❌ GAGAL: Karakter belum dimuat atau HRP tidak ditemukan.", true)
+        return
+    end
+
+    local myRoot = player.Character.HumanoidRootPart
+    local targetPosition = myRoot.CFrame * CFrame.new(0, -3, -5) 
+    local collectedParts = {}
+    local partCount = 0
+
+    button.Text = "TELEPORT: MEMINDAI & MEMPROSES..."
+    button.BackgroundColor3 = Color3.fromRGB(200, 150, 0) -- Tanda Proses (Kuning/Jingga)
+
+    -- ** 1. SCAN & PROSES **
+    local partsToScan = Workspace:GetDescendants() 
+    
+    for _, obj in ipairs(partsToScan) do
+        if obj:IsA("BasePart") and obj.Name ~= "Baseplate" and obj.Parent and obj.Parent ~= Workspace then
+            
+            if (not isPartTeleportAnchoredOn) and obj.Anchored then
+                continue
+            end
+            
+            if obj:GetMass() < 1000 then
+                if isTeleportPlayerFiltered then
+                    if Players:GetPlayerFromCharacter(obj.Parent) or obj.Parent:FindFirstChildOfClass("Humanoid") then
+                        continue 
+                    end
+                end
+                
+                if obj:IsDescendantOf(player.Character) then
+                    continue
+                end
+
+                table.insert(collectedParts, obj)
+            end
+        end
+    end
+
+    if #collectedParts == 0 then
+        showNotification("⚠️ GAGAL: Tidak ada part yang valid ditemukan setelah pemfilteran.", true)
+        button.Text = "TELEPORT ALL PARTS" -- Kembalikan teks tombol
+        button.BackgroundColor3 = Color3.fromRGB(0, 120, 120) 
+        return
+    end
+
+    -- ** 2. EKSEKUSI (TELEPORT) **
+    for _, part in ipairs(collectedParts) do
+        pcall(function()
+            part.CFrame = targetPosition 
+            partCount = partCount + 1
+        end)
+    end
+    
+    -- Tanda Selesai
+    button.Text = "TELEPORT ALL PARTS"
+    button.BackgroundColor3 = Color3.fromRGB(0, 120, 120) 
+    
+    showNotification(string.format("✅ SUKSES: %d part berhasil di-teleport ke posisi Anda.", partCount))
+end
+
+
+-- 🔽 FUNGSI REMOTE SCANNER (DENGAN TANDA PROSES & EKSEKUSI) 🔽
 local function activateRemoteScanner(button)
     if isRemoteScannerActive then
         showNotification("Scanner sudah aktif! Tidak bisa diaktifkan dua kali.", true)
         return
     end
 
+    button.Text = "REMOTE SCANNER: MEMINDAI..."
+    button.BackgroundColor3 = Color3.fromRGB(200, 150, 0) -- Tanda Proses (Kuning/Jingga)
+
     print("--- Kohl's Admin Remote Event Scanner ---")
     local VIPUGCMethod = nil
     
-    -- CARA 1: Akses Melalui Global State (shared / _G)
+    -- Pencarian Remote Event
     if shared and shared._K and shared._K.Remote and shared._K.Remote.VIPUGCMethod and shared._K.Remote.VIPUGCMethod:IsA("RemoteEvent") then
         VIPUGCMethod = shared._K.Remote.VIPUGCMethod
     elseif _G and _G._K and _G._K.Remote and _G._K.Remote.VIPUGCMethod and _G._K.Remote.VIPUGCMethod:IsA("RemoteEvent") then
         VIPUGCMethod = _G._K.Remote.VIPUGCMethod
     end
 
-    -- CARA 2: Pencarian Manual di ReplicatedStorage (jika Cara 1 gagal)
     if not VIPUGCMethod or not VIPUGCMethod:IsA("RemoteEvent") then
-        warn("[SCANNER] Gagal menemukan VIPUGCMethod di global. Mencari secara manual...")
         local ReplicatedStorage = game:GetService("ReplicatedStorage")
         local RemoteFolder = ReplicatedStorage:FindFirstChild("KAdminRemotes") or ReplicatedStorage:FindFirstChild("KohlAdmin") or ReplicatedStorage
-        
         for _, obj in RemoteFolder:GetDescendants() do
             if obj.Name == "VIPUGCMethod" and obj:IsA("RemoteEvent") then
                 VIPUGCMethod = obj
@@ -221,22 +295,21 @@ local function activateRemoteScanner(button)
         end
     end
 
-
     if not VIPUGCMethod or not VIPUGCMethod:IsA("RemoteEvent") then
-        warn("[SCANNER] Remote Event 'VIPUGCMethod' tidak dapat ditemukan. Scanner gagal diaktifkan.")
+        warn("[SCANNER] Remote Event 'VIPUGCMethod' tidak dapat ditemukan.")
+        -- Tanda Kegagalan Eksekusi
         showNotification("❌ REMOTE SCANNER GAGAL: Remote 'VIPUGCMethod' tidak ditemukan.", true)
+        button.Text = "REMOTE SCANNER: GAGAL"
         button.BackgroundColor3 = Color3.fromRGB(100, 0, 0)
         return
     end
 
-    -- Simpan FireServer asli untuk meneruskan panggilan
+    -- Eksekusi (Hooking)
     oldFireServer = VIPUGCMethod.FireServer
     
-    -- Ganti fungsi FireServer dengan versi yang memantau
     VIPUGCMethod.FireServer = function(self, ...)
+        -- LOGIKA MONITORING (Hasil Eksekusi dicetak ke Konsol)
         local args = {...}
-        
-        -- Logging ke konsol
         local info = debug.getinfo(2, "Snl")
         local source = info and info.source or "Unknown Source"
         local line = info and info.linedefined or "Unknown Line"
@@ -258,14 +331,14 @@ local function activateRemoteScanner(button)
         end
         print("--------------------------------------------------")
 
-        -- Meneruskan panggilan asli ke server
         return oldFireServer(self, table.unpack(args))
     end
     
     isRemoteScannerActive = true
+    -- Tanda Sukses Eksekusi
     button.Text = "REMOTE SCANNER: AKTIF"
     button.BackgroundColor3 = Color3.fromRGB(0, 120, 0)
-    showNotification("✅ REMOTE SCANNER AKTIF! Coba klik UGC Equip atau panel admin.")
+    showNotification("✅ REMOTE SCANNER AKTIF! Cek output konsol untuk log.", false)
 end
 
 
@@ -278,14 +351,12 @@ local function doUGCEquip(id, equipAssetId, name)
     
     local VIPUGCMethod = nil
     
-    -- CARA 1: Akses Melalui Global State (shared / _G)
     if shared and shared._K and shared._K.Remote and shared._K.Remote.VIPUGCMethod then
         VIPUGCMethod = shared._K.Remote.VIPUGCMethod
     elseif _G and _G._K and _G._K.Remote and _G._K.Remote.VIPUGCMethod then
         VIPUGCMethod = _G._K.Remote.VIPUGCMethod
     end
 
-    -- CARA 2: Pencarian Manual di ReplicatedStorage
     if not VIPUGCMethod then
         local ReplicatedStorage = game:GetService("ReplicatedStorage")
         local PossibleRemote = ReplicatedStorage:FindFirstChild("KAdminRemotes") 
@@ -300,15 +371,8 @@ local function doUGCEquip(id, equipAssetId, name)
         end
     end
 
-    -- Memicu Remote Event
     if VIPUGCMethod and VIPUGCMethod:IsA("RemoteEvent") then
-        -- Jika Scanner aktif, panggilan ini akan tercatat di konsol karena FireServer sudah di-hook.
-        VIPUGCMethod:FireServer(
-            id, 
-            equipAssetId, 
-            true, -- Memaksa equip ON
-            name
-        )
+        VIPUGCMethod:FireServer(id, equipAssetId, true, name)
         showNotification("✅ UGC EQUIP: Permintaan dikirim! " .. name)
     else
         showNotification("❌ UGC EQUIP: Remote 'VIPUGCMethod' GAGAL ditemukan.", true)
@@ -322,7 +386,6 @@ local function toggleUGCEquip(button)
         doUGCEquip(currentUGCItemId, currentUGCEquipAssetId, ugcEquipName)
         updateButtonStatus(button, true, "UGC EQUIP: " .. ugcEquipName)
     else
-        -- Logic unequip (FireServer dengan Equipped=false)
         local VIPUGCMethod = nil
         if shared and shared._K and shared._K.Remote and shared._K.Remote.VIPUGCMethod then
             VIPUGCMethod = shared._K.Remote.VIPUGCMethod
@@ -330,7 +393,6 @@ local function toggleUGCEquip(button)
             VIPUGCMethod = _G._K.Remote.VIPUGCMethod
         end
         
-        -- Cari Remote manual jika diperlukan untuk unequip
         if not VIPUGCMethod then
             local ReplicatedStorage = game:GetService("ReplicatedStorage")
             local PossibleRemote = ReplicatedStorage:FindFirstChild("KAdminRemotes") 
@@ -345,7 +407,7 @@ local function toggleUGCEquip(button)
         end
         
         if VIPUGCMethod and VIPUGCMethod:IsA("RemoteEvent") then
-            VIPUGCMethod:FireServer(currentUGCItemId, currentUGCEquipAssetId, false, ugcEquipName) -- Memaksa equip OFF
+            VIPUGCMethod:FireServer(currentUGCItemId, currentUGCEquipAssetId, false, ugcEquipName) 
             showNotification("✅ UGC UNEQUIP: Permintaan Nonaktif dikirim.")
         end
         
@@ -365,7 +427,7 @@ local function doFlyfling()
     local speed = isFlyflingSpeedOn and flyflingSpeedMultiplier or 0
     local targetParts = {}
 
-    for _, obj in ipairs(game.Workspace:GetDescendants()) do
+    for _, obj in ipairs(Workspace:GetDescendants()) do
         if obj:IsA("BasePart") and obj.Name ~= "Baseplate" then
             if Players:GetPlayerFromCharacter(obj.Parent) or obj.Parent:FindFirstChildOfClass("Humanoid") then
                 continue
@@ -389,11 +451,12 @@ local function doFlyfling()
         local direction = (part.Position - myRoot.Position).Unit
         local force = direction * part:GetMass() * speed * 10 
         
-        part.Velocity = part.Velocity + (force / part:GetMass())
-        
-        if isPartFollowActive then
-            part.AssemblyLinearVelocity = Vector3.new(myVelocity.X, part.AssemblyLinearVelocity.Y, myVelocity.Z) 
-        end
+        pcall(function() 
+            part.Velocity = part.Velocity + (force / part:GetMass())
+            if isPartFollowActive then
+                part.AssemblyLinearVelocity = Vector3.new(myVelocity.X, part.AssemblyLinearVelocity.Y, myVelocity.Z) 
+            end
+        end)
     end
 end
 
@@ -480,6 +543,10 @@ ugcEquipButton.Name = "UGCEquipButton"
 local remoteScannerButton = makeFeatureButton("REMOTE SCANNER (Kohl's)", Color3.fromRGB(150, 80, 0), activateRemoteScanner)
 remoteScannerButton.Name = "RemoteScannerButton"
 
+-- Tombol BARU: TELEPORT ALL PARTS
+local teleportAllButton = makeFeatureButton("TELEPORT ALL PARTS", Color3.fromRGB(0, 120, 120), processAndTeleportParts)
+teleportAllButton.Name = "TeleportAllPartsButton"
+
 -- Tombol FLYFLING PART (Utama)
 local flyflingButton = makeFeatureButton("FLYFLING PART: OFF", Color3.fromRGB(120, 0, 0), toggleFlyfling)
 
@@ -505,10 +572,10 @@ local partFollowButton = makeFeatureButton("PART FOLLOW: OFF", Color3.fromRGB(15
     showNotification("PART FOLLOW diatur ke: " .. (isPartFollowActive and "ON" or "OFF")) 
 end, FlyflingFrame)
 
-local scanAnchoredButton = makeFeatureButton("SCAN ANCHORED: OFF", Color3.fromRGB(150, 0, 0), function(button)
+local scanAnchoredButton = makeFeatureButton("SCAN ANCHORED (Fling): OFF", Color3.fromRGB(150, 0, 0), function(button)
     isScanAnchoredOn = not isScanAnchoredOn
-    updateButtonStatus(button, isScanAnchoredOn, "SCAN ANCHORED", true)
-    showNotification("SCAN ANCHORED diatur ke: " .. (isScanAnchoredOn and "ON" or "OFF")) 
+    updateButtonStatus(button, isScanAnchoredOn, "SCAN ANCHORED (Fling)", true)
+    showNotification("SCAN ANCHORED (Fling) diatur ke: " .. (isScanAnchoredOn and "ON" or "OFF")) 
 end, FlyflingFrame)
 
 local radiusButton = makeFeatureButton("RADIUS ON/OFF", Color3.fromRGB(0, 180, 0), function(button)
@@ -645,7 +712,6 @@ updateButtonStatus(GuiToggleButton, isGUIVisible, "GUI VISIBILITY", true)
 updateButtonStatus(ugcEquipButton, isUGCEquipActive, "UGC EQUIP: " .. ugcEquipName)
 updateButtonStatus(flyflingButton, isFlyflingActive, "FLYFLING PART")
 updateButtonStatus(partFollowButton, isPartFollowActive, "PART FOLLOW", true)
-updateButtonStatus(scanAnchoredButton, isScanAnchoredOn, "SCAN ANCHORED", true)
+updateButtonStatus(scanAnchoredButton, isScanAnchoredOn, "SCAN ANCHORED (Fling)", true)
 updateButtonStatus(radiusButton, isFlyflingRadiusOn, "RADIUS", true)
 updateButtonStatus(speedToggleButton, isFlyflingSpeedOn, "SPEED", true)
--- Remote Scanner tidak perlu update status, hanya perlu status awal (tombol non-aktif)
