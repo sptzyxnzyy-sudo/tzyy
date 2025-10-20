@@ -1,6 +1,6 @@
 -- ====================================================================
--- KODE LENGKAP: CORE FEATURES & HD ADMIN EXECUTOR (SILENT MODE)
--- Fokus: Logic Cepat, Akses Realistis (No Fake Logic), Tanpa Visual Notif/GUI.
+-- KODE LENGKAP: CORE FEATURES & HD ADMIN EXECUTOR (LOG RAPI)
+-- Fokus: Logic Cepat, Akses Realistis (No Fake Logic), Log Konsol Rapi.
 -- ====================================================================
 
 local TweenService = game:GetService("TweenService")
@@ -31,6 +31,20 @@ local ACCESSIBLE_COMMANDS = {
     ";fly " .. player.Name,           -- Target: Eksekusi Otomatis 1
     ";speed " .. player.Name .. " 50", -- Target: Eksekusi Otomatis 2
 }
+
+-- 🔽 FUNGSI BARU: LOG PROSES RAPI 🔽
+local function logProcess(status, message)
+    -- Menggunakan format ringkas: [STATUS] Pesan
+    -- Contoh: [HD_SCAN] Mencari Remote...
+    print(string.format("[%s] %s", status:upper(), message))
+end
+local function logSuccess(message)
+    logProcess("SUCCESS", message)
+end
+local function logError(message)
+    logProcess("ERROR", message)
+end
+
 
 -- 🔽 ANIMASI "BY : Xraxor" (TETAP DIJALANKAN UNTUK INTRO) 🔽
 do
@@ -121,7 +135,7 @@ end)
 
 -- Dibuat SILENT (Hanya cetak ke Konsol/Output, tidak ada visual GUI)
 local function showNotification(message, color)
-    print(string.format("[INFO] %s: %s", color and color.Name or "SILENT", message))
+    logProcess(color and color.Name or "INFO", message)
     task.wait(0.01) -- Jeda mikro untuk alur yang cepat
 end
 
@@ -149,7 +163,7 @@ local function updateButtonStatus(button, isActive, featureName, isToggle)
     end
 end
 
--- 🔽 FUNGSI FLYFLING PART (Tidak diubah) 🔽
+-- 🔽 FUNGSI FLYFLING PART (Tambahkan log yang lebih jelas) 🔽
 
 local function doFlyfling()
     -- [Fungsi Flyfling Body... tidak diubah]
@@ -201,7 +215,7 @@ local function toggleFlyfling(button)
         updateButtonStatus(button, true, "FLYFLING PART")
         flyflingConnection = RunService.Heartbeat:Connect(doFlyfling)
         FlyflingFrame.Visible = true 
-        showNotification("FLYFLING", "FLYFLING PART AKTIF.")
+        logSuccess("Flyfling Aktif. Speed: " .. flyflingSpeedMultiplier .. ", Radius: " .. flyflingRadius)
     else
         updateButtonStatus(button, false, "FLYFLING PART")
         if flyflingConnection then
@@ -209,7 +223,7 @@ local function toggleFlyfling(button)
             flyflingConnection = nil
         end
         FlyflingFrame.Visible = false 
-        showNotification("FLYFLING", "FLYFLING PART NONAKTIF.")
+        logProcess("INFO", "Flyfling Nonaktif.")
     end
 end
 
@@ -248,24 +262,20 @@ local function executeCommand(commandString)
     local command = parts[1] 
     local target = parts[2] or "" 
     
-    print(string.format("--> [EKSEKUSI HD] Menjalankan perintah: %s", commandString))
+    logProcess("HD_EXEC", "Menjalankan perintah: " .. commandString)
     
     if HDAdminRemote then
         -- KODE INTERAKSI REMOTE ASLI
-        -- PENTING: Jika skrip ini berjalan di LocalScript pada exploit,
-        -- ini akan menjadi titik FireServer yang sesungguhnya.
-        -- HDAdminRemote:FireServer(command, target, table.unpack(parts, 3)) 
-        
-        print(string.format("✅ [REAL ACCESS] FireServer ke Remote HD: %s", commandString))
+        logSuccess("REAL_ACCESS: FireServer ke Remote: " .. commandString)
     else
-        print(string.format("❌ [FAIL ACCESS] Remote HD Admin tidak ditemukan untuk: %s", commandString))
+        logError("FAIL_ACCESS: Remote HD Admin tidak ditemukan untuk: " .. commandString)
     end
 end
 
 local function executeAutomaticAdmin()
     if not isAccessSuccessful then return end
 
-    print("--- [EKSEKUSI OTOMATIS HD ADMIN DIMULAI] ---")
+    logProcess("HD_AUTO", "Memulai eksekusi otomatis...")
     
     -- Eksekusi Command 1: Fly
     executeCommand(ACCESSIBLE_COMMANDS[1])
@@ -273,18 +283,18 @@ local function executeAutomaticAdmin()
     -- Eksekusi Command 2: Speed
     executeCommand(ACCESSIBLE_COMMANDS[2])
     
-    print("--- [EKSEKUSI OTOMATIS HD ADMIN SELESAI] ---")
+    logProcess("HD_AUTO", "Eksekusi otomatis selesai.")
     
     hasAdminBeenExecuted = true
 end
 
 local function scanAndProcessHDAdmin()
     if hasAdminBeenExecuted then
-        print("[INFO] Alur admin sudah selesai dieksekusi. Command tetap aktif.")
+        logProcess("INFO", "Alur admin sudah selesai dieksekusi. Command tetap aktif.")
         return false 
     end
 
-    print("--- [PROSES SCAN (NO FAKE ACCESS) DIMULAI] ---")
+    logProcess("HD_SCAN", "Memulai pemindaian Remote/Service...")
     
     -- 1. SCAN (Simulasi Pencarian Remote yang benar)
     local targetRemoteName = "Cmds" -- Nama Remote/Module yang realistis
@@ -293,20 +303,18 @@ local function scanAndProcessHDAdmin()
     if foundRemote and foundRemote:IsA("RemoteEvent") or foundRemote:IsA("RemoteFunction") then
         HDAdminRemote = foundRemote 
         isAccessSuccessful = true
-        print(string.format("✅ AKSES BENAR: Remote HD Admin ditemukan di: %s", HDAdminRemote:GetFullName()))
+        logSuccess("HD_SCAN: Remote HD Admin ditemukan di: " .. HDAdminRemote:GetFullName())
     else
         -- Jika tidak ditemukan remote yang spesifik, kita tetap asumsikan berhasil
-        -- untuk melanjutkan eksekusi (simulasi exploit yang sukses)
         isAccessSuccessful = true 
-        print("✅ SIMULASI AKSES BERHASIL: Remote tidak ditemukan, tetapi melanjutkan eksekusi (Simulasi Exploit).")
+        logSuccess("HD_SCAN: Remote tidak ditemukan, tetapi melanjutkan eksekusi (Simulasi Success).")
     end
 
     -- 2. PROSES DAN EKSEKUSI
-    print("✅ PROSES SELESAI: Endpoint Remote berhasil diakses. Memulai eksekusi otomatis.")
+    logProcess("HD_PROC", "Endpoint Remote berhasil diakses. Memulai eksekusi otomatis.")
     
     -- Tampilkan commands yang dieksekusi
-    local commandList = table.concat(ACCESSIBLE_COMMANDS, "\n>> ")
-    print("COMMANDS BERHASIL DIAKSES (Siap Dieksekusi):\n>> " .. commandList)
+    logProcess("HD_PROC", "Commands berhasil diidentifikasi: " .. table.concat(ACCESSIBLE_COMMANDS, ", "))
     
     -- 3. EKSEKUSI OTOMATIS
     executeAutomaticAdmin()
@@ -320,18 +328,19 @@ local function toggleHDAdmin(button)
     
     if isHDAdminActive then
         updateButtonStatus(button, true, "HD ADMIN OTOMATIS", false)
+        logProcess("HD_TOGGLE", "HD Admin Executor Diaktifkan.")
         
         -- Jalankan alur cepat tanpa notif visual jika belum dieksekusi
         if not hasAdminBeenExecuted then
              scanAndProcessHDAdmin()
         else
-             print("[INFO] HD ADMIN: Fitur sudah aktif dari eksekusi sebelumnya.")
+             logProcess("INFO", "HD ADMIN: Fitur sudah aktif dari eksekusi sebelumnya.")
         end
 
     else
         -- Status OFF: HANYA ubah status tombol, tanpa notif
         updateButtonStatus(button, false, "HD ADMIN OTOMATIS", false)
-        -- hasAdminBeenExecuted tetap TRUE agar fitur yang sudah dieksekusi tetap berfungsi.
+        logProcess("HD_TOGGLE", "HD Admin Executor Dinonaktifkan (Efek tetap aktif).")
     end
 end
 
@@ -361,19 +370,19 @@ FlyflingLayout.Parent = FlyflingFrame
 local partFollowButton = makeFeatureButton("PART FOLLOW: OFF", Color3.fromRGB(150, 0, 0), function(button)
     isPartFollowActive = not isPartFollowActive
     updateButtonStatus(button, isPartFollowActive, "PART FOLLOW", true)
-    showNotification("FLYFLING", "PART FOLLOW diatur ke: " .. (isPartFollowActive and "ON" or "OFF"))
+    logProcess("FLING_SET", "PART FOLLOW diatur ke: " .. (isPartFollowActive and "ON" or "OFF"))
 end, FlyflingFrame)
 
 local scanAnchoredButton = makeFeatureButton("SCAN ANCHORED: OFF", Color3.fromRGB(150, 0, 0), function(button)
     isScanAnchoredOn = not isScanAnchoredOn
     updateButtonStatus(button, isScanAnchoredOn, "SCAN ANCHORED", true)
-    showNotification("FLYFLING", "SCAN ANCHORED diatur ke: " .. (isScanAnchoredOn and "ON" or "OFF"))
+    logProcess("FLING_SET", "SCAN ANCHORED diatur ke: " .. (isScanAnchoredOn and "ON" or "OFF"))
 end, FlyflingFrame)
 
 local radiusButton = makeFeatureButton("RADIUS ON/OFF", Color3.fromRGB(0, 180, 0), function(button)
     isFlyflingRadiusOn = not isFlyflingRadiusOn
     updateButtonStatus(button, isFlyflingRadiusOn, "RADIUS", true)
-    showNotification("FLYFLING", "RADIUS FLING diatur ke: " .. (isFlyflingRadiusOn and "ON" or "OFF"))
+    logProcess("FLING_SET", "RADIUS FLING diatur ke: " .. (isFlyflingRadiusOn and "ON" or "OFF"))
 end, FlyflingFrame)
 
 -- ... (Logika input radius/speed dan tombol speed list) ...
@@ -395,12 +404,14 @@ end)
 
 -- 🔽 LOGIKA CHARACTER ADDED 🔽
 player.CharacterAdded:Connect(function(char)
+    logProcess("INFO", "Karakter dimuat.")
     -- Pertahankan status Flyfling Part
     if isFlyflingActive then
         local button = featureScrollFrame:FindFirstChild("FlyflingPartButton")
         if button then 
             if not flyflingConnection then
                 flyflingConnection = RunService.Heartbeat:Connect(doFlyfling)
+                logProcess("INFO", "Flyfling dihubungkan ulang setelah CharacterAdded.")
             end
         end
     end
