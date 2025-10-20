@@ -1,64 +1,47 @@
--- =========================================================
--- Executor Script: Permanent UGC Equip (Simulasi "Try")
--- Dibuat untuk mencoba mengatasi enkapsulasi Kohl's Admin.
--- =========================================================
+-- Eksekusi kode ini di lingkungan Executor/Client-side.
+
+-- **PERHATIAN:** Variabel _K dan Remote Event harus sudah terisi
+-- oleh script Admin Kohl's yang sah di lingkungan klien Anda.
+-- Executor harus memiliki akses ke variabel global tersebut.
 
 local TargetUGC = {
-    -- Ganti dengan item yang ingin Anda coba
+    -- Contoh data UGC yang ingin Anda coba pakai: Light Wings
     id = 133292294488871, 
-    equip = "rbxassetid://89119211625300", -- ID Mesh Part (Wings)
+    equip = "rbxassetid://89119211625300",
     name = "Light Wings"
 }
 
-local function AttemptEquip(id, equipAssetId, name)
-    local VIPUGCMethod = nil
-    
-    -- --- CARA 1: Akses Melalui Global State (shared / _G) ---
-    -- Admin Kohl's sering menggunakan 'shared' atau 'getfenv()' untuk menyimpan data.
-    if shared and shared._K and shared._K.Remote and shared._K.Remote.VIPUGCMethod then
-        VIPUGCMethod = shared._K.Remote.VIPUGCMethod
-        print("[SUKSES] Remote ditemukan melalui 'shared._K'.")
-    elseif _G and _G._K and _G._K.Remote and _G._K.Remote.VIPUGCMethod then
-        VIPUGCMethod = _G._K.Remote.VIPUGCMethod
-        print("[SUKSES] Remote ditemukan melalui '_G._K'.")
-    end
+-- 1. Akses Remote Event
+-- Asumsikan _K adalah variabel global yang berisi referensi ke Remote Events.
+local VIPUGCMethod = _K and _K.Remote and _K.Remote.VIPUGCMethod
 
-    -- --- CARA 2: Pencarian Manual di ReplicatedStorage ---
-    if not VIPUGCMethod then
-        local ReplicatedStorage = game:GetService("ReplicatedStorage")
-        
-        -- Coba path umum Admin Kohl's (mungkin memerlukan penyesuaian path)
-        local PossibleRemote = ReplicatedStorage:FindFirstChild("KAdminRemotes") 
-            or ReplicatedStorage:FindFirstChild("KohlAdmin") 
-            or ReplicatedStorage 
-        
-        -- Asumsikan Remote Event ada di suatu tempat
-        for _, obj in PossibleRemote:GetChildren() do
-            if obj.Name:find("VIPUGCMethod", 1, true) and obj:IsA("RemoteEvent") then
-                VIPUGCMethod = obj
-                print("[SUKSES] Remote ditemukan melalui pencarian manual di ReplicatedStorage.")
-                break
-            end
-        end
-    end
-
-    -- --- Memicu Remote Event ---
-    if VIPUGCMethod and VIPUGCMethod:IsA("RemoteEvent") then
-        print(string.format("--> Memicu Equip %s (ID: %d) ke Server...", name, id))
-        
-        -- Parameter: AssetId, EquipAssetId, Equipped(true), Name
-        VIPUGCMethod:FireServer(
-            id, 
-            equipAssetId, 
-            true, -- Memaksa equip ON
-            name
-        )
-        print("✅ Permintaan Equip dikirim. Hasil tergantung pada pemeriksaan server.")
-    else
-        warn("❌ GAGAL: Remote Event 'VIPUGCMethod' tidak dapat ditemukan.")
-        warn("   Coba ubah TargetUGC.id dan TargetUGC.equip, lalu sesuaikan path pencarian manual.")
-    end
+if not VIPUGCMethod then
+    -- Cari Remote Event secara manual jika tidak ada di variabel _K
+    -- Lokasi umum: ReplicatedStorage, StarterGui (ScreenGui > _K > Remote)
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    VIPUGCMethod = ReplicatedStorage:FindFirstChild("Remote"):FindFirstChild("VIPUGCMethod") -- Ganti dengan path yang sesuai!
 end
 
--- Jalankan fungsi equip
-AttemptEquip(TargetUGC.id, TargetUGC.equip, TargetUGC.name)
+if VIPUGCMethod and VIPUGCMethod:IsA("RemoteEvent") then
+    print("Remote Event VIPUGCMethod ditemukan. Memicu permintaan equip...")
+    
+    -- Parameter untuk FireServer (dari fungsi debounceEquip):
+    -- id: Asset ID UGC (misalnya 133292294488871)
+    -- equip: rbxassetid template (misalnya "rbxassetid://89119211625300")
+    -- equipped: true (untuk memakai item)
+    -- name: Nama item (misalnya "Light Wings")
+    
+    -- Memicu permintaan equip tanpa debounce dan tanpa expired time (seperti yang dilakukan server).
+    -- Karena kita 'melompati' timer 15 detik di klien, item akan tetap terpasang
+    -- selama server Admin Kohl's mengizinkannya.
+    VIPUGCMethod:FireServer(
+        TargetUGC.id, 
+        TargetUGC.equip, 
+        true, -- Selalu true untuk memakai item
+        TargetUGC.name
+    )
+    
+    print("Permintaan 'Try/Equip' UGC " .. TargetUGC.name .. " dikirim ke server.")
+else
+    warn("Gagal menemukan Remote Event 'VIPUGCMethod'. Pastikan path sudah benar atau variabel _K sudah terisi.")
+end
