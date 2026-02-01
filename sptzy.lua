@@ -1,12 +1,17 @@
--- [[ SPTZYY SS MORPH + TARGET LIST ]] --
--- Logika: Backdoor Payload + UserID Stealer + Auto-Refresh List
+-- [[ SPTZYY ULTIMATE REMOTE INJECTOR ]] --
+-- Logika: Remote Brute-Force + Asset Injection + Target List
 
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 local lp = Players.LocalPlayer
 
--- ==========================================
--- SILENT ANTI-KICK BYPASS
--- ==========================================
+-- Variabel Core dari Logika Kamu
+local modelName = "sptzyy"
+local zyy = nil
+local lastFired = nil
+local isScanning = false
+
+-- [[ ANTI-KICK BYPASS ]] --
 local mt = getrawmetatable(game)
 local old = mt.__namecall
 setreadonly(mt, false)
@@ -16,129 +21,133 @@ mt.__namecall = newcclosure(function(self, ...)
 end)
 setreadonly(mt, true)
 
--- ==========================================
--- UI SETUP (Satu GUI Rapi)
--- ==========================================
+-- [[ UI SETUP ]] --
 local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
-ScreenGui.Name = "Sptzyy_Morph_Hub"
-ScreenGui.ResetOnSpawn = false
-
 local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Size = UDim2.new(0, 320, 0, 400)
-MainFrame.Position = UDim2.new(0.5, -160, 0.5, -200)
+MainFrame.Size = UDim2.new(0, 350, 0, 420)
+MainFrame.Position = UDim2.new(0.5, -175, 0.5, -210)
 MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 MainFrame.Visible = false
 Instance.new("UICorner", MainFrame)
 
 local Title = Instance.new("TextLabel", MainFrame)
-Title.Size = UDim2.new(1, 0, 0, 50)
-Title.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-Title.Text = "SS MORPH EXPLORER"
-Title.TextColor3 = Color3.fromRGB(0, 200, 255)
-Title.Font = Enum.Font.GothamBold
+Title.Size = UDim2.new(1, 0, 0, 45)
+Title.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+Title.Text = "SPTZYY REMOTE EXPLOIT"
+Title.TextColor3 = Color3.new(1, 1, 1)
+Title.Font = Enum.Font.Code
 Instance.new("UICorner", Title)
 
-local SubTitle = Instance.new("TextLabel", MainFrame)
-SubTitle.Size = UDim2.new(1, 0, 0, 20)
-SubTitle.Position = UDim2.new(0, 0, 0, 50)
-SubTitle.BackgroundTransparency = 1
-SubTitle.Text = "PILIH TARGET UNTUK COPY AVATAR"
-SubTitle.TextColor3 = Color3.new(0.6, 0.6, 0.6)
-SubTitle.Font = Enum.Font.SourceSansItalic
-SubTitle.TextSize = 12
-
--- Scrolling Player List
+-- Player Scrolling List
 local ScrollFrame = Instance.new("ScrollingFrame", MainFrame)
-ScrollFrame.Size = UDim2.new(0.9, 0, 0.65, 0)
-ScrollFrame.Position = UDim2.new(0.05, 0, 0.2, 0)
+ScrollFrame.Size = UDim2.new(0.9, 0, 0.6, 0)
+ScrollFrame.Position = UDim2.new(0.05, 0, 0.15, 0)
 ScrollFrame.BackgroundTransparency = 1
 ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
-ScrollFrame.ScrollBarThickness = 3
+ScrollFrame.ScrollBarThickness = 2
 local UIList = Instance.new("UIListLayout", ScrollFrame)
 UIList.Padding = UDim.new(0, 5)
 
--- Console Log Mini
-local LogLabel = Instance.new("TextLabel", MainFrame)
-LogLabel.Size = UDim2.new(0.9, 0, 0, 30)
-LogLabel.Position = UDim2.new(0.05, 0, 0.88, 0)
-LogLabel.BackgroundColor3 = Color3.new(0, 0, 0)
-LogLabel.Text = "Status: Idle"
-LogLabel.TextColor3 = Color3.new(1, 1, 1)
-LogLabel.TextSize = 10
-Instance.new("UICorner", LogLabel)
+-- Status Log
+local StatusLabel = Instance.new("TextLabel", MainFrame)
+StatusLabel.Size = UDim2.new(0.9, 0, 0, 30)
+StatusLabel.Position = UDim2.new(0.05, 0, 0.78, 0)
+StatusLabel.BackgroundColor3 = Color3.new(0, 0, 0)
+StatusLabel.Text = "Status: Menunggu Scan..."
+StatusLabel.TextColor3 = Color3.new(1, 1, 0)
+StatusLabel.TextSize = 10
+Instance.new("UICorner", StatusLabel)
 
 -- ==========================================
--- LOGIKA MORPH SERVER-SIDE (REAL)
+-- LOGIKA SCANNER (Disesuaikan dengan permintaanmu)
 -- ==========================================
-local function MorphToPlayer(target)
-    LogLabel.Text = "Mencoba SS Morph ke: " .. target.Name
-    LogLabel.TextColor3 = Color3.new(1, 1, 0)
+workspace.ChildAdded:Connect(function(child)
+    if child.Name == modelName and zyy == nil then
+        zyy = lastFired
+        StatusLabel.Text = "VULNERABILITY FOUND: " .. tostring(zyy)
+        StatusLabel.TextColor3 = Color3.new(0, 1, 0)
+    end
+end)
+
+local function RunScan()
+    if isScanning then return end
+    isScanning = true
+    StatusLabel.Text = "Scanning Remotes... (Brute Force)"
     
-    local targetId = target.UserId
-    local found = false
+    local payload = " KONTOL MESUM😂 " -- Pesan awal untuk trigger
 
-    -- Mencari Backdoor Remote yang bisa dieksekusi
-    for _, v in pairs(game:GetDescendants()) do
-        if v:IsA("RemoteEvent") then
+    for _, remote in ipairs(game.ReplicatedStorage:GetDescendants()) do
+        if remote:IsA("RemoteEvent") then
             pcall(function()
-                -- Payload 1: Mengubah ID Penampilan di Server
-                v:FireServer("game.Players['"..lp.Name.."'].CharacterAppearanceId = "..targetId)
-                -- Payload 2: Memaksa Respawn agar Avatar Berubah Secara Nyata
-                v:FireServer("game.Players['"..lp.Name.."']:LoadCharacter()")
-                found = true
+                remote:FireServer(payload)
             end)
+            lastFired = remote
+            RunService.RenderStepped:Wait()
         end
     end
+    isScanning = false
+end
 
-    if found then
-        LogLabel.Text = "Sukses! Avatar Terganti (Server-Side)"
-        LogLabel.TextColor3 = Color3.new(0, 1, 0)
+-- ==========================================
+-- LOGIKA INJECTION TARGET
+-- ==========================================
+local function InjectToTarget(target)
+    if zyy and typeof(zyy) == "Instance" then
+        StatusLabel.Text = "Injecting to: " .. target.Name
+        local insertPayload = [[
+            local player = game.Players:FindFirstChild("]] .. target.Name .. [[")
+            if player and player:FindFirstChild("PlayerGui") then
+                local asset = game:GetService("InsertService"):LoadAsset(73729830375562)
+                asset.Parent = player.PlayerGui
+                for _, child in ipairs(asset:GetChildren()) do
+                    child.Parent = player.PlayerGui
+                end
+                asset:Destroy()
+            end
+        ]]
+        zyy:FireServer(insertPayload)
     else
-        LogLabel.Text = "Gagal: Game tidak memiliki Backdoor."
-        LogLabel.TextColor3 = Color3.new(1, 0, 0)
+        StatusLabel.Text = "Gagal: Remote 'zyy' belum ditemukan!"
+        StatusLabel.TextColor3 = Color3.new(1, 0, 0)
+        RunScan() -- Coba scan ulang
     end
 end
 
 -- ==========================================
--- UPDATE LIST PLAYER OTOMATIS
+-- UI CONTROLS
 -- ==========================================
 local function RefreshList()
     for _, c in pairs(ScrollFrame:GetChildren()) do if c:IsA("TextButton") then c:Destroy() end end
-
     for _, p in pairs(Players:GetPlayers()) do
-        if p ~= lp then
-            local b = Instance.new("TextButton", ScrollFrame)
-            b.Size = UDim2.new(1, 0, 0, 35)
-            b.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-            b.Text = "  " .. p.DisplayName .. " (@" .. p.Name .. ")"
-            b.TextColor3 = Color3.new(1, 1, 1)
-            b.TextXAlignment = Enum.TextXAlignment.Left
-            b.Font = Enum.Font.Gotham
-            b.TextSize = 12
-            Instance.new("UICorner", b)
-
-            b.MouseButton1Click:Connect(function()
-                MorphToPlayer(p)
-            end)
-        end
+        local b = Instance.new("TextButton", ScrollFrame)
+        b.Size = UDim2.new(1, 0, 0, 30)
+        b.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+        b.Text = p.Name
+        b.TextColor3 = Color3.new(1, 1, 1)
+        b.Font = Enum.Font.SourceSansBold
+        Instance.new("UICorner", b)
+        b.MouseButton1Click:Connect(function() InjectToTarget(p) end)
     end
-    ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, #Players:GetPlayers() * 40)
+    ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, #Players:GetPlayers() * 35)
 end
 
--- Event Auto-Update
-Players.PlayerAdded:Connect(RefreshList)
-Players.PlayerRemoving:Connect(RefreshList)
+local ScanBtn = Instance.new("TextButton", MainFrame)
+ScanBtn.Size = UDim2.new(0.9, 0, 0, 40)
+ScanBtn.Position = UDim2.new(0.05, 0, 0.88, 0)
+ScanBtn.Text = "RE-SCAN REMOTES"
+ScanBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 0)
+ScanBtn.TextColor3 = Color3.new(1, 1, 1)
+Instance.new("UICorner", ScanBtn)
+ScanBtn.MouseButton1Click:Connect(RunScan)
 
--- Toggle Menu
+-- Icon Toggle
 local Icon = Instance.new("ImageButton", ScreenGui)
 Icon.Size = UDim2.new(0, 60, 0, 60)
 Icon.Position = UDim2.new(0.05, 0, 0.4, 0)
 Icon.Image = "rbxassetid://6031280227"
-Icon.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 Icon.Draggable = true
 Icon.Active = true
 Instance.new("UICorner", Icon).CornerRadius = UDim.new(1, 0)
-
 Icon.MouseButton1Click:Connect(function()
     MainFrame.Visible = not MainFrame.Visible
     if MainFrame.Visible then RefreshList() end
