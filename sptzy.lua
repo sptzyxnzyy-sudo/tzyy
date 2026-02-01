@@ -1,12 +1,12 @@
--- [[ SPTZYY GIGA-WIDE REPLICATION - NO REMOTE ]] --
--- Fokus: Skala Mesh Maksimal dengan Fitur ON/OFF
+-- [[ SPTZYY GIGA-WIDE REPLICATION - PHYSICS & ANIM ]] --
+-- Fokus: Skala tereplikasi melalui Motor6D & WrapLayer (Clothing)
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local lp = Players.LocalPlayer
 
 -- [[ PENYIMPANAN DATA ASLI ]] --
-local originalScales = {}
+local originalData = {}
 local isWide = false
 local spinning = false
 
@@ -24,46 +24,58 @@ Instance.new("UICorner", MainFrame)
 local Title = Instance.new("TextLabel", MainFrame)
 Title.Size = UDim2.new(1, 0, 0, 40)
 Title.BackgroundColor3 = Color3.fromRGB(40, 0, 0)
-Title.Text = "SPTZYY GIGA LASER"
+Title.Text = "SPTZYY GIGA REPLICATE"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.Code
 Instance.new("UICorner", Title)
 
--- [[ ⚙️ TOGGLE LOGIC ]] --
+-- [[ ⚙️ REPLICATION LOGIC ]] --
 
 local function ToggleGigaWide()
     local char = lp.Character
     if not char then return end
+    local hum = char:FindFirstChildOfClass("Humanoid")
     
     isWide = not isWide
     
     if isWide then
         -- AKTIFKAN (ON)
         for _, v in ipairs(char:GetDescendants()) do
+            -- 1. Dukungan Pakaian Avatar (Layered Clothing)
+            if v:IsA("WrapLayer") then
+                originalData[v] = v.ReferenceOffset
+                v.ReferenceOffset = Vector3.new(50, 0, 50) -- Melebarkan pakaian secara fisik
+            end
+            
+            -- 2. Dukungan Aksesoris & Mesh
             if v:IsA("SpecialMesh") or v:IsA("MeshPart") then
-                -- Simpan data asli agar bisa di-reset
-                originalScales[v] = v:IsA("SpecialMesh") and v.Scale or v.Size
-                
+                originalData[v] = v:IsA("SpecialMesh") and v.Scale or v.Size
                 if v:IsA("SpecialMesh") then
-                    v.Scale = Vector3.new(500, 0.5, 500)
-                elseif v:IsA("MeshPart") then
+                    v.Scale = Vector3.new(800, 0.2, 800)
+                else
                     v.Size = Vector3.new(2048, 1, 2048)
                 end
+            end
+            
+            -- 3. Logika Motor6D (Replikasi Animasi Tubuh)
+            if v:IsA("Motor6D") and v.Name ~= "RootJoint" then
+                originalData[v] = v.C0
+                -- Memaksa Motor6D bergeser sangat jauh (Terlihat di server sebagai "Glitch")
+                v.C0 = v.C0 * CFrame.new(50, 0, 0) 
             end
         end
         return true
     else
         -- MATIKAN (OFF)
-        for v, originalValue in pairs(originalScales) do
+        for v, orig in pairs(originalData) do
             if v and v.Parent then
-                if v:IsA("SpecialMesh") then
-                    v.Scale = originalValue
-                elseif v:IsA("MeshPart") then
-                    v.Size = originalValue
-                end
+                if v:IsA("WrapLayer") then v.ReferenceOffset = orig
+                elseif v:IsA("SpecialMesh") then v.Scale = orig
+                elseif v:IsA("MeshPart") then v.Size = orig
+                elseif v:IsA("Motor6D") then v.C0 = orig end
             end
         end
-        originalScales = {}
+        originalData = {}
         return false
     end
 end
@@ -74,14 +86,15 @@ local function ToggleSpin()
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     
     if hrp then
-        local existing = hrp:FindFirstChild("PhysicsSpin")
+        local existing = hrp:FindFirstChild("ReplicatedSpin")
         if existing then existing:Destroy() end
         
         if spinning then
+            -- Menggunakan AngularVelocity karena ini objek Physics (Network Ownership)
             local av = Instance.new("AngularVelocity", hrp)
-            av.Name = "PhysicsSpin"
+            av.Name = "ReplicatedSpin"
             av.MaxTorque = math.huge
-            av.AngularVelocity = Vector3.new(0, 500, 0)
+            av.AngularVelocity = Vector3.new(0, 800, 0) -- Putaran lebih cepat
             av.Attachment0 = hrp:FindFirstChildOfClass("Attachment") or Instance.new("Attachment", hrp)
             return true
         end
@@ -94,7 +107,7 @@ end
 local WideBtn = Instance.new("TextButton", MainFrame)
 WideBtn.Size = UDim2.new(0.9, 0, 0, 40)
 WideBtn.Position = UDim2.new(0.05, 0, 0.3, 0)
-WideBtn.Text = "GIGA LASER: OFF"
+WideBtn.Text = "GIGA REPLICATE: OFF"
 WideBtn.BackgroundColor3 = Color3.fromRGB(100, 0, 0)
 WideBtn.TextColor3 = Color3.new(1, 1, 1)
 WideBtn.Font = Enum.Font.GothamBold
@@ -102,7 +115,7 @@ Instance.new("UICorner", WideBtn)
 
 WideBtn.MouseButton1Click:Connect(function()
     local active = ToggleGigaWide()
-    WideBtn.Text = active and "GIGA LASER: ON" or "GIGA LASER: OFF"
+    WideBtn.Text = active and "GIGA REPLICATE: ON" or "GIGA REPLICATE: OFF"
     WideBtn.BackgroundColor3 = active and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(100, 0, 0)
 end)
 
