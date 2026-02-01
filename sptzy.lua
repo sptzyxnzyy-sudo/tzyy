@@ -12,16 +12,6 @@ local lastFired = nil
 local isScanning = false
 local assetID = 73729830375562
 
--- [[ 🛡️ ANTI-KICK BYPASS ]] --
-local mt = getrawmetatable(game)
-local old = mt.__namecall
-setreadonly(mt, false)
-mt.__namecall = newcclosure(function(self, ...)
-    if getnamecallmethod():lower() == "kick" then return nil end
-    return old(self, ...)
-end)
-setreadonly(mt, true)
-
 -- [[ 🖥️ UI SETUP ]] --
 local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
 local MainFrame = Instance.new("Frame", ScreenGui)
@@ -30,7 +20,7 @@ MainFrame.Position = UDim2.new(0.5, -140, 0.5, -90)
 MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
 MainFrame.Visible = false
 MainFrame.Active = true
-MainFrame.Draggable = true -- Bisa digeser luas
+MainFrame.Draggable = true 
 Instance.new("UICorner", MainFrame)
 
 local Title = Instance.new("TextLabel", MainFrame)
