@@ -1,19 +1,18 @@
--- [[ ULTRA REAL JAIL & MAGNET - SPTZYY ]] --
--- Logika: Physical Cage + Persistent CFrame Lock (Server-Side Feel)
+-- [[ ULTRA KILL REAL - SPTZYY ]] --
+-- Logika: Force CFrame Bring + Void Kill (Nyata dilihat server)
 
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local lp = Players.LocalPlayer
 
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "Sptzyy_Real_Jail"
+ScreenGui.Name = "Sptzyy_KillSystem"
 ScreenGui.Parent = game.CoreGui
 ScreenGui.ResetOnSpawn = false
 
 -- Variabel State
-_G.MagnetActive = false
-_G.JailList = {} 
-local MagnetRadius = 200
+_G.KillAllActive = false
+local RadiusKill = 500
 
 -- UI Setup (Icon Support)
 local SupportIcon = Instance.new("ImageButton", ScreenGui)
@@ -27,130 +26,87 @@ Instance.new("UICorner", SupportIcon).CornerRadius = UDim.new(1, 0)
 
 -- Main Frame
 local MainGui = Instance.new("Frame", ScreenGui)
-MainGui.Size = UDim2.new(0, 260, 0, 350)
-MainGui.Position = UDim2.new(0.5, -130, 0.5, -175)
+MainGui.Size = UDim2.new(0, 240, 0, 250)
+MainGui.Position = UDim2.new(0.5, -120, 0.5, -125)
 MainGui.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
 MainGui.Visible = false
 Instance.new("UICorner", MainGui)
 
 local Title = Instance.new("TextLabel", MainGui)
 Title.Size = UDim2.new(1, 0, 0, 50)
-Title.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-Title.Text = "COPY FITUR SPTZYY - REAL"
+Title.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+Title.Text = "KILL FITUR SPTZYY"
 Title.TextColor3 = Color3.new(1,1,1)
 Title.Font = Enum.Font.GothamBold
 Instance.new("UICorner", Title)
 
--- Fungsi Buat Kandang (Nyata di Workspace)
-local function CreateCage(pos)
-    local CageFolder = Instance.new("Folder", game.Workspace)
-    CageFolder.Name = "Sptzyy_Cage"
-    
-    local parts = {
-        {size = Vector3.new(12, 1, 12), pos = Vector3.new(0, -5, 0)}, -- Lantai
-        {size = Vector3.new(12, 1, 12), pos = Vector3.new(0, 5, 0)},  -- Atap
-        {size = Vector3.new(1, 10, 12), pos = Vector3.new(6, 0, 0)},  -- Dinding 1
-        {size = Vector3.new(1, 10, 12), pos = Vector3.new(-6, 0, 0)}, -- Dinding 2
-        {size = Vector3.new(12, 10, 1), pos = Vector3.new(0, 0, 6)},  -- Dinding 3
-        {size = Vector3.new(12, 10, 1), pos = Vector3.new(0, 0, -6)}, -- Dinding 4
-    }
-    
-    for _, pInfo in pairs(parts) do
-        local p = Instance.new("Part", CageFolder)
-        p.Size = pInfo.size
-        p.CFrame = pos * CFrame.new(pInfo.pos)
-        p.Anchored = true
-        p.Material = Enum.Material.ForceField -- Biar terlihat transparan tapi nyata
-        p.Color = Color3.fromRGB(255, 0, 0)
-        p.Transparency = 0.5
-    end
-    return CageFolder
-end
-
 -- Fungsi Notifikasi
 local function Notify(msg)
     local n = Instance.new("TextLabel", ScreenGui)
-    n.Size = UDim2.new(0, 250, 0, 45)
-    n.Position = UDim2.new(0.5, -125, 0.85, 0)
-    n.Text = "⚡ " .. msg
+    n.Size = UDim2.new(0, 200, 0, 40)
+    n.Position = UDim2.new(0.5, -100, 0.9, 0)
+    n.Text = "💀 " .. msg
     n.BackgroundColor3 = Color3.new(0,0,0)
-    n.TextColor3 = Color3.new(1,1,1)
+    n.TextColor3 = Color3.new(1,0,0)
     Instance.new("UICorner", n)
-    n:TweenPosition(UDim2.new(0.5, -125, 0.45, 0), "Out", "Back", 1)
-    task.delay(2, function() n:Destroy() end)
+    n:TweenPosition(UDim2.new(0.5, -100, 0.5, 0), "Out", "Back", 1)
+    task.delay(1, function() n:Destroy() end)
 end
 
--- LOGIKA CORE (Persistent)
+-- ==========================================
+-- LOGIKA KILL NYATA (CFrame Bring to Void)
+-- ==========================================
 RunService.Heartbeat:Connect(function()
-    -- Magnet Logic
-    if _G.MagnetActive then
-        local root = lp.Character and lp.Character:FindFirstChild("HumanoidRootPart")
+    if _G.KillAllActive then
+        local char = lp.Character
+        local root = char and char:FindFirstChild("HumanoidRootPart")
+        
         if root then
             for _, player in pairs(Players:GetPlayers()) do
                 if player ~= lp and player.Character then
-                    local tRoot = player.Character:FindFirstChild("HumanoidRootPart")
-                    if tRoot and (root.Position - tRoot.Position).Magnitude < MagnetRadius then
-                        tRoot.CFrame = root.CFrame * CFrame.new(0, 0, -5)
+                    local targetRoot = player.Character:FindFirstChild("HumanoidRootPart")
+                    local hum = player.Character:FindFirstChild("Humanoid")
+                    
+                    if targetRoot and hum and hum.Health > 0 then
+                        -- Metode Kill: Paksa CFrame ke bawah Map (Void)
+                        -- Pemain lain akan melihat target jatuh menembus lantai dan mati
+                        targetRoot.CFrame = CFrame.new(targetRoot.Position.X, -500, targetRoot.Position.Z)
+                        
+                        -- Alternatif: Tabrakkan ke posisi kita dengan kecepatan tinggi
+                        -- targetRoot.CFrame = root.CFrame * CFrame.new(0, 0, -1)
+                        -- targetRoot.Velocity = Vector3.new(0, -1000, 0)
                     end
                 end
-            end
-        end
-    end
-
-    -- Jail Logic (Anti-Respawn)
-    for playerName, jailPos in pairs(_G.JailList) do
-        local target = Players:FindFirstChild(playerName)
-        if target and target.Character then
-            local tRoot = target.Character:FindFirstChild("HumanoidRootPart")
-            if tRoot then
-                tRoot.CFrame = jailPos -- Mengunci di tengah kandang
             end
         end
     end
 end)
 
 -- Tombol Menu
-local function NewBtn(txt, color, func)
+local function NewBtn(txt, pos, color, func)
     local b = Instance.new("TextButton", MainGui)
-    b.Size = UDim2.new(0.9, 0, 0, 45)
+    b.Size = UDim2.new(0.9, 0, 0, 50)
+    b.Position = pos
     b.Text = txt
     b.BackgroundColor3 = color
     b.TextColor3 = Color3.new(1,1,1)
     b.Font = Enum.Font.GothamBold
-    b.Position = UDim2.new(0.05, 0, 0, #MainGui:GetChildren() * 55 - 60)
     Instance.new("UICorner", b)
     b.MouseButton1Click:Connect(func)
     return b
 end
 
-NewBtn("MAGNET TOGGLE", Color3.fromRGB(40, 40, 40), function()
-    _G.MagnetActive = not _G.MagnetActive
-    Notify("Magnet: " .. (_G.MagnetActive and "AKTIF" or "MATI"))
+NewBtn("KILL ALL SERVER", UDim2.new(0.05, 0, 0.3, 0), Color3.fromRGB(200, 0, 0), function(self)
+    _G.KillAllActive = not _G.KillAllActive
+    self.Text = _G.KillAllActive and "STOP KILL" or "KILL ALL SERVER"
+    self.BackgroundColor3 = _G.KillAllActive and Color3.fromRGB(50, 50, 50) or Color3.fromRGB(200, 0, 0)
+    Notify(_G.KillAllActive and "Killing Everyone!" or "Stopped")
 end)
 
-NewBtn("JAIL ALL (KANDANG NYATA)", Color3.fromRGB(150, 0, 0), function()
-    local root = lp.Character and lp.Character:FindFirstChild("HumanoidRootPart")
-    if not root then return end
-    
-    local jailPos = root.CFrame * CFrame.new(0, 0, -15) -- Kandang muncul di depan kamu
-    local cage = CreateCage(jailPos)
-    
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= lp then
-            _G.JailList[player.Name] = jailPos
-        end
-    end
-    Notify("Semua Terkurung di Kandang!")
+NewBtn("CLOSE MENU", UDim2.new(0.05, 0, 0.65, 0), Color3.fromRGB(30, 30, 30), function()
+    MainGui.Visible = false
 end)
 
-NewBtn("UNJAIL & HAPUS KANDANG", Color3.fromRGB(0, 100, 200), function()
-    _G.JailList = {}
-    if game.Workspace:FindFirstChild("Sptzyy_Cage") then
-        game.Workspace.Sptzyy_Cage:Destroy()
-    end
-    Notify("Kurungan Dibersihkan")
+SupportIcon.MouseButton1Click:Connect(function() 
+    MainGui.Visible = not MainGui.Visible 
 end)
-
-NewBtn("TUTUP MENU", Color3.fromRGB(80, 0, 0), function() MainGui.Visible = false end)
-
-SupportIcon.MouseButton1Click:Connect(function() MainGui.Visible = not MainGui.Visible end)
