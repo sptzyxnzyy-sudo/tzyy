@@ -6,11 +6,11 @@ local lp = Players.LocalPlayer
 
 -- [[ SETTINGS ]] --
 local botActive = true
-local pullRadius = 70      -- Radius lebih jauh
+local pullRadius = 150      -- Radius lebih jauh
 local orbitHeight = 8      
 local orbitRadius = 10     
-local spinSpeed = 5        -- Putaran lebih kencang
-local followStrength = 35  -- Magnet sangat kencang (High Velocity)
+local spinSpeed = 125        -- Putaran lebih kencang
+local followStrength = 100  -- Magnet sangat kencang (High Velocity)
 
 -- [[ LOGIKA PHYSICS & CONSTRAINT BREAKER ]] --
 local angle = 0
