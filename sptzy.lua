@@ -1,107 +1,91 @@
--- [[ SPTZYY NEW GEN: CHAT ATTACK & FAKE LAG ]] --
+-- [[ SPTZYY AUTO-TAG: ANTI-SPAM & TOGGLE EDITION ]] --
 local Players = game:GetService("Players")
-local TextChatService = game:GetService("TextChatService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TextChatService = game:GetService("TextChatService")
+local MarketplaceService = game:GetService("MarketplaceService")
 local lp = Players.LocalPlayer
 
--- [[ STATE ]] --
-local chatAttack = false
-local fakeLagActive = false
+-- [[ SETTINGS ]] --
+local botActive = true
+local chatQueue = {}
+local isProcessingQueue = false
+local spamDelay = 4 -- Jeda antar pesan (detik) agar aman dari sensor
 
--- [[ 🖥️ UI SETUP ]] --
-local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
-local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Size = UDim2.new(0, 260, 0, 180) 
-MainFrame.Position = UDim2.new(0.5, -130, 0.5, -90)
-MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-MainFrame.Visible = false
-MainFrame.Active = true
-MainFrame.Draggable = true 
-Instance.new("UICorner", MainFrame)
+-- [[ AUTO-DETECT MAP ]] --
+local success, gameInfo = pcall(function() return MarketplaceService:GetProductInfo(game.PlaceId) end)
+local mapName = success and gameInfo.Name or "Map Donasi"
 
-local Title = Instance.new("TextLabel", MainFrame)
-Title.Size = UDim2.new(1, 0, 0, 40)
-Title.BackgroundColor3 = Color3.fromRGB(60, 0, 120)
-Title.Text = "SPTZYY ATTACKER"
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.Font = Enum.Font.Code
-Title.TextSize = 16
-Instance.new("UICorner", Title)
+-- [[ FUNGSI PENGIRIMAN CHAT (QUEUE SYSTEM) ]] --
+local function AddToQueue(msg)
+    if not botActive then return end
+    table.insert(chatQueue, msg)
+end
 
--- [[ ⚙️ FUNCTIONS ]] --
-
--- 1. Chat Attack (Membisukan Chat Server)
-local function ToggleChatAttack()
-    chatAttack = not chatAttack
-    task.spawn(function()
-        while chatAttack do
-            -- Target sistem chat lama
-            local remote = ReplicatedStorage:FindFirstChild("DefaultChatSystemChatEvents") and ReplicatedStorage.DefaultChatSystemChatEvents:FindFirstChild("SayMessageRequest")
-            if remote then
-                remote:FireServer("‎", "All") 
-            end
-            -- Target sistem chat baru (TextChatService)
+task.spawn(function()
+    while true do
+        if #chatQueue > 0 and botActive then
+            local msg = chatQueue[1]
+            table.remove(chatQueue, 1)
+            
+            -- Kirim ke sistem chat lama
+            local chatRemote = ReplicatedStorage:FindFirstChild("DefaultChatSystemChatEvents") and ReplicatedStorage.DefaultChatSystemChatEvents:FindFirstChild("SayMessageRequest")
+            if chatRemote then chatRemote:FireServer(msg, "All") end
+            
+            -- Kirim ke sistem chat baru
             if TextChatService.TextChannels:FindFirstChild("RBXGeneral") then
-                TextChatService.TextChannels.RBXGeneral:SendAsync("‎")
+                TextChatService.TextChannels.RBXGeneral:SendAsync(msg)
             end
-            task.wait(0.05) -- Interval sangat cepat
+            task.wait(spamDelay)
         end
-    end)
-    return chatAttack
-end
-
--- 2. Fake Lag (Membuat Replikasi Patah-patah)
-local function ToggleFakeLag()
-    fakeLagActive = not fakeLagActive
-    if fakeLagActive then
-        -- Nilai 1 dianggap tinggi untuk simulasi desinkronisasi
-        settings().Network.IncomingReplicationLag = 1 
-    else
-        settings().Network.IncomingReplicationLag = 0
+        task.wait(0.5)
     end
-    return fakeLagActive
-end
-
--- [[ 🔘 UI BUTTONS ]] --
-
-local function CreateBtn(text, pos, color)
-    local btn = Instance.new("TextButton", MainFrame)
-    btn.Size = UDim2.new(0.9, 0, 0, 45)
-    btn.Position = pos
-    btn.Text = text
-    btn.BackgroundColor3 = color
-    btn.TextColor3 = Color3.new(1, 1, 1)
-    btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 13
-    Instance.new("UICorner", btn)
-    return btn
-end
-
-local AttackBtn = CreateBtn("CHAT ATTACK: OFF", UDim2.new(0.05, 0, 0.3, 0), Color3.fromRGB(40, 40, 40))
-local LagBtn = CreateBtn("FAKE LAG: OFF", UDim2.new(0.05, 0, 0.65, 0), Color3.fromRGB(40, 40, 40))
-
-AttackBtn.MouseButton1Click:Connect(function()
-    local s = ToggleChatAttack()
-    AttackBtn.Text = s and "CHAT ATTACK: ACTIVE" or "CHAT ATTACK: OFF"
-    AttackBtn.BackgroundColor3 = s and Color3.fromRGB(200, 0, 0) or Color3.fromRGB(40, 40, 40)
 end)
 
-LagBtn.MouseButton1Click:Connect(function()
-    local s = ToggleFakeLag()
-    LagBtn.Text = s and "FAKE LAG: ON" or "FAKE LAG: OFF"
-    LagBtn.BackgroundColor3 = s and Color3.fromRGB(0, 120, 200) or Color3.fromRGB(40, 40, 40)
+-- [[ 1. JOIN ANNOUNCE ]] --
+task.spawn(function()
+    task.wait(10)
+    AddToQueue("Halo semua! Saya baru mendarat di " .. mapName .. ". Salam kenal ya!")
 end)
 
--- [[ 🕹️ TOGGLE ICON ]] --
-local Icon = Instance.new("ImageButton", ScreenGui)
-Icon.Size = UDim2.new(0, 45, 0, 45)
-Icon.Position = UDim2.new(0.02, 0, 0.15, 0)
-Icon.Image = "rbxassetid://6031280227"
-Icon.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-Icon.Draggable = true
-Icon.Active = true
-Instance.new("UICorner", Icon).CornerRadius = UDim.new(1, 0)
+-- [[ 2. AUTO WELCOME JOIN ]] --
+Players.PlayerAdded:Connect(function(newPlayer)
+    task.wait(5)
+    AddToQueue("Selamat datang @" .. newPlayer.Name .. " di " .. mapName .. "! Semoga betah ya.")
+end)
 
-Icon.MouseButton1Click:Connect(function()
-    MainFrame.Visible = not MainFrame.Visible
+-- [[ 3. AUTO REPLY CHAT ]] --
+Players.PlayerChatted:Connect(function(chatType, player, message)
+    if player == lp or not botActive then return end
+    local msg = message:lower()
+    local tag = "@" .. player.Name
+    
+    if msg:find("donasi") or msg:find("bagi") or msg:find("bantu") or msg:find("cek") then
+        AddToQueue("Halo " .. tag .. ", kalau ada rezeki boleh mampir ke stand saya ya. Terima kasih!")
+    elseif msg:find("makasih") or msg:find("tq") or msg:find("done") or msg:find("sudah") then
+        AddToQueue("MasyaAllah, terima kasih banyak " .. tag .. "! Semoga rezekinya dilipatgandakan. Aamiin!")
+    end
+end)
+
+-- [[ 4. UI SETUP (ON/OFF BUTTON) ]] --
+local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
+local MainBtn = Instance.new("TextButton", ScreenGui)
+MainBtn.Size = UDim2.new(0, 150, 0, 45)
+MainBtn.Position = UDim2.new(0.5, -75, 0, 20)
+MainBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 100)
+MainBtn.Text = "BOT: ACTIVE"
+MainBtn.TextColor3 = Color3.new(1,1,1)
+MainBtn.Font = Enum.Font.GothamBold
+MainBtn.Draggable = true
+Instance.new("UICorner", MainBtn)
+
+MainBtn.MouseButton1Click:Connect(function()
+    botActive = not botActive
+    if botActive then
+        MainBtn.Text = "BOT: ACTIVE"
+        MainBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 100)
+        chatQueue = {} -- Reset antrean saat aktif kembali
+    else
+        MainBtn.Text = "BOT: OFF"
+        MainBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+    end
 end)
