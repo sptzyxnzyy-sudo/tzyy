@@ -1,4 +1,4 @@
--- [[ SPTZYY PART CONTROLLER: FULL MOBILE SUPPORT ]] --
+-- [[ SPTZYY PART CONTROLLER: ULTIMATE MOBILE EDITION ]] --
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
@@ -6,113 +6,165 @@ local lp = Players.LocalPlayer
 
 -- [[ SETTINGS ]] --
 local botActive = true
-local pullRadius = 50
-local orbitHeight = 7
-local spinSpeed = 3
+local pullRadius = 50      -- Jarak deteksi part
+local orbitHeight = 7      -- Tinggi part di atas kepala
+local orbitRadius = 8      -- Jarak putaran part dari badan
+local spinSpeed = 3        -- Kecepatan putaran
+local followStrength = 15  -- Kekuatan tarikan (Velocity)
 
--- [[ LOGIKA PHYSICS ]] --
+-- [[ LOGIKA PHYSICS (SPIN & MAGNET) ]] --
 local angle = 0
 RunService.Heartbeat:Connect(function()
     if not botActive or not lp.Character or not lp.Character:FindFirstChild("HumanoidRootPart") then return end
     
     angle = angle + (0.05 * spinSpeed)
     local rootPart = lp.Character.HumanoidRootPart
-    local targetPos = rootPart.Position + Vector3.new(math.cos(angle) * 8, orbitHeight, math.sin(angle) * 8)
+    
+    -- Kalkulasi posisi orbit melingkar (Circular Orbit)
+    local targetPos = rootPart.Position + Vector3.new(
+        math.cos(angle) * orbitRadius, 
+        orbitHeight, 
+        math.sin(angle) * orbitRadius
+    )
 
     for _, part in pairs(workspace:GetDescendants()) do
+        -- Hanya kontrol part yang tidak di-anchor dan bukan bagian dari karakter kita
         if part:IsA("BasePart") and not part.Anchored and not part:IsDescendantOf(lp.Character) then
-            if (part.Position - rootPart.Position).Magnitude <= pullRadius then
-                pcall(function() part:SetNetworkOwner(lp) end)
-                part.Velocity = (targetPos - part.Position) * 15
+            local distance = (part.Position - rootPart.Position).Magnitude
+            
+            if distance <= pullRadius then
+                -- Mengambil Network Ownership agar physics tidak lag (Mobile Support)
+                pcall(function()
+                    if part.ReceiveAge == 0 then 
+                        part:SetNetworkOwner(lp) 
+                    end
+                end)
+                
+                -- Menerapkan gaya tarik menggunakan Velocity
+                part.Velocity = (targetPos - part.Position) * followStrength
+                
+                -- Anti-Gravity sederhana agar part tidak mudah jatuh ke void
+                if part.Velocity.Y < 0 then
+                    part.Velocity = part.Velocity + Vector3.new(0, 2, 0)
+                end
             end
         end
     end
 end)
 
--- [[ UI SETUP: SMOOTH DRAG & COMPACT ]] --
-local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
-local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Size = UDim2.new(0, 200, 0, 140)
-MainFrame.Position = UDim2.new(0.5, -100, 0.4, 0)
-MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+-- [[ UI SETUP: MOBILE OPTIMIZED ]] --
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "SptzyyPartControl"
+ScreenGui.Parent = game.CoreGui
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Parent = ScreenGui
+MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
 MainFrame.BorderSizePixel = 0
+MainFrame.Position = UDim2.new(0.5, -100, 0.2, 0)
+MainFrame.Size = UDim2.new(0, 200, 0, 150)
 MainFrame.Active = true
-Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
 
--- Header untuk Drag (Area pegangan)
-local Header = Instance.new("Frame", MainFrame)
-Header.Size = UDim2.new(1, 0, 0, 30)
-Header.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+local Corner = Instance.new("UICorner")
+Corner.CornerRadius = UDim.new(0, 10)
+Corner.Parent = MainFrame
+
+local Stroke = Instance.new("UIStroke")
+Stroke.Color = Color3.fromRGB(0, 160, 255)
+Stroke.Thickness = 2
+Stroke.Parent = MainFrame
+
+-- Header Area (Area untuk Drag)
+local Header = Instance.new("Frame")
+Header.Name = "Header"
+Header.Parent = MainFrame
+Header.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
 Header.BorderSizePixel = 0
-local HeaderCorner = Instance.new("UICorner", Header)
-HeaderCorner.CornerRadius = UDim.new(0, 8)
+Header.Size = UDim2.new(1, 0, 0, 35)
 
-local Title = Instance.new("TextLabel", Header)
-Title.Size = UDim2.new(1, -40, 1, 0)
-Title.Position = UDim2.new(0, 10, 0, 0)
-Title.Text = "PART CONTROL"
-Title.TextColor3 = Color3.new(1,1,1)
+local HeaderCorner = Instance.new("UICorner")
+HeaderCorner.CornerRadius = UDim.new(0, 10)
+HeaderCorner.Parent = Header
+
+local Title = Instance.new("TextLabel")
+Title.Parent = Header
 Title.BackgroundTransparency = 1
+Title.Position = UDim2.new(0, 10, 0, 0)
+Title.Size = UDim2.new(1, -10, 1, 0)
 Title.Font = Enum.Font.GothamBold
+Title.Text = "PART CONTROLLER"
+Title.TextColor3 = Color3.new(1, 1, 1)
 Title.TextSize = 13
 Title.TextXAlignment = Enum.TextXAlignment.Left
 
 -- Status Button
-local StatusBtn = Instance.new("TextButton", MainFrame)
-StatusBtn.Size = UDim2.new(0.9, 0, 0, 40)
-StatusBtn.Position = UDim2.new(0.05, 0, 0.35, 0)
+local StatusBtn = Instance.new("TextButton")
+StatusBtn.Name = "StatusBtn"
+StatusBtn.Parent = MainFrame
 StatusBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
-StatusBtn.Text = "STATUS: ACTIVE"
-StatusBtn.TextColor3 = Color3.new(1,1,1)
+StatusBtn.Position = UDim2.new(0.075, 0, 0.35, 0)
+StatusBtn.Size = UDim2.new(0.85, 0, 0, 45)
 StatusBtn.Font = Enum.Font.GothamBold
-Instance.new("UICorner", StatusBtn)
+StatusBtn.Text = "STATUS: ACTIVE"
+StatusBtn.TextColor3 = Color3.new(1, 1, 1)
+StatusBtn.TextSize = 12
 
--- Mini Info
-local Info = Instance.new("TextLabel", MainFrame)
-Info.Size = UDim2.new(1, 0, 0, 40)
-Info.Position = UDim2.new(0, 0, 0.65, 0)
-Info.Text = "Cara Pakai: Dekati Part\nyang tidak di-anchor!"
-Info.TextColor3 = Color3.fromRGB(150, 150, 150)
-Info.TextSize = 10
-Info.BackgroundTransparency = 1
-Info.Font = Enum.Font.GothamMedium
+local BtnCorner = Instance.new("UICorner")
+BtnCorner.Parent = StatusBtn
 
--- [[ LOGIKA DRAG MOBILE LUAS ]] --
-local dragging, dragInput, dragStart, startPos
-local function update(input)
+-- Instructions Label
+local InfoLabel = Instance.new("TextLabel")
+InfoLabel.Parent = MainFrame
+InfoLabel.BackgroundTransparency = 1
+InfoLabel.Position = UDim2.new(0.05, 0, 0.7, 0)
+InfoLabel.Size = UDim2.new(0.9, 0, 0, 40)
+InfoLabel.Font = Enum.Font.GothamMedium
+InfoLabel.Text = "CARA PAKAI:\nDekati Part Unanchored\nGeser GUI ini sesukamu!"
+InfoLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
+InfoLabel.TextSize = 10
+
+-- [[ LOGIKA DRAG BEBAS (MOBILE FRIENDLY) ]] --
+local dragToggle, dragStart, startPos
+
+local function updateInput(input)
     local delta = input.Position - dragStart
     MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
 end
 
 MainFrame.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true
+    if (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) then
+        dragToggle = true
         dragStart = input.Position
         startPos = MainFrame.Position
+        
         input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then dragging = false end
+            if input.UserInputState == Enum.UserInputState.End then
+                dragToggle = false
+            end
         end)
     end
 end)
 
-MainFrame.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-        dragInput = input
+UserInputService.InputChanged:Connect(function(input)
+    if dragToggle and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        updateInput(input)
     end
 end)
 
-UserInputService.InputChanged:Connect(function(input)
-    if input == dragInput and dragging then update(input) end
-end)
-
--- [[ TOGGLE CLICK ]] --
+-- [[ TOGGLE STATUS ]] --
 StatusBtn.MouseButton1Click:Connect(function()
     botActive = not botActive
     if botActive then
         StatusBtn.Text = "STATUS: ACTIVE"
         StatusBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+        Stroke.Color = Color3.fromRGB(0, 160, 255)
     else
         StatusBtn.Text = "STATUS: OFF"
         StatusBtn.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+        Stroke.Color = Color3.fromRGB(150, 50, 50)
     end
 end)
+
+print("Part Controller Loaded Successfully!")
