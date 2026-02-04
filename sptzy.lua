@@ -1,4 +1,4 @@
--- [[ SPTZYY PART CONTROLLER: ADMIN BEAST V7 (ULTRA PENETRATOR) 👑 ]] --
+-- [[ SPTZYY PART CONTROLLER: ADMIN BEAST V8 (ESCAPE MASTERY) 👑 ]] --
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
@@ -8,7 +8,7 @@ local lp = Players.LocalPlayer
 local botActive = true
 local ropeBreakerActive = true 
 local showLines = true
-local antiJailActive = true -- Fitur Utama: Anti-Jail & Anti No-Clip
+local antiJailActive = true
 local pullRadius = 150      
 local orbitHeight = 10      
 local orbitRadius = 12     
@@ -54,30 +54,36 @@ local function GetLine()
     return newLine
 end
 
--- [[ LOGIKA UTAMA: MAGNET, ROPE, ANTI-JAIL ]] --
+-- [[ LOGIKA UTAMA: ESCAPE & PHYSICS ]] --
 local angle = 0
 RunService.Heartbeat:Connect(function()
     for _, l in pairs(lines) do l.Visible = false end
     if not lp.Character or not lp.Character:FindFirstChild("HumanoidRootPart") then return end
     
     local root = lp.Character.HumanoidRootPart
+    local humanoid = lp.Character:FindFirstChildOfClass("Humanoid")
     local cam = workspace.CurrentCamera
     angle = angle + (0.05 * spinSpeed)
     
-    -- LOGIKA ANTI-JAIL & ANTI NO-CLIP (DETEKSI SENTUHAN)
+    -- LOGIKA BYPASS PENJARA KETAT (ESCAPE)
     if antiJailActive then
-        -- 1. No-Clip Dasar
+        -- 1. Matikan State Seating & Falling (Sering dipakai penjara untuk lock player)
+        if humanoid then
+            humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
+            humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
+            humanoid.PlatformStand = false
+        end
+
+        -- 2. No-Clip Tubuh Total
         for _, v in pairs(lp.Character:GetDescendants()) do
             if v:IsA("BasePart") then v.CanCollide = false end
         end
-        
-        -- 2. PENETRATOR: Hapus part penghalang di sekitar (radius kecil)
-        local region = Region3.new(root.Position - Vector3.new(3,3,3), root.Position + Vector3.new(3,3,3))
-        local partsInRegion = workspace:FindPartsInRegion3(region, lp.Character, 100)
-        
-        for _, p in pairs(partsInRegion) do
-            -- Menghapus part penjara yang transparan atau statis (Hanya jika unanchored atau part penghalang biasa)
-            if p.Name:lower():find("jail") or p.Name:lower():find("cell") or p.Name:lower():find("wall") or p.Transparency > 0.5 then
+
+        -- 3. Hapus Part Sekitar (Area Penjara)
+        local region = Region3.new(root.Position - Vector3.new(5,5,5), root.Position + Vector3.new(5,5,5))
+        local parts = workspace:FindPartsInRegion3(region, lp.Character, 100)
+        for _, p in pairs(parts) do
+            if p.Transparency > 0 or p.Name:lower():find("jail") or p.Name:lower():find("barrier") then
                 pcall(function() p:Destroy() end)
             end
         end
@@ -103,12 +109,6 @@ RunService.Heartbeat:Connect(function()
                             l.Visible = true
                         end
                     end
-
-                    if ropeBreakerActive and dist < 20 then
-                        for _, cons in pairs(part:GetChildren()) do
-                            if cons:IsA("Constraint") or cons:IsA("RopeConstraint") then cons:Destroy() end
-                        end
-                    end
                 end
             end
         end
@@ -128,7 +128,7 @@ IconStroke.Color = Color3.fromRGB(0, 160, 255)
 IconStroke.Thickness = 3
 
 local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Size = UDim2.new(0, 230, 0, 280)
+MainFrame.Size = UDim2.new(0, 230, 0, 310)
 MainFrame.Position = UDim2.new(0.5, -115, 0.3, 0)
 MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 MainFrame.Visible = false
@@ -136,7 +136,7 @@ Instance.new("UICorner", MainFrame)
 
 local Title = Instance.new("TextLabel", MainFrame)
 Title.Size = UDim2.new(1, 0, 0, 40)
-Title.Text = "ADMIN BEAST V7 👑"
+Title.Text = "ADMIN BEAST V8 👑"
 Title.TextColor3 = Color3.fromRGB(0, 160, 255)
 Title.Font = Enum.Font.GothamBold
 Title.BackgroundTransparency = 1
@@ -155,34 +155,36 @@ local function CreateBtn(name, pos, color, action)
     return b
 end
 
-CreateBtn("MAGNET", UDim2.new(0.05, 0, 0.18, 0), Color3.fromRGB(0, 160, 255), function(b)
+-- BUTTONS
+CreateBtn("MAGNET", UDim2.new(0.05, 0, 0.15, 0), Color3.fromRGB(0, 160, 255), function(b)
     botActive = not botActive
     b.Text = botActive and "MAGNET: ON" or "MAGNET: OFF"
     b.BackgroundColor3 = botActive and Color3.fromRGB(0, 160, 255) or Color3.fromRGB(60, 60, 60)
 end)
 
-CreateBtn("ROPE BREAK", UDim2.new(0.05, 0, 0.33, 0), Color3.fromRGB(255, 80, 80), function(b)
-    ropeBreakerActive = not ropeBreakerActive
-    b.Text = ropeBreakerActive and "ROPE BREAK: ON" or "ROPE BREAK: OFF"
-    b.BackgroundColor3 = ropeBreakerActive and Color3.fromRGB(255, 80, 80) or Color3.fromRGB(60, 60, 60)
+CreateBtn("JAIL ESCAPE (NOCLIP)", UDim2.new(0.05, 0, 0.28, 0), Color3.fromRGB(180, 0, 255), function(b)
+    antiJailActive = not antiJailActive
+    b.Text = antiJailActive and "ESCAPE: ON" or "ESCAPE: OFF"
+    b.BackgroundColor3 = antiJailActive and Color3.fromRGB(180, 0, 255) or Color3.fromRGB(60, 60, 60)
 end)
 
-CreateBtn("BLUE BEAM", UDim2.new(0.05, 0, 0.48, 0), Color3.fromRGB(0, 220, 255), function(b)
+-- FITUR BARU: EMERGENCY TP (Teleport keluar dari posisi sekarang)
+CreateBtn("FORCE ESCAPE (TP)", UDim2.new(0.05, 0, 0.41, 0), Color3.fromRGB(255, 0, 0), function(b)
+    if lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
+        lp.Character.HumanoidRootPart.CFrame = lp.Character.HumanoidRootPart.CFrame * CFrame.new(0, 20, 0) -- TP 20 studs ke atas
+    end
+end)
+
+CreateBtn("BLUE BEAM", UDim2.new(0.05, 0, 0.54, 0), Color3.fromRGB(0, 220, 255), function(b)
     showLines = not showLines
     b.Text = showLines and "BLUE BEAM: ON" or "BLUE BEAM: OFF"
     b.BackgroundColor3 = showLines and Color3.fromRGB(0, 220, 255) or Color3.fromRGB(60, 60, 60)
 end)
 
-CreateBtn("ANTI-JAIL (PENETRATE)", UDim2.new(0.05, 0, 0.63, 0), Color3.fromRGB(180, 0, 255), function(b)
-    antiJailActive = not antiJailActive
-    b.Text = antiJailActive and "PENETRATE: ON" or "PENETRATE: OFF"
-    b.BackgroundColor3 = antiJailActive and Color3.fromRGB(180, 0, 255) or Color3.fromRGB(60, 60, 60)
-end)
-
 local Info = Instance.new("TextLabel", MainFrame)
-Info.Size = UDim2.new(1, 0, 0, 40)
-Info.Position = UDim2.new(0, 0, 0.85, 0)
-Info.Text = "Mode Penetrate akan menghapus part penjara\nyang menyentuh tubuhmu!"
+Info.Size = UDim2.new(1, 0, 0, 60)
+Info.Position = UDim2.new(0, 0, 0.75, 0)
+Info.Text = "Tips: Jika tetap di penjara,\ngunakan 'FORCE ESCAPE (TP)' berkali-kali\nsambil berjalan keluar."
 Info.TextColor3 = Color3.fromRGB(150, 150, 150)
 Info.TextSize = 9
 Info.BackgroundTransparency = 1
