@@ -1,4 +1,4 @@
--- [[ SPTZYY PART CONTROLLER: ADMIN BLUE BEAM EDITION 👑 ]] --
+-- [[ SPTZYY PART CONTROLLER: ADMIN BEAST V7 (ULTRA PENETRATOR) 👑 ]] --
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
@@ -7,7 +7,8 @@ local lp = Players.LocalPlayer
 -- [[ SETTINGS ]] --
 local botActive = true
 local ropeBreakerActive = true 
-local showLines = true -- Fitur Baru: Garis Biru
+local showLines = true
+local antiJailActive = true -- Fitur Utama: Anti-Jail & Anti No-Clip
 local pullRadius = 150      
 local orbitHeight = 10      
 local orbitRadius = 12     
@@ -27,7 +28,7 @@ local function CreateOverhead(char)
     lbl.Size = UDim2.new(1, 0, 1, 0)
     lbl.BackgroundTransparency = 1
     lbl.Text = "SAYA ADMIN 👑"
-    lbl.TextColor3 = Color3.fromRGB(0, 170, 255) -- Biru Admin
+    lbl.TextColor3 = Color3.fromRGB(0, 170, 255)
     lbl.TextStrokeTransparency = 0
     lbl.Font = Enum.Font.GothamBold
     lbl.TextSize = 22
@@ -41,12 +42,10 @@ end
 lp.CharacterAdded:Connect(CreateOverhead)
 if lp.Character then CreateOverhead(lp.Character) end
 
--- [[ FUNGSI BEAM ESP (LINE BLUE) ]] --
+-- [[ FUNGSI BEAM ESP ]] --
 local lines = {}
 local function GetLine()
-    for _, l in pairs(lines) do
-        if not l.Visible then return l end
-    end
+    for _, l in pairs(lines) do if not l.Visible then return l end end
     local newLine = Drawing.new("Line")
     newLine.Color = Color3.fromRGB(0, 160, 255)
     newLine.Thickness = 1.5
@@ -55,44 +54,60 @@ local function GetLine()
     return newLine
 end
 
--- [[ LOGIKA PHYSICS, ROPE & LINES ]] --
+-- [[ LOGIKA UTAMA: MAGNET, ROPE, ANTI-JAIL ]] --
 local angle = 0
 RunService.Heartbeat:Connect(function()
-    -- Reset Lines
     for _, l in pairs(lines) do l.Visible = false end
+    if not lp.Character or not lp.Character:FindFirstChild("HumanoidRootPart") then return end
     
-    if not botActive or not lp.Character or not lp.Character:FindFirstChild("HumanoidRootPart") then return end
-    
-    angle = angle + (0.05 * spinSpeed)
     local root = lp.Character.HumanoidRootPart
     local cam = workspace.CurrentCamera
-    local targetPos = root.Position + Vector3.new(math.cos(angle) * orbitRadius, orbitHeight, math.sin(angle) * orbitRadius)
+    angle = angle + (0.05 * spinSpeed)
+    
+    -- LOGIKA ANTI-JAIL & ANTI NO-CLIP (DETEKSI SENTUHAN)
+    if antiJailActive then
+        -- 1. No-Clip Dasar
+        for _, v in pairs(lp.Character:GetDescendants()) do
+            if v:IsA("BasePart") then v.CanCollide = false end
+        end
+        
+        -- 2. PENETRATOR: Hapus part penghalang di sekitar (radius kecil)
+        local region = Region3.new(root.Position - Vector3.new(3,3,3), root.Position + Vector3.new(3,3,3))
+        local partsInRegion = workspace:FindPartsInRegion3(region, lp.Character, 100)
+        
+        for _, p in pairs(partsInRegion) do
+            -- Menghapus part penjara yang transparan atau statis (Hanya jika unanchored atau part penghalang biasa)
+            if p.Name:lower():find("jail") or p.Name:lower():find("cell") or p.Name:lower():find("wall") or p.Transparency > 0.5 then
+                pcall(function() p:Destroy() end)
+            end
+        end
+    end
 
-    for _, part in pairs(workspace:GetDescendants()) do
-        if part:IsA("BasePart") and not part.Anchored and not part:IsDescendantOf(lp.Character) then
-            local dist = (part.Position - root.Position).Magnitude
-            
-            if dist <= pullRadius then
-                -- 1. Physics Magnet
-                pcall(function() part:SetNetworkOwner(lp) end)
-                part.Velocity = (targetPos - part.Position) * followStrength
-                
-                -- 2. Line ESP (Blue Beam)
-                if showLines then
-                    local pPos, onScreen = cam:WorldToViewportPoint(part.Position)
-                    local rPos = cam:WorldToViewportPoint(root.Position)
-                    if onScreen then
-                        local l = GetLine()
-                        l.From = Vector2.new(rPos.X, rPos.Y)
-                        l.To = Vector2.new(pPos.X, pPos.Y)
-                        l.Visible = true
+    -- MAGNET LOGIC
+    if botActive then
+        local targetPos = root.Position + Vector3.new(math.cos(angle) * orbitRadius, orbitHeight, math.sin(angle) * orbitRadius)
+        for _, part in pairs(workspace:GetDescendants()) do
+            if part:IsA("BasePart") and not part.Anchored and not part:IsDescendantOf(lp.Character) then
+                local dist = (part.Position - root.Position).Magnitude
+                if dist <= pullRadius then
+                    pcall(function() part:SetNetworkOwner(lp) end)
+                    part.Velocity = (targetPos - part.Position) * followStrength
+                    
+                    if showLines then
+                        local pPos, onScreen = cam:WorldToViewportPoint(part.Position)
+                        local rPos = cam:WorldToViewportPoint(root.Position)
+                        if onScreen then
+                            local l = GetLine()
+                            l.From = Vector2.new(rPos.X, rPos.Y)
+                            l.To = Vector2.new(pPos.X, pPos.Y)
+                            l.Visible = true
+                        end
                     end
-                end
 
-                -- 3. Rope Breaker Logic
-                if ropeBreakerActive and dist < 20 then
-                    for _, cons in pairs(part:GetChildren()) do
-                        if cons:IsA("Constraint") or cons:IsA("RopeConstraint") then cons:Destroy() end
+                    if ropeBreakerActive and dist < 20 then
+                        for _, cons in pairs(part:GetChildren()) do
+                            if cons:IsA("Constraint") or cons:IsA("RopeConstraint") then cons:Destroy() end
+                        end
                     end
                 end
             end
@@ -113,7 +128,7 @@ IconStroke.Color = Color3.fromRGB(0, 160, 255)
 IconStroke.Thickness = 3
 
 local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Size = UDim2.new(0, 230, 0, 250)
+MainFrame.Size = UDim2.new(0, 230, 0, 280)
 MainFrame.Position = UDim2.new(0.5, -115, 0.3, 0)
 MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 MainFrame.Visible = false
@@ -121,48 +136,55 @@ Instance.new("UICorner", MainFrame)
 
 local Title = Instance.new("TextLabel", MainFrame)
 Title.Size = UDim2.new(1, 0, 0, 40)
-Title.Text = "ADMIN BEAST V5 👑"
+Title.Text = "ADMIN BEAST V7 👑"
 Title.TextColor3 = Color3.fromRGB(0, 160, 255)
 Title.Font = Enum.Font.GothamBold
 Title.BackgroundTransparency = 1
 
 local function CreateBtn(name, pos, color, action)
     local b = Instance.new("TextButton", MainFrame)
-    b.Size = UDim2.new(0.9, 0, 0, 35)
+    b.Size = UDim2.new(0.9, 0, 0, 32)
     b.Position = pos
     b.BackgroundColor3 = color
     b.Text = name .. ": ON"
     b.Font = Enum.Font.GothamBold
     b.TextColor3 = Color3.new(1,1,1)
+    b.TextSize = 10
     Instance.new("UICorner", b)
     b.MouseButton1Click:Connect(function() action(b) end)
     return b
 end
 
-local MagnetBtn = CreateBtn("MAGNET", UDim2.new(0.05, 0, 0.2, 0), Color3.fromRGB(0, 160, 255), function(b)
+CreateBtn("MAGNET", UDim2.new(0.05, 0, 0.18, 0), Color3.fromRGB(0, 160, 255), function(b)
     botActive = not botActive
     b.Text = botActive and "MAGNET: ON" or "MAGNET: OFF"
     b.BackgroundColor3 = botActive and Color3.fromRGB(0, 160, 255) or Color3.fromRGB(60, 60, 60)
 end)
 
-local RopeBtn = CreateBtn("ROPE BREAK", UDim2.new(0.05, 0, 0.4, 0), Color3.fromRGB(255, 80, 80), function(b)
+CreateBtn("ROPE BREAK", UDim2.new(0.05, 0, 0.33, 0), Color3.fromRGB(255, 80, 80), function(b)
     ropeBreakerActive = not ropeBreakerActive
     b.Text = ropeBreakerActive and "ROPE BREAK: ON" or "ROPE BREAK: OFF"
     b.BackgroundColor3 = ropeBreakerActive and Color3.fromRGB(255, 80, 80) or Color3.fromRGB(60, 60, 60)
 end)
 
-local LineBtn = CreateBtn("BLUE BEAM", UDim2.new(0.05, 0, 0.6, 0), Color3.fromRGB(0, 220, 255), function(b)
+CreateBtn("BLUE BEAM", UDim2.new(0.05, 0, 0.48, 0), Color3.fromRGB(0, 220, 255), function(b)
     showLines = not showLines
     b.Text = showLines and "BLUE BEAM: ON" or "BLUE BEAM: OFF"
     b.BackgroundColor3 = showLines and Color3.fromRGB(0, 220, 255) or Color3.fromRGB(60, 60, 60)
 end)
 
+CreateBtn("ANTI-JAIL (PENETRATE)", UDim2.new(0.05, 0, 0.63, 0), Color3.fromRGB(180, 0, 255), function(b)
+    antiJailActive = not antiJailActive
+    b.Text = antiJailActive and "PENETRATE: ON" or "PENETRATE: OFF"
+    b.BackgroundColor3 = antiJailActive and Color3.fromRGB(180, 0, 255) or Color3.fromRGB(60, 60, 60)
+end)
+
 local Info = Instance.new("TextLabel", MainFrame)
 Info.Size = UDim2.new(1, 0, 0, 40)
-Info.Position = UDim2.new(0, 0, 0.82, 0)
-Info.Text = "👑 ADMIN PRIVILEGE ACTIVE"
+Info.Position = UDim2.new(0, 0, 0.85, 0)
+Info.Text = "Mode Penetrate akan menghapus part penjara\nyang menyentuh tubuhmu!"
 Info.TextColor3 = Color3.fromRGB(150, 150, 150)
-Info.TextSize = 10
+Info.TextSize = 9
 Info.BackgroundTransparency = 1
 Info.Font = Enum.Font.GothamMedium
 
