@@ -1,7 +1,9 @@
--- [[ SPTZYY PART CONTROLLER + MORPH BEAST EDITION ]] --
+-- [[ SPTZYY PART CONTROLLER + MORPH BEAST MOBILE EDITION ]] --
+-- Versi: Ultimate Feedback & Global Sync
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
+local Debris = game:GetService("Debris")
 local lp = Players.LocalPlayer
 
 -- [[ SETTINGS ]] --
@@ -11,6 +13,45 @@ local orbitHeight = 8
 local orbitRadius = 10     
 local spinSpeed = 125        
 local followStrength = 100  
+
+-- [[ UI SETUP UTAMA ]] --
+local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
+ScreenGui.Name = "SptzyyUltraControl_Final"
+
+-- [[ FUNGSI NOTIFIKASI ANIMASI ]] --
+local function showNotify(message, isSuccess)
+    local notifyFrame = Instance.new("Frame", ScreenGui)
+    notifyFrame.Size = UDim2.new(0, 220, 0, 45)
+    notifyFrame.Position = UDim2.new(1, 10, 0.15, 0) -- Mulai di luar layar
+    notifyFrame.BackgroundColor3 = isSuccess and Color3.fromRGB(0, 180, 100) or Color3.fromRGB(180, 50, 50)
+    notifyFrame.BorderSizePixel = 0
+    
+    local corner = Instance.new("UICorner", notifyFrame)
+    local stroke = Instance.new("UIStroke", notifyFrame)
+    stroke.Thickness = 2
+    stroke.Color = Color3.new(1, 1, 1)
+
+    local text = Instance.new("TextLabel", notifyFrame)
+    text.Size = UDim2.new(1, 0, 1, 0)
+    text.BackgroundTransparency = 1
+    text.Text = message
+    text.TextColor3 = Color3.new(1, 1, 1)
+    text.Font = Enum.Font.GothamBold
+    text.TextSize = 12
+    text.TextWrapped = true
+
+    -- Animasi Masuk
+    notifyFrame:TweenPosition(UDim2.new(1, -230, 0.15, 0), "Out", "Back", 0.5)
+
+    -- Tunggu dan Hapus
+    task.delay(2.5, function()
+        if notifyFrame then
+            notifyFrame:TweenPosition(UDim2.new(1, 10, 0.15, 0), "In", "Quad", 0.5)
+            task.wait(0.5)
+            notifyFrame:Destroy()
+        end
+    end)
+end
 
 -- [[ LOGIKA MAGNET (BEAST) ]] --
 local angle = 0
@@ -24,210 +65,184 @@ RunService.Heartbeat:Connect(function()
         if part:IsA("BasePart") and not part.Anchored and not part:IsDescendantOf(lp.Character) then
             local distance = (part.Position - rootPart.Position).Magnitude
             if distance <= pullRadius then
-                for _, constraint in pairs(part:GetChildren()) do
-                    if constraint:IsA("RopeConstraint") or constraint:IsA("RodConstraint") or constraint:IsA("SpringConstraint") then
-                        constraint:Destroy()
+                pcall(function()
+                    for _, constraint in pairs(part:GetChildren()) do
+                        if constraint:IsA("Constraint") then constraint:Destroy() end
                     end
-                end
-                pcall(function() part:SetNetworkOwner(lp) end)
-                part.Velocity = (targetPos - part.Position) * followStrength
-                part.RotVelocity = Vector3.new(0, 10, 0)
+                    part:SetNetworkOwner(lp) 
+                    part.Velocity = (targetPos - part.Position) * followStrength
+                    part.RotVelocity = Vector3.new(0, 15, 0)
+                end)
             end
         end
     end
 end)
 
--- [[ FUNGSI MORPH GLOBAL ]] --
+-- [[ FUNGSI MORPH GLOBAL DENGAN FEEDBACK ]] --
 local function morphToPlayer(targetPlayer)
-    if targetPlayer and targetPlayer.Character then
-        local myChar = lp.Character
-        local humanoid = myChar and myChar:FindFirstChildOfClass("Humanoid")
+    if not targetPlayer or not targetPlayer.Character then 
+        showNotify("GAGAL: Karakter target hilang!", false)
+        return 
+    end
+    
+    local myChar = lp.Character
+    local humanoid = myChar and myChar:FindFirstChildOfClass("Humanoid")
+    
+    if humanoid then
+        local success, description = pcall(function()
+            return Players:GetHumanoidDescriptionFromUserId(targetPlayer.UserId)
+        end)
         
-        if humanoid then
-            -- Ambil Deskripsi Avatar Target
-            local success, description = pcall(function()
-                return Players:GetHumanoidDescriptionFromUserId(targetPlayer.UserId)
+        if success and description then
+            local applyStatus = pcall(function()
+                humanoid:ApplyDescription(description)
             end)
             
-            if success and description then
-                -- BERFUNGSI SEMUA PEMAIN: ApplyDescription mereplikasi ke Server
-                humanoid:ApplyDescription(description)
+            if applyStatus then
+                showNotify("BERHASIL: Morph ke " .. targetPlayer.DisplayName, true)
                 
-                -- Opsional: Reset Animasi agar sinkron
-                local animator = humanoid:FindFirstChildOfClass("Animator")
-                if animator then
-                    for _, track in pairs(animator:GetPlayingAnimationTracks()) do
-                        track:Stop()
-                    end
-                end
-                print("Berhasil menjadi: " .. targetPlayer.Name)
+                -- Efek Glow Visual (Hanya untuk konfirmasi)
+                local highlight = Instance.new("Highlight", myChar)
+                highlight.FillColor = Color3.fromRGB(0, 255, 150)
+                highlight.OutlineColor = Color3.new(1, 1, 1)
+                Debris:AddItem(highlight, 1.5)
+            else
+                showNotify("GAGAL: Tidak support game ini!", false)
             end
+        else
+            showNotify("GAGAL: Avatar terproteksi!", false)
         end
     end
 end
 
--- [[ UI SETUP ]] --
-local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
-ScreenGui.Name = "SptzyyUltraControlV2"
+-- [[ UI CONSTRUCTION ]] --
 
--- Icon Button
+-- Floating Icon
 local IconButton = Instance.new("ImageButton", ScreenGui)
-IconButton.Size = UDim2.new(0, 50, 0, 50)
-IconButton.Position = UDim2.new(0.1, 0, 0.5, 0)
-IconButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+IconButton.Size = UDim2.new(0, 55, 0, 55)
+IconButton.Position = UDim2.new(0.05, 0, 0.4, 0)
+IconButton.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 IconButton.Image = "rbxassetid://6031094678"
-local IconCorner = Instance.new("UICorner", IconButton)
-IconCorner.CornerRadius = UDim.new(1, 0)
+Instance.new("UICorner", IconButton).CornerRadius = UDim.new(1,0)
 local IconStroke = Instance.new("UIStroke", IconButton)
 IconStroke.Color = Color3.fromRGB(0, 255, 150)
-IconStroke.Thickness = 2
+IconStroke.Thickness = 3
 
 -- Main Frame
 local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Size = UDim2.new(0, 250, 0, 320)
-MainFrame.Position = UDim2.new(0.5, -125, 0.4, 0)
-MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+MainFrame.Size = UDim2.new(0, 260, 0, 340)
+MainFrame.Position = UDim2.new(0.5, -130, 0.3, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 MainFrame.Visible = false
 Instance.new("UICorner", MainFrame)
-local MainStroke = Instance.new("UIStroke", MainFrame)
-MainStroke.Color = Color3.fromRGB(0, 255, 150)
-MainStroke.Thickness = 2
+Instance.new("UIStroke", MainFrame).Color = Color3.fromRGB(0, 255, 150)
 
--- Tabs (Magnet vs Morph)
-local TabContainer = Instance.new("Frame", MainFrame)
-TabContainer.Size = UDim2.new(1, 0, 0, 30)
-TabContainer.BackgroundTransparency = 1
+-- Header / Tabs
+local TabBar = Instance.new("Frame", MainFrame)
+TabBar.Size = UDim2.new(1, 0, 0, 35)
+TabBar.BackgroundTransparency = 1
 
-local function createTab(name, pos)
-    local btn = Instance.new("TextButton", TabContainer)
-    btn.Size = UDim2.new(0.5, 0, 1, 0)
-    btn.Position = UDim2.new(pos, 0, 0, 0)
+local function createTab(name, xPos)
+    local btn = Instance.new("TextButton", TabBar)
+    btn.Size = UDim2.new(0.5, -5, 1, -5)
+    btn.Position = UDim2.new(xPos, 2.5, 0, 5)
     btn.Text = name
     btn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
     btn.TextColor3 = Color3.new(1, 1, 1)
     btn.Font = Enum.Font.GothamBold
     btn.TextSize = 12
+    Instance.new("UICorner", btn)
     return btn
 end
 
-local TabMagnet = createTab("MAGNET", 0)
-local TabMorph = createTab("MORPH", 0.5)
+local Tab1 = createTab("MAGNET", 0)
+local Tab2 = createTab("MORPH LIST", 0.5)
 
--- Content Sections
-local MagnetFrame = Instance.new("Frame", MainFrame)
-MagnetFrame.Size = UDim2.new(1, 0, 1, -30)
-MagnetFrame.Position = UDim2.new(0, 0, 0, 30)
-MagnetFrame.BackgroundTransparency = 1
+-- Content Area
+local MagnetPage = Instance.new("Frame", MainFrame)
+MagnetPage.Size = UDim2.new(1, 0, 1, -40)
+MagnetPage.Position = UDim2.new(0, 0, 0, 40)
+MagnetPage.BackgroundTransparency = 1
 
-local MorphFrame = Instance.new("ScrollingFrame", MainFrame)
-MorphFrame.Size = UDim2.new(1, -10, 1, -40)
-MorphFrame.Position = UDim2.new(0, 5, 0, 35)
-MorphFrame.BackgroundTransparency = 1
-MorphFrame.Visible = false
-MorphFrame.ScrollBarThickness = 4
-MorphFrame.CanvasSize = UDim2.new(0,0,0,0)
+local MorphPage = Instance.new("ScrollingFrame", MainFrame)
+MorphPage.Size = UDim2.new(1, -10, 1, -50)
+MorphPage.Position = UDim2.new(0, 5, 0, 45)
+MorphPage.BackgroundTransparency = 1
+MorphPage.Visible = false
+MorphPage.ScrollBarThickness = 3
+MorphPage.CanvasSize = UDim2.new(0, 0, 0, 0)
+Instance.new("UIListLayout", MorphPage).Padding = UDim.new(0, 5)
 
-local UIList = Instance.new("UIListLayout", MorphFrame)
-UIList.Padding = UDim.new(0, 5)
-
--- Fill Magnet Frame
-local StatusBtn = Instance.new("TextButton", MagnetFrame)
-StatusBtn.Size = UDim2.new(0.8, 0, 0, 40)
-StatusBtn.Position = UDim2.new(0.1, 0, 0.2, 0)
+-- Magnet Content
+local StatusBtn = Instance.new("TextButton", MagnetPage)
+StatusBtn.Size = UDim2.new(0.8, 0, 0, 45)
+StatusBtn.Position = UDim2.new(0.1, 0, 0.1, 0)
 StatusBtn.BackgroundColor3 = Color3.fromRGB(0, 255, 150)
 StatusBtn.Text = "MAGNET: ON"
 StatusBtn.Font = Enum.Font.GothamBold
 Instance.new("UICorner", StatusBtn)
 
--- Function Update Morph List
-local function updateList()
-    for _, child in pairs(MorphFrame:GetChildren()) do
-        if child:IsA("Frame") then child:Destroy() end
-    end
+-- Function Refresh Morph List
+local function refreshList()
+    for _, c in pairs(MorphPage:GetChildren()) do if c:IsA("Frame") then c:Destroy() end end
     
-    for _, p in pairs(Players:GetPlayers()) do
-        if p ~= lp then
-            local Item = Instance.new("Frame", MorphFrame)
-            Item.Size = UDim2.new(1, 0, 0, 45)
-            Item.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-            Instance.new("UICorner", Item)
+    for _, target in pairs(Players:GetPlayers()) do
+        if target ~= lp then
+            local pFrame = Instance.new("Frame", MorphPage)
+            pFrame.Size = UDim2.new(1, 0, 0, 50)
+            pFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+            Instance.new("UICorner", pFrame)
 
-            local pIcon = Instance.new("ImageLabel", Item)
-            pIcon.Size = UDim2.new(0, 35, 0, 35)
+            local pIcon = Instance.new("ImageLabel", pFrame)
+            pIcon.Size = UDim2.new(0, 40, 0, 40)
             pIcon.Position = UDim2.new(0, 5, 0, 5)
-            -- Icon Preview
             pcall(function()
-                pIcon.Image = Players:GetUserThumbnailAsync(p.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size420x420)
+                pIcon.Image = Players:GetUserThumbnailAsync(target.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size420x420)
             end)
             Instance.new("UICorner", pIcon, {CornerRadius = UDim.new(1,0)})
 
-            local pName = Instance.new("TextLabel", Item)
-            pName.Size = UDim2.new(1, -100, 1, 0)
-            pName.Position = UDim2.new(0, 45, 0, 0)
-            pName.Text = p.DisplayName
+            local pName = Instance.new("TextLabel", pFrame)
+            pName.Size = UDim2.new(1, -120, 1, 0)
+            pName.Position = UDim2.new(0, 50, 0, 0)
+            pName.Text = target.DisplayName
             pName.TextColor3 = Color3.new(1, 1, 1)
-            pName.Font = Enum.Font.Gotham
+            pName.Font = Enum.Font.GothamMedium
             pName.TextXAlignment = Enum.TextXAlignment.Left
             pName.BackgroundTransparency = 1
 
-            local mBtn = Instance.new("TextButton", Item)
-            mBtn.Size = UDim2.new(0, 70, 0, 30)
-            mBtn.Position = UDim2.new(1, -75, 0, 7.5)
-            mBtn.Text = "COPY"
-            mBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
-            mBtn.TextColor3 = Color3.new(1, 1, 1)
-            mBtn.Font = Enum.Font.GothamBold
-            Instance.new("UICorner", mBtn)
+            local copyBtn = Instance.new("TextButton", pFrame)
+            copyBtn.Size = UDim2.new(0, 60, 0, 30)
+            copyBtn.Position = UDim2.new(1, -65, 0, 10)
+            copyBtn.Text = "COPY"
+            copyBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
+            copyBtn.TextColor3 = Color3.new(1, 1, 1)
+            copyBtn.Font = Enum.Font.GothamBold
+            Instance.new("UICorner", copyBtn)
 
-            mBtn.MouseButton1Click:Connect(function() 
-                morphToPlayer(p) 
-            end)
+            copyBtn.MouseButton1Click:Connect(function() morphToPlayer(target) end)
         end
     end
-    MorphFrame.CanvasSize = UDim2.new(0,0,0, UIList.AbsoluteContentSize.Y + 10)
+    MorphPage.CanvasSize = UDim2.new(0, 0, 0, MorphPage:FindFirstChildOfClass("UIListLayout").AbsoluteContentSize.Y + 10)
 end
 
--- Tab Switch Logic
-TabMagnet.MouseButton1Click:Connect(function()
-    MagnetFrame.Visible = true
-    MorphFrame.Visible = false
-end)
+-- Interaksi Tab
+Tab1.MouseButton1Click:Connect(function() MagnetPage.Visible = true; MorphPage.Visible = false end)
+Tab2.MouseButton1Click:Connect(function() MagnetPage.Visible = false; MorphPage.Visible = true; refreshList() end)
 
-TabMorph.MouseButton1Click:Connect(function()
-    MagnetFrame.Visible = false
-    MorphFrame.Visible = true
-    updateList()
-end)
-
--- Dragging & Toggle Logic
-local function MakeDraggable(obj)
-    local dragging, dragInput, dragStart, startPos
-    obj.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true; dragStart = input.Position; startPos = obj.Position
-        end
-    end)
-    obj.InputChanged:Connect(function(input)
-        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-            local delta = input.Position - dragStart
-            obj.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-        end
-    end)
-    UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = false end
-    end)
+-- Fitur Drag & Toggle
+local function drag(obj)
+    local draggin, startPos, dragStart
+    obj.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then draggin = true; startPos = obj.Position; dragStart = i.Position end end)
+    obj.InputChanged:Connect(function(i) if draggin and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then local delta = i.Position - dragStart; obj.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y) end end)
+    UserInputService.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then draggin = false end end)
 end
 
-MakeDraggable(IconButton)
-MakeDraggable(MainFrame)
-
+drag(IconButton); drag(MainFrame)
 IconButton.MouseButton1Click:Connect(function() MainFrame.Visible = not MainFrame.Visible end)
-
 StatusBtn.MouseButton1Click:Connect(function()
     botActive = not botActive
     StatusBtn.Text = botActive and "MAGNET: ON" or "MAGNET: OFF"
     StatusBtn.BackgroundColor3 = botActive and Color3.fromRGB(0, 255, 150) or Color3.fromRGB(255, 80, 80)
 end)
 
-Players.PlayerAdded:Connect(updateList)
-Players.PlayerRemoving:Connect(updateList)
+showNotify("Script Loaded: SPTZYY BEAST", true)
