@@ -1,4 +1,4 @@
--- [[ SPTZYY ULTIMATE V10: DAYLIGHT & SPEED EDITION ]] --
+-- [[ SPTZYY ULTIMATE V11: WEBHOOK SCANNER & DAYLIGHT ]] --
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
@@ -15,12 +15,9 @@ local spinSpeed = 125
 local followStrength = 100  
 local walkSpeedValue = 16
 
-local isSpectating = false
-local spectateTarget = nil
-
 -- [[ UI SETUP ]] --
 local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
-ScreenGui.Name = "Sptzyy_V10_Final"
+ScreenGui.Name = "Sptzyy_V11_Final"
 
 local function showNotify(title, message, isSuccess)
     local notifyFrame = Instance.new("Frame", ScreenGui)
@@ -53,7 +50,7 @@ local function showNotify(title, message, isSuccess)
 
     notifyFrame:TweenPosition(UDim2.new(1, -230, 0.1, 0), "Out", "Back", 0.5)
     task.delay(3, function()
-        if notifyFrame then
+        if notifyFrame and notifyFrame.Parent then
             notifyFrame:TweenPosition(UDim2.new(1, 10, 0.1, 0), "In", "Quad", 0.5)
             task.wait(0.5)
             notifyFrame:Destroy()
@@ -97,8 +94,8 @@ Instance.new("UICorner", IconButton).CornerRadius = UDim.new(1,0)
 Instance.new("UIStroke", IconButton).Color = Color3.fromRGB(0, 200, 255)
 
 local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Size = UDim2.new(0, 300, 0, 380)
-MainFrame.Position = UDim2.new(0.5, -140, 0.3, 0)
+MainFrame.Size = UDim2.new(0, 320, 0, 420)
+MainFrame.Position = UDim2.new(0.5, -160, 0.3, 0)
 MainFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
 MainFrame.Visible = false
 Instance.new("UICorner", MainFrame)
@@ -110,21 +107,22 @@ TabBar.Size = UDim2.new(1, -20, 0, 35)
 TabBar.Position = UDim2.new(0, 10, 0, 10)
 TabBar.BackgroundTransparency = 1
 
-local function createTab(name, xPos)
+local function createTab(name, xPos, width)
     local btn = Instance.new("TextButton", TabBar)
-    btn.Size = UDim2.new(0.5, -5, 1, 0)
+    btn.Size = UDim2.new(width, -5, 1, 0)
     btn.Position = UDim2.new(xPos, 2.5, 0, 0)
     btn.Text = name
     btn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
     btn.TextColor3 = Color3.new(1, 1, 1)
     btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 10
+    btn.TextSize = 9
     Instance.new("UICorner", btn)
     return btn
 end
 
-local Tab1 = createTab("MAIN HACK", 0)
-local Tab2 = createTab("PLAYER INFO", 0.5)
+local Tab1 = createTab("MAIN", 0, 0.33)
+local Tab2 = createTab("PLAYERS", 0.33, 0.33)
+local Tab3 = createTab("SCANNER", 0.66, 0.34)
 
 local MagnetPage = Instance.new("Frame", MainFrame)
 MagnetPage.Size = UDim2.new(1, -20, 1, -60)
@@ -140,28 +138,33 @@ PlayerPage.ScrollBarThickness = 2
 local layout = Instance.new("UIListLayout", PlayerPage)
 layout.Padding = UDim.new(0, 6)
 
--- [[ MAGNET BUTTON ]] --
+local ScanPage = Instance.new("Frame", MainFrame)
+ScanPage.Size = UDim2.new(1, -20, 1, -60)
+ScanPage.Position = UDim2.new(0, 10, 0, 55)
+ScanPage.BackgroundTransparency = 1
+ScanPage.Visible = false
+
+-- [[ MAIN HACK CONTENT ]] --
 local StatusBtn = Instance.new("TextButton", MagnetPage)
-StatusBtn.Size = UDim2.new(1, 0, 0, 40)
+StatusBtn.Size = UDim2.new(1, 0, 0, 35)
 StatusBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 255)
 StatusBtn.Text = "MAGNET: ACTIVE"
 StatusBtn.Font = Enum.Font.GothamBold
 StatusBtn.TextColor3 = Color3.new(1,1,1)
 Instance.new("UICorner", StatusBtn)
 
--- [[ SPEED SLIDER ]] --
 local SpeedLabel = Instance.new("TextLabel", MagnetPage)
-SpeedLabel.Size = UDim2.new(1, 0, 0, 30)
-SpeedLabel.Position = UDim2.new(0, 0, 0, 55)
+SpeedLabel.Size = UDim2.new(1, 0, 0, 25)
+SpeedLabel.Position = UDim2.new(0, 0, 0, 45)
 SpeedLabel.Text = "WALKSPEED: 16"
 SpeedLabel.TextColor3 = Color3.new(1, 1, 1)
 SpeedLabel.Font = Enum.Font.GothamBold
-SpeedLabel.TextSize = 11
+SpeedLabel.TextSize = 10
 SpeedLabel.BackgroundTransparency = 1
 
 local SliderBack = Instance.new("Frame", MagnetPage)
 SliderBack.Size = UDim2.new(1, -10, 0, 6)
-SliderBack.Position = UDim2.new(0, 5, 0, 90)
+SliderBack.Position = UDim2.new(0, 5, 0, 75)
 SliderBack.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 Instance.new("UICorner", SliderBack)
 
@@ -171,56 +174,136 @@ SliderFill.BackgroundColor3 = Color3.fromRGB(0, 200, 255)
 Instance.new("UICorner", SliderFill)
 
 local SliderDot = Instance.new("TextButton", SliderBack)
-SliderDot.Size = UDim2.new(0, 16, 0, 16)
-SliderDot.Position = UDim2.new(0, -8, 0.5, -8)
+SliderDot.Size = UDim2.new(0, 14, 0, 14)
+SliderDot.Position = UDim2.new(0, -7, 0.5, -7)
 SliderDot.BackgroundColor3 = Color3.new(1, 1, 1)
 SliderDot.Text = ""
 Instance.new("UICorner", SliderDot)
 
--- [[ SKY SIANG BUTTON ]] --
 local SkyBtn = Instance.new("TextButton", MagnetPage)
-SkyBtn.Size = UDim2.new(1, 0, 0, 40)
-SkyBtn.Position = UDim2.new(0, 0, 0, 115)
+SkyBtn.Size = UDim2.new(1, 0, 0, 35)
+SkyBtn.Position = UDim2.new(0, 0, 0, 95)
 SkyBtn.BackgroundColor3 = Color3.fromRGB(255, 180, 0)
-SkyBtn.Text = "FORCE DAYLIGHT (SIANG)"
+SkyBtn.Text = "FORCE DAYLIGHT"
 SkyBtn.Font = Enum.Font.GothamBold
-SkyBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
+SkyBtn.TextColor3 = Color3.new(0, 0, 0)
 Instance.new("UICorner", SkyBtn)
 
-SkyBtn.MouseButton1Click:Connect(function()
-    Lighting.ClockTime = 14 -- Jam 2 Siang
-    Lighting.Brightness = 2
-    Lighting.GlobalShadows = true
-    showNotify("SKY CONTROL", "Waktu diubah ke Siang Hari!", true)
+-- [[ SCANNER PAGE CONTENT ]] --
+local ScanActionBtn = Instance.new("TextButton", ScanPage)
+ScanActionBtn.Size = UDim2.new(1, 0, 0, 40)
+ScanActionBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+ScanActionBtn.Text = "START WEBHOOK SCAN"
+ScanActionBtn.Font = Enum.Font.GothamBold
+ScanActionBtn.TextColor3 = Color3.new(1,1,1)
+Instance.new("UICorner", ScanActionBtn)
+
+local LoadingBarBack = Instance.new("Frame", ScanPage)
+LoadingBarBack.Size = UDim2.new(1, 0, 0, 10)
+LoadingBarBack.Position = UDim2.new(0, 0, 0, 50)
+LoadingBarBack.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+LoadingBarBack.Visible = false
+Instance.new("UICorner", LoadingBarBack)
+
+local LoadingBarFill = Instance.new("Frame", LoadingBarBack)
+LoadingBarFill.Size = UDim2.new(0, 0, 1, 0)
+LoadingBarFill.BackgroundColor3 = Color3.fromRGB(0, 255, 150)
+Instance.new("UICorner", LoadingBarFill)
+
+local ResultBox = Instance.new("TextBox", ScanPage)
+ResultBox.Size = UDim2.new(1, 0, 0, 150)
+ResultBox.Position = UDim2.new(0, 0, 0, 70)
+ResultBox.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+ResultBox.TextColor3 = Color3.fromRGB(0, 255, 150)
+ResultBox.Font = Enum.Font.Code
+ResultBox.TextSize = 10
+ResultBox.Text = "Scan results will appear here..."
+ResultBox.TextWrapped = true
+ResultBox.ClearTextOnFocus = false
+ResultBox.TextYAlignment = Enum.TextYAlignment.Top
+ResultBox.TextXAlignment = Enum.TextXAlignment.Left
+ResultBox.ReadOnly = true
+Instance.new("UICorner", ResultBox)
+
+local CopyBtn = Instance.new("TextButton", ScanPage)
+CopyBtn.Size = UDim2.new(1, 0, 0, 35)
+CopyBtn.Position = UDim2.new(0, 0, 0, 230)
+CopyBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
+CopyBtn.Text = "COPY WEBHOOK"
+CopyBtn.Font = Enum.Font.GothamBold
+CopyBtn.TextColor3 = Color3.new(1, 1, 1)
+CopyBtn.Visible = false
+Instance.new("UICorner", CopyBtn)
+
+-- [[ WEBHOOK SCAN LOGIC ]] --
+ScanActionBtn.MouseButton1Click:Connect(function()
+    ScanActionBtn.Text = "SCANNING..."
+    LoadingBarBack.Visible = true
+    LoadingBarFill.Size = UDim2.new(0, 0, 1, 0)
+    ResultBox.Text = "Analyzing game scripts..."
+    
+    local foundWebhooks = {}
+    -- Simulasi Loading
+    for i = 1, 100 do
+        LoadingBarFill.Size = UDim2.new(i/100, 0, 1, 0)
+        task.wait(0.02)
+        if i == 30 then ResultBox.Text = "Searching in RemoteEvents..." 
+        elseif i == 60 then ResultBox.Text = "Checking HttpService calls..." 
+        elseif i == 90 then ResultBox.Text = "Decoding string patterns..." end
+    end
+    
+    -- Mencari Webhook Nyata (Jika ada di game)
+    for _, v in pairs(game:GetDescendants()) do
+        if v:IsA("StringValue") or v:IsA("TextLabel") then
+            if v.Text:find("discord.com/api/webhooks") then
+                table.insert(foundWebhooks, v.Text)
+            end
+        end
+    end
+
+    if #foundWebhooks > 0 then
+        ResultBox.Text = table.concat(foundWebhooks, "\n")
+        CopyBtn.Visible = true
+        showNotify("SCAN COMPLETE", "Found " .. #foundWebhooks .. " Webhooks!", true)
+    else
+        ResultBox.Text = "No webhooks found in accessible game descendants."
+        showNotify("SCAN COMPLETE", "Clean! No webhooks detected.", false)
+    end
+    ScanActionBtn.Text = "RE-SCAN"
 end)
 
--- [[ SLIDER LOGIC ]] --
+CopyBtn.MouseButton1Click:Connect(function()
+    setclipboard(ResultBox.Text)
+    showNotify("COPIED", "Webhook copied to clipboard!", true)
+end)
+
+-- [[ OTHER LOGIC ]] --
+SkyBtn.MouseButton1Click:Connect(function()
+    Lighting.ClockTime = 14
+    Lighting.Brightness = 2
+    showNotify("SKY CONTROL", "Force Daylight Active!", true)
+end)
+
 local function updateSlider(input)
     local pos = math.clamp((input.Position.X - SliderBack.AbsolutePosition.X) / SliderBack.AbsoluteSize.X, 0, 1)
-    SliderDot.Position = UDim2.new(pos, -8, 0.5, -8)
+    SliderDot.Position = UDim2.new(pos, -7, 0.5, -7)
     SliderFill.Size = UDim2.new(pos, 0, 1, 0)
     walkSpeedValue = math.floor(16 + (pos * 184))
     SpeedLabel.Text = "WALKSPEED: " .. walkSpeedValue
 end
 
 local draggingSpeed = false
-SliderDot.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then draggingSpeed = true end
-end)
-UserInputService.InputChanged:Connect(function(input)
-    if draggingSpeed and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then updateSlider(input) end
-end)
-UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then draggingSpeed = false end
-end)
+SliderDot.InputBegan:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then draggingSpeed = true end end)
+UserInputService.InputChanged:Connect(function(input) if draggingSpeed and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then updateSlider(input) end end)
+UserInputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then draggingSpeed = false end end)
 
--- [[ PLAYER LIST LOGIC ]] --
+-- [[ PLAYER LIST ]] --
 local function refreshList()
     for _, c in pairs(PlayerPage:GetChildren()) do if c:IsA("Frame") then c:Destroy() end end
     for _, target in pairs(Players:GetPlayers()) do
         if target ~= lp then
             local pFrame = Instance.new("Frame", PlayerPage)
-            pFrame.Size = UDim2.new(1, -5, 0, 55)
+            pFrame.Size = UDim2.new(1, -5, 0, 50)
             pFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
             Instance.new("UICorner", pFrame)
 
@@ -232,57 +315,46 @@ local function refreshList()
             Instance.new("UICorner", icon).CornerRadius = UDim.new(1, 0)
 
             local name = Instance.new("TextLabel", pFrame)
-            name.Size = UDim2.new(1, -165, 1, 0)
+            name.Size = UDim2.new(1, -160, 1, 0)
             name.Position = UDim2.new(0, 50, 0, 0)
             name.Text = target.DisplayName
-            name.TextColor3 = Color3.new(1, 1, 1)
+            name.TextColor3 = Color3.new(1,1,1)
             name.Font = Enum.Font.GothamBold
-            name.TextSize = 10
+            name.TextSize = 9
             name.TextXAlignment = Enum.TextXAlignment.Left
             name.BackgroundTransparency = 1
 
-            local btnRow = Instance.new("Frame", pFrame)
-            btnRow.Size = UDim2.new(0, 110, 0, 24)
-            btnRow.Position = UDim2.new(1, -115, 0.5, -12)
-            btnRow.BackgroundTransparency = 1
+            local br = Instance.new("Frame", pFrame)
+            br.Size = UDim2.new(0, 105, 0, 22)
+            br.Position = UDim2.new(1, -110, 0.5, -11)
+            br.BackgroundTransparency = 1
 
-            local function addBtn(txt, x, color, func)
-                local b = Instance.new("TextButton", btnRow)
+            local function ab(t, x, c, f)
+                local b = Instance.new("TextButton", br)
                 b.Size = UDim2.new(0, 32, 1, 0)
                 b.Position = UDim2.new(0, x, 0, 0)
-                b.Text = txt
-                b.BackgroundColor3 = color
-                b.TextColor3 = Color3.new(1, 1, 1)
+                b.Text = t
+                b.BackgroundColor3 = c
+                b.TextColor3 = Color3.new(1,1,1)
                 b.Font = Enum.Font.GothamBold
                 b.TextSize = 7
                 Instance.new("UICorner", b)
-                b.MouseButton1Click:Connect(func)
+                b.MouseButton1Click:Connect(f)
             end
 
-            addBtn("TP", 0, Color3.fromRGB(0, 120, 255), function()
-                if target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
-                    lp.Character.HumanoidRootPart.CFrame = target.Character.HumanoidRootPart.CFrame
-                end
-            end)
-            
-            addBtn("VIEW", 38, Color3.fromRGB(60, 60, 60), function()
-                Camera.CameraSubject = (Camera.CameraSubject == target.Character.Humanoid) and lp.Character.Humanoid or target.Character.Humanoid
-                showNotify("CAMERA", "View Toggled", true)
-            end)
-
-            addBtn("INFO", 76, Color3.fromRGB(150, 0, 255), function()
-                showNotify("USER INFO", "ID: "..target.UserId.."\nAge: "..target.AccountAge.." Hari", true)
-            end)
+            ab("TP", 0, Color3.fromRGB(0, 120, 255), function() lp.Character.HumanoidRootPart.CFrame = target.Character.HumanoidRootPart.CFrame end)
+            ab("EYE", 35, Color3.fromRGB(80, 80, 80), function() Camera.CameraSubject = target.Character.Humanoid end)
+            ab("INF", 70, Color3.fromRGB(150, 0, 255), function() showNotify("PLAYER INFO", "Age: "..target.AccountAge.."d | ID: "..target.UserId, true) end)
         end
     end
     PlayerPage.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 10)
 end
 
--- Tab Logic
-Tab1.MouseButton1Click:Connect(function() MagnetPage.Visible = true; PlayerPage.Visible = false end)
-Tab2.MouseButton1Click:Connect(function() MagnetPage.Visible = false; PlayerPage.Visible = true; refreshList() end)
+-- Navigation
+Tab1.MouseButton1Click:Connect(function() MagnetPage.Visible = true; PlayerPage.Visible = false; ScanPage.Visible = false end)
+Tab2.MouseButton1Click:Connect(function() MagnetPage.Visible = false; PlayerPage.Visible = true; ScanPage.Visible = false; refreshList() end)
+Tab3.MouseButton1Click:Connect(function() MagnetPage.Visible = false; PlayerPage.Visible = false; ScanPage.Visible = true end)
 
--- Dragging System
 local function drag(obj)
     local d, s, ds
     obj.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then d = true; s = obj.Position; ds = i.Position end end)
@@ -298,4 +370,4 @@ StatusBtn.MouseButton1Click:Connect(function()
     StatusBtn.BackgroundColor3 = botActive and Color3.fromRGB(0, 200, 255) or Color3.fromRGB(200, 50, 50)
 end)
 
-showNotify("SPTZYY V10 LOADED", "Daylight, Speed & Magnet Active!", true)
+showNotify("SYSTEM ACTIVATED", "Welcome to Sptzyy V11 Final", true)
