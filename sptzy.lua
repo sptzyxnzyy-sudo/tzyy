@@ -1,7 +1,8 @@
--- [[ SPTZYY ULTIMATE V9: SPEED SLIDER EDITION ]] --
+-- [[ SPTZYY ULTIMATE V10: DAYLIGHT & SPEED EDITION ]] --
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
+local Lighting = game:GetService("Lighting")
 local Camera = workspace.CurrentCamera
 local lp = Players.LocalPlayer
 
@@ -19,7 +20,7 @@ local spectateTarget = nil
 
 -- [[ UI SETUP ]] --
 local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
-ScreenGui.Name = "Sptzyy_V9_Final"
+ScreenGui.Name = "Sptzyy_V10_Final"
 
 local function showNotify(title, message, isSuccess)
     local notifyFrame = Instance.new("Frame", ScreenGui)
@@ -60,7 +61,7 @@ local function showNotify(title, message, isSuccess)
     end)
 end
 
--- [[ SPEED & MAGNET LOOP ]] --
+-- [[ CORE LOOPS ]] --
 RunService.Stepped:Connect(function()
     if lp.Character and lp.Character:FindFirstChild("Humanoid") then
         lp.Character.Humanoid.WalkSpeed = walkSpeedValue
@@ -96,8 +97,8 @@ Instance.new("UICorner", IconButton).CornerRadius = UDim.new(1,0)
 Instance.new("UIStroke", IconButton).Color = Color3.fromRGB(0, 200, 255)
 
 local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Size = UDim2.new(0, 300, 0, 360)
-MainFrame.Position = UDim2.new(0.5, -150, 0.3, 0)
+MainFrame.Size = UDim2.new(0, 300, 0, 380)
+MainFrame.Position = UDim2.new(0.5, -140, 0.3, 0)
 MainFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
 MainFrame.Visible = false
 Instance.new("UICorner", MainFrame)
@@ -139,7 +140,7 @@ PlayerPage.ScrollBarThickness = 2
 local layout = Instance.new("UIListLayout", PlayerPage)
 layout.Padding = UDim.new(0, 6)
 
--- Magnet Button
+-- [[ MAGNET BUTTON ]] --
 local StatusBtn = Instance.new("TextButton", MagnetPage)
 StatusBtn.Size = UDim2.new(1, 0, 0, 40)
 StatusBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 255)
@@ -176,11 +177,29 @@ SliderDot.BackgroundColor3 = Color3.new(1, 1, 1)
 SliderDot.Text = ""
 Instance.new("UICorner", SliderDot)
 
+-- [[ SKY SIANG BUTTON ]] --
+local SkyBtn = Instance.new("TextButton", MagnetPage)
+SkyBtn.Size = UDim2.new(1, 0, 0, 40)
+SkyBtn.Position = UDim2.new(0, 0, 0, 115)
+SkyBtn.BackgroundColor3 = Color3.fromRGB(255, 180, 0)
+SkyBtn.Text = "FORCE DAYLIGHT (SIANG)"
+SkyBtn.Font = Enum.Font.GothamBold
+SkyBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
+Instance.new("UICorner", SkyBtn)
+
+SkyBtn.MouseButton1Click:Connect(function()
+    Lighting.ClockTime = 14 -- Jam 2 Siang
+    Lighting.Brightness = 2
+    Lighting.GlobalShadows = true
+    showNotify("SKY CONTROL", "Waktu diubah ke Siang Hari!", true)
+end)
+
+-- [[ SLIDER LOGIC ]] --
 local function updateSlider(input)
     local pos = math.clamp((input.Position.X - SliderBack.AbsolutePosition.X) / SliderBack.AbsoluteSize.X, 0, 1)
     SliderDot.Position = UDim2.new(pos, -8, 0.5, -8)
     SliderFill.Size = UDim2.new(pos, 0, 1, 0)
-    walkSpeedValue = math.floor(16 + (pos * 184)) -- Range 16 ke 200
+    walkSpeedValue = math.floor(16 + (pos * 184))
     SpeedLabel.Text = "WALKSPEED: " .. walkSpeedValue
 end
 
@@ -195,7 +214,7 @@ UserInputService.InputEnded:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then draggingSpeed = false end
 end)
 
--- [[ PLAYER LIST ]] --
+-- [[ PLAYER LIST LOGIC ]] --
 local function refreshList()
     for _, c in pairs(PlayerPage:GetChildren()) do if c:IsA("Frame") then c:Destroy() end end
     for _, target in pairs(Players:GetPlayers()) do
@@ -252,7 +271,7 @@ local function refreshList()
             end)
 
             addBtn("INFO", 76, Color3.fromRGB(150, 0, 255), function()
-                showNotify("USER INFO", "ID: "..target.UserId.."\nAge: "..target.AccountAge.." Days", true)
+                showNotify("USER INFO", "ID: "..target.UserId.."\nAge: "..target.AccountAge.." Hari", true)
             end)
         end
     end
@@ -263,7 +282,7 @@ end
 Tab1.MouseButton1Click:Connect(function() MagnetPage.Visible = true; PlayerPage.Visible = false end)
 Tab2.MouseButton1Click:Connect(function() MagnetPage.Visible = false; PlayerPage.Visible = true; refreshList() end)
 
--- Dragging
+-- Dragging System
 local function drag(obj)
     local d, s, ds
     obj.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then d = true; s = obj.Position; ds = i.Position end end)
@@ -279,4 +298,4 @@ StatusBtn.MouseButton1Click:Connect(function()
     StatusBtn.BackgroundColor3 = botActive and Color3.fromRGB(0, 200, 255) or Color3.fromRGB(200, 50, 50)
 end)
 
-showNotify("SPTZYY V9 LOADED", "Speed Slider & Magnet Ready!", true)
+showNotify("SPTZYY V10 LOADED", "Daylight, Speed & Magnet Active!", true)
