@@ -245,4 +245,3 @@ StatusBtn.MouseButton1Click:Connect(function()
 end)
 
 showNotify("Sptzyy V8 Loaded! (TP/VIEW/INFO)", true)
-k
