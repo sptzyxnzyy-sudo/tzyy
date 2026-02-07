@@ -1,4 +1,4 @@
--- [[ SPTZYY PART CONTROLLER + MORPH BEAST GLOBAL EDITION ]] --
+-- [[ SPTZYY PART CONTROLLER + MORPH BEAST BYPASS EDITION ]] --
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
@@ -13,11 +13,10 @@ local orbitRadius = 10
 local spinSpeed = 125        
 local followStrength = 100  
 
--- [[ UI SETUP UTAMA ]] --
+-- [[ UI SETUP ]] --
 local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
-ScreenGui.Name = "SptzyyUltraControl_Global"
+ScreenGui.Name = "SptzyyUltraControl_Bypass"
 
--- [[ FUNGSI NOTIFIKASI ANIMASI ]] --
 local function showNotify(message, isSuccess)
     local notifyFrame = Instance.new("Frame", ScreenGui)
     notifyFrame.Size = UDim2.new(0, 220, 0, 45)
@@ -69,42 +68,70 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
--- [[ FUNGSI MORPH GLOBAL (SINKRON SEMUA PEMAIN) ]] --
+-- [[ FUNGSI MORPH BYPASS (MANUAL INJECTION) ]] --
 local function morphToPlayer(targetPlayer)
-    if not targetPlayer then return end
+    if not targetPlayer or not targetPlayer.Character then 
+        showNotify("Target tidak memiliki karakter!", false)
+        return 
+    end
     
     local myChar = lp.Character
-    local myHumanoid = myChar and myChar:FindFirstChildOfClass("Humanoid")
-    
-    if myHumanoid then
-        showNotify("Mengunduh Data Avatar...", true)
-        
-        -- Mengambil Deskripsi Avatar dari Server Roblox
-        local success, description = pcall(function()
-            return Players:GetHumanoidDescriptionFromUserId(targetPlayer.UserId)
-        end)
-        
-        if success and description then
-            -- Menerapkan Deskripsi (Otomatis Replikasi Global oleh Roblox)
-            local applySuccess = pcall(function()
-                myHumanoid:ApplyDescription(description)
-            end)
-            
-            if applySuccess then
-                showNotify("BERHASIL: Semua pemain melihatmu sebagai " .. targetPlayer.DisplayName, true)
-                
-                -- Efek Glow Konfirmasi
-                local highlight = Instance.new("Highlight", myChar)
-                highlight.FillColor = Color3.fromRGB(0, 255, 150)
-                highlight.OutlineColor = Color3.new(1,1,1)
-                Debris:AddItem(highlight, 1.5)
-            else
-                showNotify("GAGAL: Game memblokir Morph!", false)
+    if not myChar then return end
+
+    showNotify("Meluncurkan Bypass Morph...", true)
+
+    pcall(function()
+        -- 1. Bersihkan Karakter Kamu (Kecuali Bagian Tubuh Utama)
+        for _, item in pairs(myChar:GetChildren()) do
+            if item:IsA("Accessory") or item:IsA("Shirt") or item:IsA("Pants") or item:IsA("CharacterAppearance") or item:IsA("BodyColors") then
+                item:Destroy()
             end
-        else
-            showNotify("GAGAL: Data avatar tidak ditemukan!", false)
         end
-    end
+
+        -- 2. Salin Body Colors (Warna Kulit)
+        local targetBC = targetPlayer.Character:FindFirstChildOfClass("BodyColors")
+        if targetBC then
+            targetBC:Clone().Parent = myChar
+        end
+
+        -- 3. Salin Pakaian
+        for _, item in pairs(targetPlayer.Character:GetChildren()) do
+            if item:IsA("Shirt") or item:IsA("Pants") or item:IsA("ShirtGraphic") then
+                item:Clone().Parent = myChar
+            end
+        end
+
+        -- 4. Salin Aksesoris & Rambut (Manual Clone)
+        for _, item in pairs(targetPlayer.Character:GetChildren()) do
+            if item:IsA("Accessory") then
+                local clone = item:Clone()
+                clone.Parent = myChar
+                -- Fix posisi aksesoris agar menempel ke karakter kamu
+                local handle = clone:FindFirstChild("Handle")
+                if handle then
+                    handle.CanCollide = false
+                end
+            end
+        end
+
+        -- 5. Sinkronisasi Wajah
+        local targetHead = targetPlayer.Character:FindFirstChild("Head")
+        local myHead = myChar:FindFirstChild("Head")
+        if targetHead and myHead then
+            local targetFace = targetHead:FindFirstChild("face")
+            if targetFace then
+                if myHead:FindFirstChild("face") then myHead.face:Destroy() end
+                targetFace:Clone().Parent = myHead
+            end
+        end
+
+        -- Efek Visual
+        local highlight = Instance.new("Highlight", myChar)
+        highlight.FillColor = Color3.fromRGB(0, 255, 255)
+        Debris:AddItem(highlight, 1)
+    end)
+    
+    showNotify("BYPASS BERHASIL: Karakter Tersalin!", true)
 end
 
 -- [[ UI CONSTRUCTION ]] --
@@ -198,11 +225,9 @@ local function refreshList()
     MorphPage.CanvasSize = UDim2.new(0, 0, 0, MorphPage:FindFirstChildOfClass("UIListLayout").AbsoluteContentSize.Y + 10)
 end
 
--- Interaksi Tab
 Tab1.MouseButton1Click:Connect(function() MagnetPage.Visible = true; MorphPage.Visible = false end)
 Tab2.MouseButton1Click:Connect(function() MagnetPage.Visible = false; MorphPage.Visible = true; refreshList() end)
 
--- Fitur Drag & Toggle
 local function drag(obj)
     local draggin, startPos, dragStart
     obj.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then draggin = true; startPos = obj.Position; dragStart = i.Position end end)
@@ -218,4 +243,4 @@ StatusBtn.MouseButton1Click:Connect(function()
     StatusBtn.BackgroundColor3 = botActive and Color3.fromRGB(0, 255, 150) or Color3.fromRGB(255, 80, 80)
 end)
 
-showNotify("Global Morph & Magnet Ready!", true)
+showNotify("Bypass Edition Ready!", true)
