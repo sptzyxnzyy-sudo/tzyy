@@ -1,5 +1,4 @@
--- [[ SPTZYY PART CONTROLLER + MORPH BEAST MOBILE EDITION ]] --
--- Versi: Ultimate Feedback & Global Sync
+-- [[ SPTZYY PART CONTROLLER + MORPH BEAST UNIVERSAL EDITION ]] --
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
@@ -16,17 +15,16 @@ local followStrength = 100
 
 -- [[ UI SETUP UTAMA ]] --
 local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
-ScreenGui.Name = "SptzyyUltraControl_Final"
+ScreenGui.Name = "SptzyyUltraControl_Universal"
 
 -- [[ FUNGSI NOTIFIKASI ANIMASI ]] --
 local function showNotify(message, isSuccess)
     local notifyFrame = Instance.new("Frame", ScreenGui)
     notifyFrame.Size = UDim2.new(0, 220, 0, 45)
-    notifyFrame.Position = UDim2.new(1, 10, 0.15, 0) -- Mulai di luar layar
+    notifyFrame.Position = UDim2.new(1, 10, 0.15, 0)
     notifyFrame.BackgroundColor3 = isSuccess and Color3.fromRGB(0, 180, 100) or Color3.fromRGB(180, 50, 50)
     notifyFrame.BorderSizePixel = 0
-    
-    local corner = Instance.new("UICorner", notifyFrame)
+    Instance.new("UICorner", notifyFrame)
     local stroke = Instance.new("UIStroke", notifyFrame)
     stroke.Thickness = 2
     stroke.Color = Color3.new(1, 1, 1)
@@ -40,10 +38,7 @@ local function showNotify(message, isSuccess)
     text.TextSize = 12
     text.TextWrapped = true
 
-    -- Animasi Masuk
     notifyFrame:TweenPosition(UDim2.new(1, -230, 0.15, 0), "Out", "Back", 0.5)
-
-    -- Tunggu dan Hapus
     task.delay(2.5, function()
         if notifyFrame then
             notifyFrame:TweenPosition(UDim2.new(1, 10, 0.15, 0), "In", "Quad", 0.5)
@@ -53,7 +48,7 @@ local function showNotify(message, isSuccess)
     end)
 end
 
--- [[ LOGIKA MAGNET (BEAST) ]] --
+-- [[ LOGIKA MAGNET ]] --
 local angle = 0
 RunService.Heartbeat:Connect(function()
     if not botActive or not lp.Character or not lp.Character:FindFirstChild("HumanoidRootPart") then return end
@@ -66,69 +61,73 @@ RunService.Heartbeat:Connect(function()
             local distance = (part.Position - rootPart.Position).Magnitude
             if distance <= pullRadius then
                 pcall(function()
-                    for _, constraint in pairs(part:GetChildren()) do
-                        if constraint:IsA("Constraint") then constraint:Destroy() end
-                    end
                     part:SetNetworkOwner(lp) 
                     part.Velocity = (targetPos - part.Position) * followStrength
-                    part.RotVelocity = Vector3.new(0, 15, 0)
                 end)
             end
         end
     end
 end)
 
--- [[ FUNGSI MORPH GLOBAL DENGAN FEEDBACK ]] --
+-- [[ FUNGSI MORPH UNIVERSAL (BRUTE FORCE COPY) ]] --
 local function morphToPlayer(targetPlayer)
     if not targetPlayer or not targetPlayer.Character then 
-        showNotify("GAGAL: Karakter target hilang!", false)
+        showNotify("GAGAL: Target tidak ditemukan!", false)
         return 
     end
     
     local myChar = lp.Character
-    local humanoid = myChar and myChar:FindFirstChildOfClass("Humanoid")
-    
-    if humanoid then
-        local success, description = pcall(function()
-            return Players:GetHumanoidDescriptionFromUserId(targetPlayer.UserId)
-        end)
-        
-        if success and description then
-            local applyStatus = pcall(function()
-                humanoid:ApplyDescription(description)
-            end)
-            
-            if applyStatus then
-                showNotify("BERHASIL: Morph ke " .. targetPlayer.DisplayName, true)
-                
-                -- Efek Glow Visual (Hanya untuk konfirmasi)
-                local highlight = Instance.new("Highlight", myChar)
-                highlight.FillColor = Color3.fromRGB(0, 255, 150)
-                highlight.OutlineColor = Color3.new(1, 1, 1)
-                Debris:AddItem(highlight, 1.5)
-            else
-                showNotify("GAGAL: Tidak support game ini!", false)
+    if not myChar then return end
+
+    showNotify("Sedang menyalin: " .. targetPlayer.DisplayName, true)
+
+    pcall(function()
+        -- 1. Hapus Pakaian & Aksesoris Lama
+        for _, item in pairs(myChar:GetChildren()) do
+            if item:IsA("CharacterAppearance") or item:IsA("Shirt") or item:IsA("Pants") or item:IsA("Accessory") or item:IsA("ShirtGraphic") then
+                item:Destroy()
             end
-        else
-            showNotify("GAGAL: Avatar terproteksi!", false)
         end
-    end
+
+        -- 2. Salin Body Colors
+        local targetBC = targetPlayer.Character:FindFirstChildOfClass("BodyColors")
+        if targetBC then
+            if myChar:FindFirstChildOfClass("BodyColors") then myChar:FindFirstChildOfClass("BodyColors"):Destroy() end
+            targetBC:Clone().Parent = myChar
+        end
+
+        -- 3. Salin Pakaian & Aksesoris (Manual Clone)
+        for _, item in pairs(targetPlayer.Character:GetChildren()) do
+            if item:IsA("Shirt") or item:IsA("Pants") or item:IsA("Accessory") or item:IsA("ShirtGraphic") then
+                local clone = item:Clone()
+                clone.Parent = myChar
+            end
+        end
+
+        -- 4. Sinkronisasi Wajah
+        if targetPlayer.Character:FindFirstChild("Head") and targetPlayer.Character.Head:FindFirstChild("face") then
+            if myChar.Head:FindFirstChild("face") then myChar.Head.face:Destroy() end
+            targetPlayer.Character.Head.face:Clone().Parent = myChar.Head
+        end
+
+        -- Efek Visual
+        local highlight = Instance.new("Highlight", myChar)
+        highlight.FillColor = Color3.fromRGB(0, 255, 255)
+        Debris:AddItem(highlight, 1)
+    end)
+    
+    showNotify("BERHASIL: Karakter Tersalin!", true)
 end
 
 -- [[ UI CONSTRUCTION ]] --
-
--- Floating Icon
 local IconButton = Instance.new("ImageButton", ScreenGui)
 IconButton.Size = UDim2.new(0, 55, 0, 55)
 IconButton.Position = UDim2.new(0.05, 0, 0.4, 0)
 IconButton.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 IconButton.Image = "rbxassetid://6031094678"
 Instance.new("UICorner", IconButton).CornerRadius = UDim.new(1,0)
-local IconStroke = Instance.new("UIStroke", IconButton)
-IconStroke.Color = Color3.fromRGB(0, 255, 150)
-IconStroke.Thickness = 3
+Instance.new("UIStroke", IconButton).Color = Color3.fromRGB(0, 255, 150)
 
--- Main Frame
 local MainFrame = Instance.new("Frame", ScreenGui)
 MainFrame.Size = UDim2.new(0, 260, 0, 340)
 MainFrame.Position = UDim2.new(0.5, -130, 0.3, 0)
@@ -137,7 +136,6 @@ MainFrame.Visible = false
 Instance.new("UICorner", MainFrame)
 Instance.new("UIStroke", MainFrame).Color = Color3.fromRGB(0, 255, 150)
 
--- Header / Tabs
 local TabBar = Instance.new("Frame", MainFrame)
 TabBar.Size = UDim2.new(1, 0, 0, 35)
 TabBar.BackgroundTransparency = 1
@@ -150,7 +148,7 @@ local function createTab(name, xPos)
     btn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
     btn.TextColor3 = Color3.new(1, 1, 1)
     btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 12
+    btn.TextSize = 10
     Instance.new("UICorner", btn)
     return btn
 end
@@ -158,7 +156,6 @@ end
 local Tab1 = createTab("MAGNET", 0)
 local Tab2 = createTab("MORPH LIST", 0.5)
 
--- Content Area
 local MagnetPage = Instance.new("Frame", MainFrame)
 MagnetPage.Size = UDim2.new(1, 0, 1, -40)
 MagnetPage.Position = UDim2.new(0, 0, 0, 40)
@@ -169,11 +166,9 @@ MorphPage.Size = UDim2.new(1, -10, 1, -50)
 MorphPage.Position = UDim2.new(0, 5, 0, 45)
 MorphPage.BackgroundTransparency = 1
 MorphPage.Visible = false
-MorphPage.ScrollBarThickness = 3
-MorphPage.CanvasSize = UDim2.new(0, 0, 0, 0)
+MorphPage.ScrollBarThickness = 2
 Instance.new("UIListLayout", MorphPage).Padding = UDim.new(0, 5)
 
--- Magnet Content
 local StatusBtn = Instance.new("TextButton", MagnetPage)
 StatusBtn.Size = UDim2.new(0.8, 0, 0, 45)
 StatusBtn.Position = UDim2.new(0.1, 0, 0.1, 0)
@@ -182,10 +177,8 @@ StatusBtn.Text = "MAGNET: ON"
 StatusBtn.Font = Enum.Font.GothamBold
 Instance.new("UICorner", StatusBtn)
 
--- Function Refresh Morph List
 local function refreshList()
     for _, c in pairs(MorphPage:GetChildren()) do if c:IsA("Frame") then c:Destroy() end end
-    
     for _, target in pairs(Players:GetPlayers()) do
         if target ~= lp then
             local pFrame = Instance.new("Frame", MorphPage)
@@ -193,17 +186,9 @@ local function refreshList()
             pFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
             Instance.new("UICorner", pFrame)
 
-            local pIcon = Instance.new("ImageLabel", pFrame)
-            pIcon.Size = UDim2.new(0, 40, 0, 40)
-            pIcon.Position = UDim2.new(0, 5, 0, 5)
-            pcall(function()
-                pIcon.Image = Players:GetUserThumbnailAsync(target.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size420x420)
-            end)
-            Instance.new("UICorner", pIcon, {CornerRadius = UDim.new(1,0)})
-
             local pName = Instance.new("TextLabel", pFrame)
-            pName.Size = UDim2.new(1, -120, 1, 0)
-            pName.Position = UDim2.new(0, 50, 0, 0)
+            pName.Size = UDim2.new(1, -80, 1, 0)
+            pName.Position = UDim2.new(0, 10, 0, 0)
             pName.Text = target.DisplayName
             pName.TextColor3 = Color3.new(1, 1, 1)
             pName.Font = Enum.Font.GothamMedium
@@ -216,7 +201,6 @@ local function refreshList()
             copyBtn.Text = "COPY"
             copyBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
             copyBtn.TextColor3 = Color3.new(1, 1, 1)
-            copyBtn.Font = Enum.Font.GothamBold
             Instance.new("UICorner", copyBtn)
 
             copyBtn.MouseButton1Click:Connect(function() morphToPlayer(target) end)
@@ -225,11 +209,9 @@ local function refreshList()
     MorphPage.CanvasSize = UDim2.new(0, 0, 0, MorphPage:FindFirstChildOfClass("UIListLayout").AbsoluteContentSize.Y + 10)
 end
 
--- Interaksi Tab
 Tab1.MouseButton1Click:Connect(function() MagnetPage.Visible = true; MorphPage.Visible = false end)
 Tab2.MouseButton1Click:Connect(function() MagnetPage.Visible = false; MorphPage.Visible = true; refreshList() end)
 
--- Fitur Drag & Toggle
 local function drag(obj)
     local draggin, startPos, dragStart
     obj.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then draggin = true; startPos = obj.Position; dragStart = i.Position end end)
@@ -245,4 +227,4 @@ StatusBtn.MouseButton1Click:Connect(function()
     StatusBtn.BackgroundColor3 = botActive and Color3.fromRGB(0, 255, 150) or Color3.fromRGB(255, 80, 80)
 end)
 
-showNotify("Script Loaded: SPTZYY BEAST", true)
+showNotify("Universal Beast Edition Ready!", true)
