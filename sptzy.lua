@@ -1,4 +1,4 @@
--- [[ SPTZYY ULTIMATE V7: FULL ACTION COMPACT ]] --
+-- [[ SPTZYY ULTIMATE V8: INFO EDITION ]] --
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
@@ -18,28 +18,31 @@ local spectateTarget = nil
 
 -- [[ UI SETUP ]] --
 local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
-ScreenGui.Name = "Sptzyy_V7_Full"
+ScreenGui.Name = "Sptzyy_V8_Info"
 
 local function showNotify(message, isSuccess)
     local notifyFrame = Instance.new("Frame", ScreenGui)
-    notifyFrame.Size = UDim2.new(0, 180, 0, 35)
+    notifyFrame.Size = UDim2.new(0, 200, 0, 45)
     notifyFrame.Position = UDim2.new(1, 10, 0.1, 0)
     notifyFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
     notifyFrame.BorderSizePixel = 0
     Instance.new("UICorner", notifyFrame)
     local stroke = Instance.new("UIStroke", notifyFrame)
-    stroke.Color = isSuccess and Color3.fromRGB(0, 255, 150) or Color3.fromRGB(255, 50, 50)
+    stroke.Color = isSuccess and Color3.fromRGB(0, 200, 255) or Color3.fromRGB(255, 50, 50)
+    stroke.Thickness = 1.5
     
     local text = Instance.new("TextLabel", notifyFrame)
-    text.Size = UDim2.new(1, 0, 1, 0)
+    text.Size = UDim2.new(1, -10, 1, 0)
+    text.Position = UDim2.new(0, 5, 0, 0)
     text.BackgroundTransparency = 1
     text.Text = message
     text.TextColor3 = Color3.new(1, 1, 1)
     text.Font = Enum.Font.GothamBold
     text.TextSize = 10
+    text.TextWrapped = true
 
-    notifyFrame:TweenPosition(UDim2.new(1, -190, 0.1, 0), "Out", "Back", 0.5)
-    task.delay(2, function()
+    notifyFrame:TweenPosition(UDim2.new(1, -210, 0.1, 0), "Out", "Back", 0.5)
+    task.delay(3, function()
         if notifyFrame then
             notifyFrame:TweenPosition(UDim2.new(1, 10, 0.1, 0), "In", "Quad", 0.5)
             task.wait(0.5)
@@ -90,7 +93,7 @@ mainStroke.Thickness = 2
 
 local Title = Instance.new("TextLabel", MainFrame)
 Title.Size = UDim2.new(1, 0, 0, 35)
-Title.Text = "SPTZYY UTILITY V7"
+Title.Text = "SPTZYY UTILITY V8"
 Title.TextColor3 = Color3.new(1, 1, 1)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 12
@@ -132,7 +135,7 @@ PlayerPage.ScrollBarImageColor3 = Color3.fromRGB(0, 200, 255)
 local layout = Instance.new("UIListLayout", PlayerPage)
 layout.Padding = UDim.new(0, 6)
 
--- Magnet Control
+-- Magnet Button
 local StatusBtn = Instance.new("TextButton", MagnetPage)
 StatusBtn.Size = UDim2.new(1, 0, 0, 45)
 StatusBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 255)
@@ -141,7 +144,7 @@ StatusBtn.Font = Enum.Font.GothamBold
 StatusBtn.TextColor3 = Color3.new(1,1,1)
 Instance.new("UICorner", StatusBtn)
 
--- Player List Logic
+-- [[ PLAYER LIST WITH INFO ]] --
 local function refreshList()
     for _, c in pairs(PlayerPage:GetChildren()) do if c:IsA("Frame") then c:Destroy() end end
     for _, target in pairs(Players:GetPlayers()) do
@@ -168,7 +171,6 @@ local function refreshList()
             name.TextXAlignment = Enum.TextXAlignment.Left
             name.BackgroundTransparency = 1
 
-            -- Button Row
             local btnRow = Instance.new("Frame", pFrame)
             btnRow.Size = UDim2.new(0, 120, 0, 25)
             btnRow.Position = UDim2.new(1, -125, 0.5, -12)
@@ -187,40 +189,46 @@ local function refreshList()
                 b.MouseButton1Click:Connect(func)
             end
 
+            -- TP ACTION
             addBtn("TP", 0, Color3.fromRGB(0, 120, 255), function()
                 if target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
                     lp.Character.HumanoidRootPart.CFrame = target.Character.HumanoidRootPart.CFrame
-                    showNotify("TP Berhasil!", true)
+                    showNotify("Teleported to " .. target.DisplayName, true)
                 end
             end)
             
+            -- VIEW ACTION
             addBtn("VIEW", 40, Color3.fromRGB(80, 80, 80), function()
                 if isSpectating and spectateTarget == target then
                     Camera.CameraSubject = lp.Character.Humanoid
                     isSpectating = false
-                    showNotify("View Off", false)
+                    showNotify("View: OFF", false)
                 else
-                    Camera.CameraSubject = target.Character.Humanoid
-                    isSpectating = true
-                    spectateTarget = target
-                    showNotify("Viewing: " .. target.DisplayName, true)
+                    if target.Character and target.Character:FindFirstChild("Humanoid") then
+                        Camera.CameraSubject = target.Character.Humanoid
+                        isSpectating = true
+                        spectateTarget = target
+                        showNotify("Viewing: " .. target.DisplayName, true)
+                    end
                 end
             end)
 
-            addBtn("MSG", 80, Color3.fromRGB(0, 180, 100), function()
-                showNotify("Whisper target: " .. target.Name, true)
-                print("/w " .. target.Name) -- Membantu trigger jika dibutuhkan manual
+            -- INFO ACTION (REPLACED MSG)
+            addBtn("INFO", 80, Color3.fromRGB(150, 0, 255), function()
+                local accountAge = target.AccountAge
+                local userId = target.UserId
+                showNotify("ID: " .. userId .. " | Umur Akun: " .. accountAge .. " Hari", true)
             end)
         end
     end
     PlayerPage.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 10)
 end
 
--- Tabs
+-- Tab Logic
 Tab1.MouseButton1Click:Connect(function() MagnetPage.Visible = true; PlayerPage.Visible = false end)
 Tab2.MouseButton1Click:Connect(function() MagnetPage.Visible = false; PlayerPage.Visible = true; refreshList() end)
 
--- Interaction
+-- Drag System
 local function drag(obj)
     local d, s, ds
     obj.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then d = true; s = obj.Position; ds = i.Position end end)
@@ -236,4 +244,4 @@ StatusBtn.MouseButton1Click:Connect(function()
     StatusBtn.BackgroundColor3 = botActive and Color3.fromRGB(0, 200, 255) or Color3.fromRGB(200, 50, 50)
 end)
 
-showNotify("Sptzyy V7 Final Ready!", true)
+showNotify("Sptzyy V8 Loaded! (TP/VIEW/INFO)", true)
