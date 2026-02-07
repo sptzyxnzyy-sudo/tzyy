@@ -37,16 +37,30 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
--- [[ FUNGSI MORPH ]] --
+-- [[ FUNGSI MORPH GLOBAL ]] --
 local function morphToPlayer(targetPlayer)
     if targetPlayer and targetPlayer.Character then
         local myChar = lp.Character
-        if myChar and myChar:FindFirstChildOfClass("Humanoid") then
+        local humanoid = myChar and myChar:FindFirstChildOfClass("Humanoid")
+        
+        if humanoid then
+            -- Ambil Deskripsi Avatar Target
             local success, description = pcall(function()
                 return Players:GetHumanoidDescriptionFromUserId(targetPlayer.UserId)
             end)
+            
             if success and description then
-                myChar:FindFirstChildOfClass("Humanoid"):ApplyDescription(description)
+                -- BERFUNGSI SEMUA PEMAIN: ApplyDescription mereplikasi ke Server
+                humanoid:ApplyDescription(description)
+                
+                -- Opsional: Reset Animasi agar sinkron
+                local animator = humanoid:FindFirstChildOfClass("Animator")
+                if animator then
+                    for _, track in pairs(animator:GetPlayingAnimationTracks()) do
+                        track:Stop()
+                    end
+                end
+                print("Berhasil menjadi: " .. targetPlayer.Name)
             end
         end
     end
@@ -62,8 +76,11 @@ IconButton.Size = UDim2.new(0, 50, 0, 50)
 IconButton.Position = UDim2.new(0.1, 0, 0.5, 0)
 IconButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 IconButton.Image = "rbxassetid://6031094678"
-local IconCorner = Instance.new("UICorner", IconButton, {CornerRadius = UDim.new(1,0)})
-local IconStroke = Instance.new("UIStroke", IconButton, {Color = Color3.fromRGB(0, 255, 150), Thickness = 2})
+local IconCorner = Instance.new("UICorner", IconButton)
+IconCorner.CornerRadius = UDim.new(1, 0)
+local IconStroke = Instance.new("UIStroke", IconButton)
+IconStroke.Color = Color3.fromRGB(0, 255, 150)
+IconStroke.Thickness = 2
 
 -- Main Frame
 local MainFrame = Instance.new("Frame", ScreenGui)
@@ -72,7 +89,9 @@ MainFrame.Position = UDim2.new(0.5, -125, 0.4, 0)
 MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 MainFrame.Visible = false
 Instance.new("UICorner", MainFrame)
-local MainStroke = Instance.new("UIStroke", MainFrame, {Color = Color3.fromRGB(0, 255, 150), Thickness = 2})
+local MainStroke = Instance.new("UIStroke", MainFrame)
+MainStroke.Color = Color3.fromRGB(0, 255, 150)
+MainStroke.Thickness = 2
 
 -- Tabs (Magnet vs Morph)
 local TabContainer = Instance.new("Frame", MainFrame)
@@ -136,7 +155,10 @@ local function updateList()
             local pIcon = Instance.new("ImageLabel", Item)
             pIcon.Size = UDim2.new(0, 35, 0, 35)
             pIcon.Position = UDim2.new(0, 5, 0, 5)
-            pIcon.Image = Players:GetUserThumbnailAsync(p.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size420x420)
+            -- Icon Preview
+            pcall(function()
+                pIcon.Image = Players:GetUserThumbnailAsync(p.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size420x420)
+            end)
             Instance.new("UICorner", pIcon, {CornerRadius = UDim.new(1,0)})
 
             local pName = Instance.new("TextLabel", Item)
@@ -149,14 +171,17 @@ local function updateList()
             pName.BackgroundTransparency = 1
 
             local mBtn = Instance.new("TextButton", Item)
-            mBtn.Size = UDim2.new(0, 60, 0, 30)
-            mBtn.Position = UDim2.new(1, -65, 0, 7.5)
-            mBtn.Text = "Copy"
+            mBtn.Size = UDim2.new(0, 70, 0, 30)
+            mBtn.Position = UDim2.new(1, -75, 0, 7.5)
+            mBtn.Text = "COPY"
             mBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
             mBtn.TextColor3 = Color3.new(1, 1, 1)
+            mBtn.Font = Enum.Font.GothamBold
             Instance.new("UICorner", mBtn)
 
-            mBtn.MouseButton1Click:Connect(function() morphToPlayer(p) end)
+            mBtn.MouseButton1Click:Connect(function() 
+                morphToPlayer(p) 
+            end)
         end
     end
     MorphFrame.CanvasSize = UDim2.new(0,0,0, UIList.AbsoluteContentSize.Y + 10)
@@ -174,7 +199,7 @@ TabMorph.MouseButton1Click:Connect(function()
     updateList()
 end)
 
--- Dragging & Toggle
+-- Dragging & Toggle Logic
 local function MakeDraggable(obj)
     local dragging, dragInput, dragStart, startPos
     obj.InputBegan:Connect(function(input)
