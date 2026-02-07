@@ -1,4 +1,4 @@
--- [[ SPTZYY ULTIMATE V11: WEBHOOK SCANNER & DAYLIGHT ]] --
+-- [[ SPTZYY ULTIMATE V12: ALL-IN-ONE FINAL ]] --
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
@@ -17,7 +17,7 @@ local walkSpeedValue = 16
 
 -- [[ UI SETUP ]] --
 local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
-ScreenGui.Name = "Sptzyy_V11_Final"
+ScreenGui.Name = "Sptzyy_V12_Final"
 
 local function showNotify(title, message, isSuccess)
     local notifyFrame = Instance.new("Frame", ScreenGui)
@@ -144,7 +144,7 @@ ScanPage.Position = UDim2.new(0, 10, 0, 55)
 ScanPage.BackgroundTransparency = 1
 ScanPage.Visible = false
 
--- [[ MAIN HACK CONTENT ]] --
+-- [[ TAB 1: MAIN HACK ]] --
 local StatusBtn = Instance.new("TextButton", MagnetPage)
 StatusBtn.Size = UDim2.new(1, 0, 0, 35)
 StatusBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 255)
@@ -189,7 +189,7 @@ SkyBtn.Font = Enum.Font.GothamBold
 SkyBtn.TextColor3 = Color3.new(0, 0, 0)
 Instance.new("UICorner", SkyBtn)
 
--- [[ SCANNER PAGE CONTENT ]] --
+-- [[ TAB 3: SCANNER PAGE ]] --
 local ScanActionBtn = Instance.new("TextButton", ScanPage)
 ScanActionBtn.Size = UDim2.new(1, 0, 0, 40)
 ScanActionBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
@@ -235,53 +235,45 @@ CopyBtn.TextColor3 = Color3.new(1, 1, 1)
 CopyBtn.Visible = false
 Instance.new("UICorner", CopyBtn)
 
--- [[ WEBHOOK SCAN LOGIC ]] --
+-- [[ LOGIC HANDLERS ]] --
 ScanActionBtn.MouseButton1Click:Connect(function()
     ScanActionBtn.Text = "SCANNING..."
     LoadingBarBack.Visible = true
     LoadingBarFill.Size = UDim2.new(0, 0, 1, 0)
-    ResultBox.Text = "Analyzing game scripts..."
+    ResultBox.Text = "Searching descendants..."
     
-    local foundWebhooks = {}
-    -- Simulasi Loading
+    local hooks = {}
     for i = 1, 100 do
         LoadingBarFill.Size = UDim2.new(i/100, 0, 1, 0)
-        task.wait(0.02)
-        if i == 30 then ResultBox.Text = "Searching in RemoteEvents..." 
-        elseif i == 60 then ResultBox.Text = "Checking HttpService calls..." 
-        elseif i == 90 then ResultBox.Text = "Decoding string patterns..." end
+        task.wait(0.015)
     end
     
-    -- Mencari Webhook Nyata (Jika ada di game)
     for _, v in pairs(game:GetDescendants()) do
-        if v:IsA("StringValue") or v:IsA("TextLabel") then
-            if v.Text:find("discord.com/api/webhooks") then
-                table.insert(foundWebhooks, v.Text)
-            end
-        end
+        pcall(function()
+            if v:IsA("StringValue") and v.Value:find("discord.com/api/webhooks") then table.insert(hooks, v.Value) end
+        end)
     end
 
-    if #foundWebhooks > 0 then
-        ResultBox.Text = table.concat(foundWebhooks, "\n")
+    if #hooks > 0 then
+        ResultBox.Text = table.concat(hooks, "\n")
         CopyBtn.Visible = true
-        showNotify("SCAN COMPLETE", "Found " .. #foundWebhooks .. " Webhooks!", true)
+        showNotify("SCAN COMPLETE", "Found " .. #hooks .. " Webhooks", true)
     else
-        ResultBox.Text = "No webhooks found in accessible game descendants."
-        showNotify("SCAN COMPLETE", "Clean! No webhooks detected.", false)
+        ResultBox.Text = "No webhooks found in reachable scripts."
+        showNotify("SCAN COMPLETE", "Zero Results", false)
     end
     ScanActionBtn.Text = "RE-SCAN"
 end)
 
 CopyBtn.MouseButton1Click:Connect(function()
     setclipboard(ResultBox.Text)
-    showNotify("COPIED", "Webhook copied to clipboard!", true)
+    showNotify("COPIED", "Results sent to clipboard", true)
 end)
 
--- [[ OTHER LOGIC ]] --
 SkyBtn.MouseButton1Click:Connect(function()
     Lighting.ClockTime = 14
     Lighting.Brightness = 2
-    showNotify("SKY CONTROL", "Force Daylight Active!", true)
+    showNotify("SKY", "Daylight Applied!", true)
 end)
 
 local function updateSlider(input)
@@ -292,12 +284,12 @@ local function updateSlider(input)
     SpeedLabel.Text = "WALKSPEED: " .. walkSpeedValue
 end
 
-local draggingSpeed = false
-SliderDot.InputBegan:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then draggingSpeed = true end end)
-UserInputService.InputChanged:Connect(function(input) if draggingSpeed and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then updateSlider(input) end end)
-UserInputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then draggingSpeed = false end end)
+local draggingS = false
+SliderDot.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then draggingS = true end end)
+UserInputService.InputChanged:Connect(function(i) if draggingS and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then updateSlider(i) end end)
+UserInputService.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then draggingS = false end end)
 
--- [[ PLAYER LIST ]] --
+-- [[ TAB 2: PLAYER LIST ]] --
 local function refreshList()
     for _, c in pairs(PlayerPage:GetChildren()) do if c:IsA("Frame") then c:Destroy() end end
     for _, target in pairs(Players:GetPlayers()) do
@@ -320,31 +312,27 @@ local function refreshList()
             name.Text = target.DisplayName
             name.TextColor3 = Color3.new(1,1,1)
             name.Font = Enum.Font.GothamBold
-            name.TextSize = 9
+            name.TextSize = 8
             name.TextXAlignment = Enum.TextXAlignment.Left
             name.BackgroundTransparency = 1
 
-            local br = Instance.new("Frame", pFrame)
-            br.Size = UDim2.new(0, 105, 0, 22)
-            br.Position = UDim2.new(1, -110, 0.5, -11)
-            br.BackgroundTransparency = 1
+            local row = Instance.new("Frame", pFrame)
+            row.Size = UDim2.new(0, 105, 0, 22)
+            row.Position = UDim2.new(1, -110, 0.5, -11)
+            row.BackgroundTransparency = 1
 
-            local function ab(t, x, c, f)
-                local b = Instance.new("TextButton", br)
+            local function bttn(t, x, c, f)
+                local b = Instance.new("TextButton", row)
                 b.Size = UDim2.new(0, 32, 1, 0)
                 b.Position = UDim2.new(0, x, 0, 0)
-                b.Text = t
-                b.BackgroundColor3 = c
-                b.TextColor3 = Color3.new(1,1,1)
-                b.Font = Enum.Font.GothamBold
-                b.TextSize = 7
-                Instance.new("UICorner", b)
+                b.Text = t; b.BackgroundColor3 = c; b.TextColor3 = Color3.new(1,1,1)
+                b.Font = Enum.Font.GothamBold; b.TextSize = 7; Instance.new("UICorner", b)
                 b.MouseButton1Click:Connect(f)
             end
 
-            ab("TP", 0, Color3.fromRGB(0, 120, 255), function() lp.Character.HumanoidRootPart.CFrame = target.Character.HumanoidRootPart.CFrame end)
-            ab("EYE", 35, Color3.fromRGB(80, 80, 80), function() Camera.CameraSubject = target.Character.Humanoid end)
-            ab("INF", 70, Color3.fromRGB(150, 0, 255), function() showNotify("PLAYER INFO", "Age: "..target.AccountAge.."d | ID: "..target.UserId, true) end)
+            bttn("TP", 0, Color3.fromRGB(0, 120, 255), function() pcall(function() lp.Character.HumanoidRootPart.CFrame = target.Character.HumanoidRootPart.CFrame end) end)
+            bttn("EYE", 35, Color3.fromRGB(60, 60, 60), function() Camera.CameraSubject = target.Character.Humanoid end)
+            bttn("INF", 70, Color3.fromRGB(150, 0, 255), function() showNotify("PLAYER INFO", "Age: "..target.AccountAge.."d | ID: "..target.UserId, true) end)
         end
     end
     PlayerPage.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 10)
@@ -355,6 +343,7 @@ Tab1.MouseButton1Click:Connect(function() MagnetPage.Visible = true; PlayerPage.
 Tab2.MouseButton1Click:Connect(function() MagnetPage.Visible = false; PlayerPage.Visible = true; ScanPage.Visible = false; refreshList() end)
 Tab3.MouseButton1Click:Connect(function() MagnetPage.Visible = false; PlayerPage.Visible = false; ScanPage.Visible = true end)
 
+-- Dragging
 local function drag(obj)
     local d, s, ds
     obj.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then d = true; s = obj.Position; ds = i.Position end end)
@@ -370,4 +359,4 @@ StatusBtn.MouseButton1Click:Connect(function()
     StatusBtn.BackgroundColor3 = botActive and Color3.fromRGB(0, 200, 255) or Color3.fromRGB(200, 50, 50)
 end)
 
-showNotify("SYSTEM ACTIVATED", "Welcome to Sptzyy V11 Final", true)
+showNotify("SPTZYY V12", "All Features Loaded Successfully!", true)
