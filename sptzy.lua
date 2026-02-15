@@ -1,45 +1,39 @@
--- [[ BEAST REQABLE PRO: CYBER EDITION V6 ]] --
+-- [[ BEAST ADMIN SIMULATOR: REAL-TIME MANIPULATION ]] --
 local HttpService = game:GetService("HttpService")
 local UserInputService = game:GetService("UserInputService")
 local Players = game:GetService("Players")
 local CoreGui = game:GetService("CoreGui")
-local TweenService = game:GetService("TweenService")
 local lp = Players.LocalPlayer
 
--- [[ STATE MANAGEMENT ]] --
+-- [[ GLOBAL STATE ]] --
 local interceptedLogs = {}
-local selectedData = nil
-local isExecutingAll = false
+local selectedRemote = nil
+local isLooping = false
 local set_clipboard = setclipboard or tostring
 
--- [[ MODERN NOTIFICATION SYSTEM ]] --
-local function showNotify(msg, col)
-    local n = Instance.new("Frame", ScreenGui)
-    n.Size = UDim2.new(0, 250, 0, 40)
-    n.Position = UDim2.new(0.5, -125, -0.1, 0)
-    n.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+-- [[ NOTIFIKASI SYSTEM ]] --
+local function notify(msg, color)
+    local n = Instance.new("TextLabel", ScreenGui)
+    n.Size = UDim2.new(0, 250, 0, 35)
+    n.Position = UDim2.new(0.5, -125, 0.05, 0)
+    n.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+    n.TextColor3 = color or Color3.new(1,1,1)
+    n.Text = "SYSTEM: " .. msg
+    n.Font = Enum.Font.GothamBold
+    n.TextSize = 12
     Instance.new("UICorner", n)
-    local s = Instance.new("UIStroke", n)
-    s.Color = col or Color3.fromRGB(0, 255, 150)
-    s.Thickness = 2
-
-    local t = Instance.new("TextLabel", n)
-    t.Size = UDim2.new(1, 0, 1, 0)
-    t.Text = msg
-    t.TextColor3 = Color3.new(1,1,1)
-    t.Font = Enum.Font.GothamBold
-    t.TextSize = 12
-    t.BackgroundTransparency = 1
-
-    n:TweenPosition(UDim2.new(0.5, -125, 0.05, 0), "Out", "Back", 0.4)
-    task.delay(2, function()
-        n:TweenPosition(UDim2.new(0.5, -125, -0.1, 0), "In", "Back", 0.4)
-        task.wait(0.5)
+    Instance.new("UIStroke", n).Color = color or Color3.new(1,1,1)
+    
+    task.spawn(function()
+        n:TweenPosition(UDim2.new(0.5, -125, 0.1, 0), "Out", "Back", 0.3)
+        task.wait(2)
+        n:TweenPosition(UDim2.new(0.5, -125, -0.1, 0), "In", "Back", 0.3)
+        task.wait(0.3)
         n:Destroy()
     end)
 end
 
--- [[ CORE ENGINE: UNIVERSAL HOOK ]] --
+-- [[ UNIVERSAL SNIFFER ENGINE ]] --
 local mt = getrawmetatable(game)
 local oldNamecall = mt.__namecall
 setreadonly(mt, false)
@@ -47,197 +41,152 @@ setreadonly(mt, false)
 mt.__namecall = newcclosure(function(self, ...)
     local method = getnamecallmethod()
     local args = {...}
-    
     if (method == "FireServer" or method == "InvokeServer") then
-        local rawData = HttpService:JSONEncode(args)
-        -- Anti Duplikasi Log Sederhana
-        if #interceptedLogs == 0 or interceptedLogs[1].RawJSON ~= rawData then
-            table.insert(interceptedLogs, 1, {
-                Obj = self,
-                Name = tostring(self),
-                Method = method,
-                Args = args,
-                RawJSON = rawData
-            })
-            if #interceptedLogs > 30 then table.remove(interceptedLogs, 31) end
+        local raw = HttpService:JSONEncode(args)
+        if #interceptedLogs == 0 or interceptedLogs[1].Raw ~= raw then
+            table.insert(interceptedLogs, 1, {Obj = self, Name = tostring(self), Raw = raw, Args = args})
+            if #interceptedLogs > 25 then table.remove(interceptedLogs, 26) end
         end
     end
     return oldNamecall(self, ...)
 end)
 setreadonly(mt, true)
 
--- [[ UI CONSTRUCTION ]] --
+-- [[ UI DESIGN: NEON ADMIN PANEL ]] --
 local ScreenGui = Instance.new("ScreenGui", CoreGui)
-local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Size = UDim2.new(0, 380, 0, 520)
-MainFrame.Position = UDim2.new(0.5, -190, 0.2, 0)
-MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
-MainFrame.Visible = false
-Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
-local MainStroke = Instance.new("UIStroke", MainFrame)
-MainStroke.Color = Color3.fromRGB(40, 40, 40)
-MainStroke.Thickness = 2
+local Main = Instance.new("Frame", ScreenGui)
+Main.Size = UDim2.new(0, 380, 0, 520)
+Main.Position = UDim2.new(0.5, -190, 0.2, 0)
+Main.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+Main.Visible = false
+Instance.new("UICorner", Main)
+local Stroke = Instance.new("UIStroke", Main)
+Stroke.Color = Color3.fromRGB(0, 255, 150)
+Stroke.Thickness = 2
 
--- Neon Title
-local Title = Instance.new("TextLabel", MainFrame)
-Title.Size = UDim2.new(1, 0, 0, 50)
-Title.Text = "BEAST REQABLE X-PRO"
+local Title = Instance.new("TextLabel", Main)
+Title.Size = UDim2.new(1, 0, 0, 45)
+Title.Text = "ADMIN MANIPULATOR v7"
 Title.TextColor3 = Color3.fromRGB(0, 255, 150)
 Title.Font = Enum.Font.GothamBold
-Title.TextSize = 18
+Title.TextSize = 16
 Title.BackgroundTransparency = 1
 
--- [[ PANEL 1: CONSOLE PROSES (TOP) ]] --
-local ConsoleProses = Instance.new("Frame", MainFrame)
-ConsoleProses.Size = UDim2.new(0.92, 0, 0, 200)
-ConsoleProses.Position = UDim2.new(0.04, 0, 0.1, 0)
-ConsoleProses.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
-Instance.new("UICorner", ConsoleProses)
+--- [[ PANEL: CONSOLE PROSES ]] ---
+local ProcFrame = Instance.new("Frame", Main)
+ProcFrame.Size = UDim2.new(0.92, 0, 0, 180)
+ProcFrame.Position = UDim2.new(0.04, 0, 0.1, 0)
+ProcFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+Instance.new("UICorner", ProcFrame)
 
-local SelectedInfo = Instance.new("TextLabel", ConsoleProses)
-SelectedInfo.Size = UDim2.new(0.9, 0, 0, 30)
-SelectedInfo.Position = UDim2.new(0.05, 0, 0.05, 0)
-SelectedInfo.Text = "STATUS: WAITING FOR SCAN..."
-SelectedInfo.TextColor3 = Color3.fromRGB(100, 100, 100)
-SelectedInfo.Font = Enum.Font.Code
-SelectedInfo.TextXAlignment = Enum.TextXAlignment.Left
-SelectedInfo.BackgroundTransparency = 1
+local TargetTxt = Instance.new("TextLabel", ProcFrame)
+TargetTxt.Size = UDim2.new(0.9, 0, 0, 25)
+TargetTxt.Position = UDim2.new(0.05, 0, 0.05, 0)
+TargetTxt.Text = "SELECT REMOTE FROM SCANNER"
+TargetTxt.TextColor3 = Color3.fromRGB(255, 255, 255)
+TargetTxt.Font = Enum.Font.Code
+TargetTxt.BackgroundTransparency = 1
 
-local EditorBox = Instance.new("TextBox", ConsoleProses)
-EditorBox.Size = UDim2.new(0.9, 0, 0, 80)
-EditorBox.Position = UDim2.new(0.05, 0, 0.22, 0)
-EditorBox.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
-EditorBox.TextColor3 = Color3.fromRGB(0, 255, 150)
-EditorBox.Text = ""
-EditorBox.PlaceholderText = "-- Data Editor --"
-EditorBox.TextWrapped = true
-EditorBox.Font = Enum.Font.Code
-EditorBox.TextSize = 12
-Instance.new("UICorner", EditorBox)
+local Editor = Instance.new("TextBox", ProcFrame)
+Editor.Size = UDim2.new(0.9, 0, 0, 65)
+Editor.Position = UDim2.new(0.05, 0, 0.25, 0)
+Editor.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+Editor.TextColor3 = Color3.fromRGB(0, 255, 150)
+Editor.Text = ""
+Editor.PlaceholderText = "Data JSON..."
+Editor.TextWrapped = true
+Editor.Font = Enum.Font.Code
+Instance.new("UICorner", Editor)
 
--- Buttons Creator
-local function createBtn(txt, pos, color, cb)
-    local b = Instance.new("TextButton", ConsoleProses)
-    b.Size = UDim2.new(0.44, 0, 0, 40)
-    b.Position = pos
-    b.BackgroundColor3 = color
-    b.Text = txt
+local function btn(t, p, c, cb)
+    local b = Instance.new("TextButton", ProcFrame)
+    b.Size = UDim2.new(0.44, 0, 0, 35)
+    b.Position = p
+    b.BackgroundColor3 = c
+    b.Text = t
     b.TextColor3 = Color3.new(1,1,1)
     b.Font = Enum.Font.GothamBold
-    b.TextSize = 12
+    b.TextSize = 11
     Instance.new("UICorner", b)
-    b.MouseButton1Click:Connect(function() cb(b) end)
+    b.MouseButton1Click:Connect(cb)
     return b
 end
 
-createBtn("FIRE ONCE", UDim2.new(0.05, 0, 0.72, 0), Color3.fromRGB(0, 100, 255), function()
-    if not selectedData then showNotify("ERR: NO DATA SELECTED", Color3.fromRGB(255, 50, 50)) return end
-    local success, args = pcall(function() return HttpService:JSONDecode(EditorBox.Text) end)
+btn("FORCE FIRE", UDim2.new(0.05, 0, 0.7, 0), Color3.fromRGB(0, 120, 255), function()
+    if not selectedRemote then notify("PILIH REMOTE!", Color3.new(1,0,0)) return end
+    local success, args = pcall(function() return HttpService:JSONDecode(Editor.Text) end)
     if success then
-        pcall(function()
-            if selectedData.Obj:IsA("RemoteEvent") then selectedData.Obj:FireServer(unpack(args))
-            else selectedData.Obj:InvokeServer(unpack(args)) end
-        end)
-        showNotify("SUCCESS: EXECUTED", Color3.fromRGB(0, 255, 100))
-    else
-        showNotify("ERR: INVALID JSON", Color3.fromRGB(255, 50, 50))
+        selectedRemote:FireServer(unpack(args))
+        notify("EXECUTED!", Color3.new(0,1,0))
     end
 end)
 
-createBtn("EXEC ALL", UDim2.new(0.51, 0, 0.72, 0), Color3.fromRGB(255, 50, 50), function(b)
-    if not selectedData then showNotify("ERR: NO DATA SELECTED", Color3.fromRGB(255, 50, 50)) return end
-    isExecutingAll = not isExecutingAll
-    b.Text = isExecutingAll and "STOPPING..." or "EXEC ALL"
-    b.BackgroundColor3 = isExecutingAll and Color3.fromRGB(50, 50, 50) or Color3.fromRGB(255, 50, 50)
+btn("ADMIN: ALL PLAYERS", UDim2.new(0.51, 0, 0.7, 0), Color3.fromRGB(150, 0, 0), function()
+    if not selectedRemote then notify("PILIH REMOTE!", Color3.new(1,0,0)) return end
+    isLooping = not isLooping
+    notify(isLooping and "MASS EXECUTION START" or "STOPPED", Color3.new(1,1,1))
     
-    if isExecutingAll then
-        showNotify("STARTING UNIVERSAL MASS EXEC...", Color3.fromRGB(0, 200, 255))
-        task.spawn(function()
-            while isExecutingAll do
-                local _, currentArgs = pcall(function() return HttpService:JSONDecode(EditorBox.Text) end)
-                for _, p in pairs(Players:GetPlayers()) do
-                    if p ~= lp then
-                        pcall(function() selectedData.Obj:FireServer(p, unpack(currentArgs)) end)
-                    end
-                end
-                task.wait(0.4)
+    task.spawn(function()
+        while isLooping do
+            local _, data = pcall(function() return HttpService:JSONDecode(Editor.Text) end)
+            for _, p in pairs(Players:GetPlayers()) do
+                if p ~= lp then pcall(function() selectedRemote:FireServer(p, unpack(data)) end) end
             end
-        end)
-    end
+            task.wait(0.5)
+        end
+    end)
 end)
 
--- [[ PANEL 2: CONSOLE SCAN (BOTTOM) ]] --
-local ScanTitle = Instance.new("TextLabel", MainFrame)
-ScanTitle.Size = UDim2.new(1, 0, 0, 30)
-ScanTitle.Position = UDim2.new(0, 0, 0.5, 0)
-ScanTitle.Text = "📡 LIVE TRAFFIC SCANNER"
-ScanTitle.TextColor3 = Color3.fromRGB(80, 80, 80)
-ScanTitle.Font = Enum.Font.GothamMedium
-ScanTitle.TextSize = 12
-ScanTitle.BackgroundTransparency = 1
-
-local LogScroll = Instance.new("ScrollingFrame", MainFrame)
-LogScroll.Size = UDim2.new(0.92, 0, 0, 210)
-LogScroll.Position = UDim2.new(0.04, 0, 0.56, 0)
+--- [[ PANEL: CONSOLE SCAN ]] ---
+local LogScroll = Instance.new("ScrollingFrame", Main)
+LogScroll.Size = UDim2.new(0.92, 0, 0, 220)
+LogScroll.Position = UDim2.new(0.04, 0, 0.52, 0)
 LogScroll.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
-LogScroll.BorderSizePixel = 0
 LogScroll.ScrollBarThickness = 2
-local LogLayout = Instance.new("UIListLayout", LogScroll)
-LogLayout.Padding = UDim.new(0, 5)
+local Layout = Instance.new("UIListLayout", LogScroll)
+Layout.Padding = UDim.new(0, 5)
 
-local function refreshScanUI()
+local function updateLogs()
     for _, v in pairs(LogScroll:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end
     for _, log in pairs(interceptedLogs) do
-        local btn = Instance.new("TextButton", LogScroll)
-        btn.Size = UDim2.new(1, -10, 0, 50)
-        btn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-        btn.Text = " ⚡ [" .. log.Method:sub(1,4) .. "] " .. log.Name .. "\n Args: " .. log.RawJSON
-        btn.TextColor3 = Color3.fromRGB(0, 255, 150)
-        btn.Font = Enum.Font.Code
-        btn.TextSize = 10
-        btn.TextXAlignment = Enum.TextXAlignment.Left
-        btn.TextWrapped = true
-        Instance.new("UICorner", btn)
-        
-        btn.MouseButton1Click:Connect(function()
-            selectedData = log
-            SelectedInfo.Text = "SYNCED: " .. log.Name
-            SelectedInfo.TextColor3 = Color3.fromRGB(0, 255, 150)
-            EditorBox.Text = log.RawJSON
-            set_clipboard(log.RawJSON)
-            showNotify("PATH SYNCED & COPIED", Color3.fromRGB(0, 150, 255))
-            
-            -- Visual click effect
-            btn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-            task.wait(0.2)
-            btn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+        local b = Instance.new("TextButton", LogScroll)
+        b.Size = UDim2.new(1, -10, 0, 45)
+        b.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+        b.Text = " [" .. log.Name .. "]\n Data: " .. log.Raw
+        b.TextColor3 = Color3.fromRGB(0, 255, 150)
+        b.TextSize = 9
+        b.Font = Enum.Font.Code
+        b.TextXAlignment = Enum.TextXAlignment.Left
+        Instance.new("UICorner", b)
+        b.MouseButton1Click:Connect(function()
+            selectedRemote = log.Obj
+            TargetTxt.Text = "SYNCED: " .. log.Name
+            Editor.Text = log.Raw
+            set_clipboard(log.Raw)
+            notify("PATH CAPTURED", Color3.fromRGB(0, 200, 255))
         end)
     end
-    LogScroll.CanvasSize = UDim2.new(0, 0, 0, LogLayout.AbsoluteContentSize.Y)
+    LogScroll.CanvasSize = UDim2.new(0, 0, 0, Layout.AbsoluteContentSize.Y)
 end
 
-task.spawn(function() while task.wait(1.5) do if MainFrame.Visible then refreshScanUI() end end end)
+task.spawn(function() while task.wait(1.5) do if Main.Visible then updateLogs() end end end)
 
--- [[ FLOATING ICON & DRAG ]] --
+-- [[ FLOATING TOGGLE ]] --
 local Icon = Instance.new("ImageButton", ScreenGui)
-Icon.Size = UDim2.new(0, 60, 0, 60)
+Icon.Size = UDim2.new(0, 55, 0, 55)
 Icon.Position = UDim2.new(0.05, 0, 0.45, 0)
 Icon.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 Icon.Image = "rbxassetid://6031094678"
 Instance.new("UICorner", Icon).CornerRadius = UDim.new(1,0)
-local IconStroke = Instance.new("UIStroke", Icon)
-IconStroke.Color = Color3.fromRGB(0, 255, 150)
-IconStroke.Thickness = 3
+local iStroke = Instance.new("UIStroke", Icon)
+iStroke.Color = Color3.fromRGB(0, 255, 150)
+iStroke.Thickness = 3
 
-Icon.MouseButton1Click:Connect(function()
-    MainFrame.Visible = not MainFrame.Visible
-    IconStroke.Color = MainFrame.Visible and Color3.fromRGB(255, 50, 50) or Color3.fromRGB(0, 255, 150)
-end)
-
-local function makeDraggable(obj)
-    local dragging, input, startPos, startObjPos
-    obj.InputBegan:Connect(function(inp) if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then dragging = true; input = inp; startPos = inp.Position; startObjPos = obj.Position end end)
-    obj.InputChanged:Connect(function(inp) if dragging and (inp.UserInputType == Enum.UserInputType.MouseMovement or inp.UserInputType == Enum.UserInputType.Touch) then local delta = inp.Position - startPos; obj.Position = UDim2.new(startObjPos.X.Scale, startObjPos.X.Offset + delta.X, startObjPos.Y.Scale, startObjPos.Y.Offset + delta.Y) end end)
-    UserInputService.InputEnded:Connect(function(inp) if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then dragging = false end end)
+Icon.MouseButton1Click:Connect(function() Main.Visible = not Main.Visible end)
+local function drag(o)
+    local s, i, sp
+    o.InputBegan:Connect(function(inp) if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then s = true; i = inp.Position; sp = o.Position end end)
+    o.InputChanged:Connect(function(inp) if s and (inp.UserInputType == Enum.UserInputType.MouseMovement or inp.UserInputType == Enum.UserInputType.Touch) then local d = inp.Position - i; o.Position = UDim2.new(sp.X.Scale, sp.X.Offset + d.X, sp.Y.Scale, sp.Y.Offset + d.Y) end end)
+    UserInputService.InputEnded:Connect(function(inp) if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then s = false end end)
 end
-makeDraggable(Icon); makeDraggable(MainFrame)
+drag(Icon); drag(Main)
