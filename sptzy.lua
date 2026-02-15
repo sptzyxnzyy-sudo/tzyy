@@ -1,87 +1,76 @@
--- [[ BEAST BRUTAL EXECUTOR: SERVER TERMINATOR MODE ]] --
-local HttpService = game:GetService("HttpService")
-local UserInputService = game:GetService("UserInputService")
-local Players = game:GetService("Players")
-local CoreGui = game:GetService("CoreGui")
+-- [[ BEAST TERMINATOR: MAP DESTRUCTION + LIVE ANIMATION ]] --
 local RunService = game:GetService("RunService")
-local lp = Players.LocalPlayer
+local UserInputService = game:GetService("UserInputService")
+local CoreGui = game:GetService("CoreGui")
+local lp = game:GetService("Players").LocalPlayer
 
--- [[ STATE MANAGEMENT ]] --
-local selectedRemote = nil
-local targetData = "{}"
-local brutalActive = false
-local shutdownActive = false
+local isDestroying = false
+local currentProcess = "IDLE"
 
--- [[ NOTIFIKASI SYSTEM ]] --
-local function notify(msg, col)
-    local n = Instance.new("TextLabel", ScreenGui)
-    n.Size = UDim2.new(0, 280, 0, 40)
-    n.Position = UDim2.new(0.5, -140, -0.1, 0)
-    n.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
-    n.TextColor3 = col or Color3.new(1,1,1)
-    n.Text = "⚠️ " .. msg:upper()
-    n.Font = Enum.Font.GothamBold
-    n.TextSize = 12
-    Instance.new("UICorner", n)
-    Instance.new("UIStroke", n).Color = col or Color3.new(1,1,1)
-    
-    n:TweenPosition(UDim2.new(0.5, -140, 0.08, 0), "Out", "Back", 0.3)
-    task.delay(3, function()
-        if n then
-            n:TweenPosition(UDim2.new(0.5, -140, -0.1, 0), "In", "Back", 0.3)
-            task.wait(0.5)
-            n:Destroy()
-        end
-    end)
-end
-
--- [[ SNIFFER: CAPTURE ONLY ]] --
--- Digunakan hanya untuk menangkap target yang akan dihancurkan
-local mt = getrawmetatable(game)
-local oldNamecall = mt.__namecall
-setreadonly(mt, false)
-mt.__namecall = newcclosure(function(self, ...)
-    local method = getnamecallmethod()
-    local args = {...}
-    if (method == "FireServer" or method == "InvokeServer") then
-        selectedRemote = self
-        targetData = HttpService:JSONEncode(args)
-    end
-    return oldNamecall(self, ...)
-end)
-setreadonly(mt, true)
-
--- [[ UI CONSTRUCTION: AGGRESSIVE RED ]] --
+-- [[ UI CONSTRUCTION: CYBER DESTRUCTION ]] --
 local ScreenGui = Instance.new("ScreenGui", CoreGui)
 local Main = Instance.new("Frame", ScreenGui)
-Main.Size = UDim2.new(0, 350, 0, 400)
-Main.Position = UDim2.new(0.5, -175, 0.3, 0)
-Main.BackgroundColor3 = Color3.fromRGB(15, 0, 0)
+Main.Size = UDim2.new(0, 360, 0, 480)
+Main.Position = UDim2.new(0.5, -180, 0.25, 0)
+Main.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
 Main.Visible = false
 Instance.new("UICorner", Main)
-local MainStroke = Instance.new("UIStroke", Main)
-MainStroke.Color = Color3.fromRGB(255, 0, 0)
-MainStroke.Thickness = 3
+local Stroke = Instance.new("UIStroke", Main)
+Stroke.Color = Color3.fromRGB(255, 0, 0)
+Stroke.Thickness = 2
 
-local Title = Instance.new("TextLabel", Main)
-Title.Size = UDim2.new(1, 0, 0, 50)
-Title.Text = "SERBER TERMINATOR V1"
-Title.TextColor3 = Color3.fromRGB(255, 0, 0)
-Title.Font = Enum.Font.GothamBold
-Title.TextSize = 20
-Title.BackgroundTransparency = 1
+-- [[ ANIMATED LOADING PANEL ]] --
+local TerminalFrame = Instance.new("Frame", Main)
+TerminalFrame.Size = UDim2.new(0.9, 0, 0, 100)
+TerminalFrame.Position = UDim2.new(0.05, 0, 0.12, 0)
+TerminalFrame.BackgroundColor3 = Color3.fromRGB(15, 0, 0)
+Instance.new("UICorner", TerminalFrame)
 
--- DISPLAY CAPTURED
-local TargetLabel = Instance.new("TextLabel", Main)
-TargetLabel.Size = UDim2.new(0.9, 0, 0, 30)
-TargetLabel.Position = UDim2.new(0.05, 0, 0.15, 0)
-TargetLabel.Text = "CAPTURE STATUS: WAITING..."
-TargetLabel.TextColor3 = Color3.new(1, 1, 1)
-TargetLabel.Font = Enum.Font.Code
-TargetLabel.BackgroundTransparency = 1
+local LogLabel = Instance.new("TextLabel", TerminalFrame)
+LogLabel.Size = UDim2.new(1, -20, 0, 60)
+LogLabel.Position = UDim2.new(0, 10, 0, 10)
+LogLabel.Text = "> SYSTEM READY\n> WAITING FOR COMMAND..."
+LogLabel.TextColor3 = Color3.fromRGB(255, 50, 50)
+LogLabel.Font = Enum.Font.Code
+LogLabel.TextSize = 12
+LogLabel.TextXAlignment = Enum.TextXAlignment.Left
+LogLabel.BackgroundTransparency = 1
 
--- [[ BRUTAL CONTROLS ]] --
-local function createBrutalBtn(txt, pos, color, cb)
+local LoadingBarBack = Instance.new("Frame", TerminalFrame)
+LoadingBarBack.Size = UDim2.new(0.9, 0, 0, 10)
+LoadingBarBack.Position = UDim2.new(0.05, 0, 0.75, 0)
+LoadingBarBack.BackgroundColor3 = Color3.fromRGB(40, 0, 0)
+Instance.new("UICorner", LoadingBarBack)
+
+local LoadingBarFront = Instance.new("Frame", LoadingBarBack)
+LoadingBarFront.Size = UDim2.new(0, 0, 1, 0)
+LoadingBarFront.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+Instance.new("UICorner", LoadingBarFront)
+
+-- [[ ANIMATION LOGIC ]] --
+task.spawn(function()
+    local frames = {"/", "-", "\\", "|"}
+    local count = 0
+    while true do
+        if isDestroying then
+            count = count + 1
+            local char = frames[count % #frames + 1]
+            LogLabel.Text = "> EXECUTING: " .. currentProcess .. " " .. char .. "\n> INJECTING PACKETS TO MAP...\n> SERVER RESPONSE: LAG_DETECTED"
+            
+            -- Loading Bar Loop
+            LoadingBarFront:TweenSize(UDim2.new(1, 0, 1, 0), "Out", "Linear", 0.8)
+            task.wait(0.8)
+            LoadingBarFront.Size = UDim2.new(0, 0, 1, 0)
+        else
+            LogLabel.Text = "> SYSTEM IDLE\n> READY TO TERMINATE"
+            LoadingBarFront.Size = UDim2.new(0, 0, 1, 0)
+            task.wait(0.5)
+        end
+    end
+end)
+
+-- [[ ATTACK BUTTONS ]] --
+local function createBtn(txt, pos, color, func)
     local b = Instance.new("TextButton", Main)
     b.Size = UDim2.new(0.9, 0, 0, 50)
     b.Position = pos
@@ -91,81 +80,58 @@ local function createBrutalBtn(txt, pos, color, cb)
     b.Font = Enum.Font.GothamBold
     b.TextSize = 14
     Instance.new("UICorner", b)
-    b.MouseButton1Click:Connect(function() cb(b) end)
+    b.MouseButton1Click:Connect(func)
     return b
 end
 
--- 1. FIRE BRUTAL (MASSIVE PACKET)
-createBrutalBtn("FIRE BRUTAL (LOOP)", UDim2.new(0.05, 0, 0.3, 0), Color3.fromRGB(80, 0, 0), function(b)
-    if not selectedRemote then notify("CAPTURE REMOTE DULU!", Color3.new(1,0,0)) return end
-    brutalActive = not brutalActive
-    b.Text = brutalActive and "BRUTAL ACTIVE (RUNNING)" or "FIRE BRUTAL (LOOP)"
-    b.BackgroundColor3 = brutalActive and Color3.fromRGB(255, 0, 0) or Color3.fromRGB(80, 0, 0)
-    
-    if brutalActive then
-        notify("BRUTAL MODE ENGAGED", Color3.new(1,0,0))
+createBtn("PHYSICS TERMINATOR (LAG)", UDim2.new(0.05, 0, 0.38, 0), Color3.fromRGB(100, 0, 0), function()
+    isDestroying = not isDestroying
+    currentProcess = "PHYSICS_OVERFLOW"
+    if isDestroying then
         task.spawn(function()
-            while brutalActive do
-                local args = HttpService:JSONDecode(targetData)
-                for i = 1, 50 do -- 50 paket per loop
-                    selectedRemote:FireServer(unpack(args))
-                end
+            while isDestroying do
+                local p = Instance.new("Part")
+                p.Size = Vector3.new(15, 15, 15)
+                p.Position = lp.Character.HumanoidRootPart.Position + Vector3.new(math.random(-100,100), 50, math.random(-100,100))
+                p.Velocity = Vector3.new(0, -5000, 0)
+                p.Parent = workspace
+                game:GetService("Debris"):AddItem(p, 0.3)
                 task.wait()
             end
         end)
     end
 end)
 
--- 2. SHUTDOWN SERVER (OVERFLOW)
-createBrutalBtn("SHUTDOWN SERVER (LAG)", UDim2.new(0.05, 0, 0.5, 0), Color3.fromRGB(40, 40, 40), function(b)
-    if not selectedRemote then notify("CAPTURE REMOTE DULU!", Color3.new(1,0,0)) return end
-    shutdownActive = not shutdownActive
-    b.Text = shutdownActive and "FREEZING SERVER..." or "SHUTDOWN SERVER (LAG)"
-    
-    if shutdownActive then
-        notify("SERVER CRASH ATTEMPT STARTED", Color3.fromRGB(255, 255, 0))
-        -- Logika Lag: Mengirim data yang sangat besar (string overflow)
-        local hugeData = string.rep("0", 100000) -- 100kb string
-        task.spawn(function()
-            while shutdownActive do
-                pcall(function()
-                    selectedRemote:FireServer(hugeData, hugeData, hugeData)
-                end)
-                RunService.Stepped:Wait()
-            end
-        end)
-    end
+createBtn("VOID MAP (BRIGHTNESS CRASH)", UDim2.new(0.05, 0, 0.52, 0), Color3.fromRGB(60, 0, 120), function()
+    currentProcess = "LIGHTING_VOID"
+    local l = game:GetService("Lighting")
+    l.Brightness = 0
+    l.ClockTime = 0
+    local c = Instance.new("ColorCorrectionEffect", l)
+    c.Saturation = -1
+    c.Contrast = 10
 end)
 
--- 3. RESET CAPTURE
-createBrutalBtn("RESET CAPTURE", UDim2.new(0.05, 0, 0.75, 0), Color3.fromRGB(20, 20, 20), function()
-    selectedRemote = nil
-    TargetLabel.Text = "CAPTURE STATUS: RESET"
-    notify("READY TO RE-CAPTURE", Color3.new(1,1,1))
-end)
-
--- UPDATE LOOP
-task.spawn(function()
-    while task.wait(0.5) do
-        if selectedRemote then
-            TargetLabel.Text = "TARGET: " .. tostring(selectedRemote)
-            TargetLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
-        end
-    end
+createBtn("STOP ALL PROCESS", UDim2.new(0.05, 0, 0.82, 0), Color3.fromRGB(30, 30, 30), function()
+    isDestroying = false
+    currentProcess = "CLEANING"
+    task.wait(1)
+    currentProcess = "IDLE"
 end)
 
 -- [[ ICON & DRAG ]] --
 local Icon = Instance.new("ImageButton", ScreenGui)
 Icon.Size = UDim2.new(0, 60, 0, 60)
-Icon.Position = UDim2.new(0.05, 0, 0.45, 0)
+Icon.Position = UDim2.new(0.05, 0, 0.4, 0)
 Icon.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-Icon.Image = "rbxassetid://6031094678" -- Gunakan icon monster/danger
+Icon.Image = "rbxassetid://6031094678"
 Instance.new("UICorner", Icon).CornerRadius = UDim.new(1,0)
 local iS = Instance.new("UIStroke", Icon)
 iS.Color = Color3.fromRGB(255, 0, 0)
 iS.Thickness = 4
 
 Icon.MouseButton1Click:Connect(function() Main.Visible = not Main.Visible end)
+
 local function drag(o)
     local s, i, sp
     o.InputBegan:Connect(function(inp) if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then s = true; i = inp.Position; sp = o.Position end end)
