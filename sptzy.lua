@@ -1,41 +1,73 @@
--- [[ SPTZYY PART CONTROLLER: BEAST MOBILE REQABLE PRO ]] --
+-- [[ SPTZYY PART CONTROLLER: BEAST REQABLE ULTIMATE ENGINE ]] --
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
-local set_clipboard = setclipboard or tostring -- Support berbagai executor mobile
+local HttpService = game:GetService("HttpService")
 local lp = Players.LocalPlayer
 
--- [[ SETTINGS ]] --
+-- [[ SETTINGS & TOGGLES ]] --
 local botActive = true
 local loggerActive = true
+local breakpointActive = false
+local rewriteActive = false
+local mockActive = false
+
 local pullRadius = 180      
 local orbitHeight = 8      
 local orbitRadius = 10     
 local spinSpeed = 125        
 local followStrength = 200  
 
--- [[ REQABLE ENGINE: SNIFFER & COPY ]] --
+-- [[ REQABLE DATA STORAGE ]] --
 local interceptedLogs = {}
-local function addToLog(remoteName)
-    table.insert(interceptedLogs, 1, remoteName)
-    if #interceptedLogs > 25 then table.remove(interceptedLogs, 26) end
-end
+local rewriteRules = {} -- Format: { ["RemoteName"] = {newData} }
+local breakpointQueue = {}
 
--- Hooking Logic (The "Reqable" Part)
+-- Clipboard Support
+local set_clipboard = setclipboard or tostring
+
+-- [[ CORE REQABLE ENGINE: SNIFFER, REWRITE, MOCK, BREAKPOINT ]] --
 local mt = getrawmetatable(game)
 local oldNamecall = mt.__namecall
 setreadonly(mt, false)
 
 mt.__namecall = newcclosure(function(self, ...)
     local method = getnamecallmethod()
+    local args = {...}
+    local remoteName = tostring(self)
+
     if loggerActive and (method == "FireServer" or method == "InvokeServer") then
-        addToLog(tostring(self.Name))
+        -- 1. SNIFFER: Melihat Body/Args secara Real-time
+        local cleanArgs = {}
+        for i,v in pairs(args) do cleanArgs[i] = tostring(v) end
+        local dataString = HttpService:JSONEncode(cleanArgs)
+        
+        table.insert(interceptedLogs, 1, {Name = remoteName, Method = method, Data = dataString})
+        if #interceptedLogs > 20 then table.remove(interceptedLogs, 21) end
+
+        -- 2. REWRITE: Mengubah data sebelum dikirim
+        if rewriteActive and rewriteRules[remoteName] then
+            return oldNamecall(self, unpack(rewriteRules[remoteName]))
+        end
+
+        -- 3. MOCKING: Blokir kiriman asli, beri hasil palsu
+        if mockActive and rewriteRules[remoteName] then
+            return nil 
+        end
+
+        -- 4. BREAKPOINT: Tahan request (Logging ke Console untuk manual edit)
+        if breakpointActive then
+            warn("[BREAKPOINT] Intercepted: " .. remoteName .. " | Args: " .. dataString)
+            -- Di Mobile, ini akan melambatkan game sebagai tanda tertahan
+            wait(0.1) 
+        end
     end
+    
     return oldNamecall(self, ...)
 end)
 setreadonly(mt, true)
 
--- [[ LOGIKA PHYSICS ]] --
+-- [[ PHYSICS MAGNET LOGIC ]] --
 local angle = 0
 RunService.Heartbeat:Connect(function()
     if not botActive or not lp.Character or not lp.Character:FindFirstChild("HumanoidRootPart") then return end
@@ -48,136 +80,109 @@ RunService.Heartbeat:Connect(function()
             if (p.Position - root.Position).Magnitude <= pullRadius then
                 pcall(function() p:SetNetworkOwner(lp) end)
                 p.Velocity = (tPos - p.Position) * followStrength
-                p.RotVelocity = Vector3.new(0, 10, 0)
+                p.RotVelocity = Vector3.new(0, 15, 0)
             end
         end
     end
 end)
 
--- [[ UI SETUP: MOBILE PRO ]] --
+-- [[ UI SETUP: REQABLE PRO INTERFACE ]] --
 local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
 local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Size = UDim2.new(0, 260, 0, 320)
-MainFrame.Position = UDim2.new(0.5, -130, 0.2, 0)
-MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+MainFrame.Size = UDim2.new(0, 280, 0, 380)
+MainFrame.Position = UDim2.new(0.5, -140, 0.2, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
 MainFrame.Visible = false
 Instance.new("UICorner", MainFrame)
-local MainStroke = Instance.new("UIStroke", MainFrame)
-MainStroke.Color = Color3.fromRGB(45, 45, 45)
 
--- Floating Icon
-local Icon = Instance.new("ImageButton", ScreenGui)
-Icon.Size = UDim2.new(0, 50, 0, 50)
-Icon.Position = UDim2.new(0.05, 0, 0.4, 0)
-Icon.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-Icon.Image = "rbxassetid://6031094678"
-Instance.new("UICorner", Icon).CornerRadius = UDim.new(1,0)
-local IconStroke = Instance.new("UIStroke", Icon)
-IconStroke.Color = Color3.fromRGB(0, 255, 150)
-
--- UI Labels
 local Title = Instance.new("TextLabel", MainFrame)
-Title.Size = UDim2.new(1, 0, 0, 40)
-Title.Text = "BEAST MOBILE REQABLE"
-Title.TextColor3 = Color3.new(1,1,1)
+Title.Size = UDim2.new(1, 0, 0, 35)
+Title.Text = "SPTZYY BEAST REQABLE PRO"
+Title.TextColor3 = Color3.fromRGB(0, 255, 150)
 Title.Font = Enum.Font.GothamBold
 Title.BackgroundTransparency = 1
 
--- Log Container (Area Hasil Sniff)
 local LogScroll = Instance.new("ScrollingFrame", MainFrame)
-LogScroll.Size = UDim2.new(0.9, 0, 0, 140)
+LogScroll.Size = UDim2.new(0.9, 0, 0, 160)
 LogScroll.Position = UDim2.new(0.05, 0, 0.5, 0)
-LogScroll.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
-LogScroll.CanvasSize = UDim2.new(0, 0, 0, 0) -- Akan otomatis bertambah
-LogScroll.ScrollBarThickness = 2
+LogScroll.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
+LogScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
 local LogLayout = Instance.new("UIListLayout", LogScroll)
-LogLayout.Padding = UDim.new(0, 5)
+LogLayout.Padding = UDim.new(0, 4)
 
--- Fungsi Update UI Log & Copy
+-- Refresh UI Log
 local function updateLogUI()
-    for _, child in pairs(LogScroll:GetChildren()) do
-        if child:IsA("TextButton") then child:Destroy() end
-    end
-    
-    for _, name in pairs(interceptedLogs) do
-        local logBtn = Instance.new("TextButton", LogScroll)
-        logBtn.Size = UDim2.new(1, -10, 0, 25)
-        logBtn.BackgroundTransparency = 0.8
-        logBtn.BackgroundColor3 = Color3.fromRGB(0, 255, 150)
-        logBtn.Text = " " .. name
-        logBtn.TextColor3 = Color3.fromRGB(0, 255, 150)
-        logBtn.TextXAlignment = Enum.TextXAlignment.Left
-        logBtn.Font = Enum.Font.Code
-        logBtn.TextSize = 12
+    for _, child in pairs(LogScroll:GetChildren()) do if child:IsA("TextButton") then child:Destroy() end end
+    for _, log in pairs(interceptedLogs) do
+        local b = Instance.new("TextButton", LogScroll)
+        b.Size = UDim2.new(1, -5, 0, 40)
+        b.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+        b.Text = " ["..log.Method.."] "..log.Name.."\n Data: "..log.Data
+        b.TextColor3 = Color3.fromRGB(200, 200, 200)
+        b.TextSize = 10
+        b.Font = Enum.Font.Code
+        b.TextXAlignment = Enum.TextXAlignment.Left
+        Instance.new("UICorner", b)
         
-        logBtn.MouseButton1Click:Connect(function()
-            set_clipboard(name)
-            logBtn.Text = " COPIED!"
-            wait(0.5)
-            logBtn.Text = " " .. name
+        b.MouseButton1Click:Connect(function()
+            set_clipboard(log.Name .. " | Data: " .. log.Data)
+            local old = b.Text
+            b.Text = " [!] DATA COPIED TO CLIPBOARD"
+            wait(0.7)
+            b.Text = old
         end)
     end
     LogScroll.CanvasSize = UDim2.new(0, 0, 0, LogLayout.AbsoluteContentSize.Y)
 end
 
-spawn(function()
-    while wait(1) do
-        if loggerActive then updateLogUI() end
-    end
-end)
+spawn(function() while wait(1.5) do if loggerActive then updateLogUI() end end end)
 
--- Buttons Setup
-local function createBtn(text, pos, color)
+-- [[ BUTTON CREATOR ]] --
+local function createBtn(txt, pos, color, callback)
     local b = Instance.new("TextButton", MainFrame)
-    b.Size = UDim2.new(0.9, 0, 0, 35)
+    b.Size = UDim2.new(0.43, 0, 0, 30)
     b.Position = pos
     b.BackgroundColor3 = color
-    b.Text = text
+    b.Text = txt
     b.Font = Enum.Font.GothamBold
+    b.TextSize = 11
     b.TextColor3 = Color3.new(1,1,1)
     Instance.new("UICorner", b)
+    b.MouseButton1Click:Connect(callback)
     return b
 end
 
-local MagBtn = createBtn("MAGNET: ON", UDim2.new(0.05, 0, 0.15, 0), Color3.fromRGB(0, 120, 255))
-local LogBtn = createBtn("SNIFFER: ON", UDim2.new(0.05, 0, 0.3, 0), Color3.fromRGB(120, 0, 255))
+local mBtn = createBtn("MAGNET: ON", UDim2.new(0.05, 0, 0.12, 0), Color3.fromRGB(0, 120, 255), function()
+    botActive = not botActive
+    script.Parent.Text = botActive and "MAGNET: ON" or "MAGNET: OFF"
+end)
 
-local Info = Instance.new("TextLabel", MainFrame)
-Info.Size = UDim2.new(1, 0, 0, 20)
-Info.Position = UDim2.new(0, 0, 0.93, 0)
-Info.Text = "TAP LOG UNTUK COPY NAMA REMOTE"
-Info.TextColor3 = Color3.fromRGB(120, 120, 120)
-Info.TextSize = 10
-Info.BackgroundTransparency = 1
+local sBtn = createBtn("SNIFFER: ON", UDim2.new(0.52, 0, 0.12, 0), Color3.fromRGB(120, 0, 255), function()
+    loggerActive = not loggerActive
+end)
 
--- Draggable Logic
-local function drag(obj)
-    local d, i, sp, p
-    obj.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            d = true; i = input.Position; sp = obj.Position
-        end
-    end)
-    obj.InputChanged:Connect(function(input)
-        if d and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-            local del = input.Position - i
-            obj.Position = UDim2.new(sp.X.Scale, sp.X.Offset + del.X, sp.Y.Scale, sp.Y.Offset + del.Y)
-        end
-    end)
-    UserInputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then d = false end end)
-end
-drag(Icon); drag(MainFrame)
+local bBtn = createBtn("BREAKPOINT: OFF", UDim2.new(0.05, 0, 0.22, 0), Color3.fromRGB(150, 50, 0), function()
+    breakpointActive = not breakpointActive
+    -- Indikasi visual sederhana
+end)
 
+local rBtn = createBtn("REWRITE: OFF", UDim2.new(0.52, 0, 0.22, 0), Color3.fromRGB(50, 150, 0), function()
+    rewriteActive = not rewriteActive
+end)
+
+-- Floating Icon & Drag
+local Icon = Instance.new("ImageButton", ScreenGui)
+Icon.Size = UDim2.new(0, 50, 0, 50)
+Icon.Position = UDim2.new(0.05, 0, 0.4, 0)
+Icon.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+Icon.Image = "rbxassetid://6031094678"
+Instance.new("UICorner", Icon).CornerRadius = UDim.new(1,0)
 Icon.MouseButton1Click:Connect(function() MainFrame.Visible = not MainFrame.Visible end)
 
-MagBtn.MouseButton1Click:Connect(function()
-    botActive = not botActive
-    MagBtn.Text = botActive and "MAGNET: ON" or "MAGNET: OFF"
-    MagBtn.BackgroundColor3 = botActive and Color3.fromRGB(0, 120, 255) or Color3.fromRGB(70, 70, 70)
-end)
-
-LogBtn.MouseButton1Click:Connect(function()
-    loggerActive = not loggerActive
-    LogBtn.Text = loggerActive and "SNIFFER: ON" or "SNIFFER: OFF"
-    LogBtn.BackgroundColor3 = loggerActive and Color3.fromRGB(120, 0, 255) or Color3.fromRGB(70, 70, 70)
-end)
+local function drag(o)
+    local s, i, sp
+    o.InputBegan:Connect(function(inp) if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then s = true; i = inp.Position; sp = o.Position end end)
+    UserInputService.InputChanged:Connect(function(inp) if s and (inp.UserInputType == Enum.UserInputType.MouseMovement or inp.UserInputType == Enum.UserInputType.Touch) then local d = inp.Position - i; o.Position = UDim2.new(sp.X.Scale, sp.X.Offset + d.X, sp.Y.Scale, sp.Y.Offset + d.Y) end end)
+    UserInputService.InputEnded:Connect(function(inp) if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then s = false end end)
+end
+drag(Icon); drag(MainFrame)
