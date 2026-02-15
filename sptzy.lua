@@ -1,32 +1,56 @@
--- [[ SPTZYY PART CONTROLLER: BEAST REQABLE ULTIMATE ENGINE ]] --
+-- [[ SPTZYY BEAST REQABLE ULTIMATE: FULL HTTP & REMOTE SNIFFER ]] --
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local HttpService = game:GetService("HttpService")
 local lp = Players.LocalPlayer
 
--- [[ SETTINGS & TOGGLES ]] --
+-- [[ SETTINGS ]] --
 local botActive = true
 local loggerActive = true
-local breakpointActive = false
 local rewriteActive = false
-local mockActive = false
+local filterText = ""
+local pullRadius, orbitHeight, orbitRadius, spinSpeed, followStrength = 180, 8, 10, 125, 200
 
-local pullRadius = 180      
-local orbitHeight = 8      
-local orbitRadius = 10     
-local spinSpeed = 125        
-local followStrength = 200  
-
--- [[ REQABLE DATA STORAGE ]] --
+-- [[ REQABLE DATA ENGINE ]] --
 local interceptedLogs = {}
-local rewriteRules = {} -- Format: { ["RemoteName"] = {newData} }
-local breakpointQueue = {}
-
--- Clipboard Support
+local rewriteRules = {} 
 local set_clipboard = setclipboard or tostring
 
--- [[ CORE REQABLE ENGINE: SNIFFER, REWRITE, MOCK, BREAKPOINT ]] --
+-- 1. [HTTP SNIFFER] Hooking HttpService (Memantau Web Request)
+local oldRequest
+local function hookHttp()
+    local success, err = pcall(function()
+        local mt = getrawmetatable(HttpService)
+        local oldIndex = mt.__index
+        setreadonly(mt, false)
+        
+        mt.__index = newcclosure(function(self, key)
+            local method = oldIndex(self, key)
+            if loggerActive and (key == "GetAsync" or key == "PostAsync" or key == "RequestAsync") then
+                return newcclosure(function(instance, ...)
+                    local args = {...}
+                    local url = args[1] or "Unknown URL"
+                    local body = args[2] or "No Body"
+                    
+                    table.insert(interceptedLogs, 1, {
+                        Type = "🌐 HTTP", 
+                        Name = url, 
+                        Method = key, 
+                        Data = "Body/Header: " .. HttpService:JSONEncode(body)
+                    })
+                    return method(instance, ...)
+                end)
+            end
+            return method
+        end)
+        setreadonly(mt, true)
+    end)
+    if not success then warn("HTTP Sniffer Hook Failed: " .. err) end
+end
+hookHttp()
+
+-- 2. [REMOTE SNIFFER] Hooking Namecall (Memantau RemoteEvent/Function)
 local mt = getrawmetatable(game)
 local oldNamecall = mt.__namecall
 setreadonly(mt, false)
@@ -37,146 +61,140 @@ mt.__namecall = newcclosure(function(self, ...)
     local remoteName = tostring(self)
 
     if loggerActive and (method == "FireServer" or method == "InvokeServer") then
-        -- 1. SNIFFER: Melihat Body/Args secara Real-time
-        local cleanArgs = {}
-        for i,v in pairs(args) do cleanArgs[i] = tostring(v) end
-        local dataString = HttpService:JSONEncode(cleanArgs)
+        local dataString = HttpService:JSONEncode(args) -- Format Array/Dictionary
         
-        table.insert(interceptedLogs, 1, {Name = remoteName, Method = method, Data = dataString})
-        if #interceptedLogs > 20 then table.remove(interceptedLogs, 21) end
+        if filterText == "" or string.find(string.lower(remoteName), string.lower(filterText)) then
+            table.insert(interceptedLogs, 1, {
+                Type = "📡 REMOTE", 
+                Name = remoteName, 
+                Method = method, 
+                Data = "Args: " .. dataString
+            })
+            if #interceptedLogs > 40 then table.remove(interceptedLogs, 41) end
+        end
 
-        -- 2. REWRITE: Mengubah data sebelum dikirim
         if rewriteActive and rewriteRules[remoteName] then
-            return oldNamecall(self, unpack(rewriteRules[remoteName]))
-        end
-
-        -- 3. MOCKING: Blokir kiriman asli, beri hasil palsu
-        if mockActive and rewriteRules[remoteName] then
-            return nil 
-        end
-
-        -- 4. BREAKPOINT: Tahan request (Logging ke Console untuk manual edit)
-        if breakpointActive then
-            warn("[BREAKPOINT] Intercepted: " .. remoteName .. " | Args: " .. dataString)
-            -- Di Mobile, ini akan melambatkan game sebagai tanda tertahan
-            wait(0.1) 
+            return oldNamecall(self, unpack({rewriteRules[remoteName]}))
         end
     end
-    
     return oldNamecall(self, ...)
 end)
 setreadonly(mt, true)
 
--- [[ PHYSICS MAGNET LOGIC ]] --
+-- [[ PHYSICS MAGNET ]] --
 local angle = 0
 RunService.Heartbeat:Connect(function()
     if not botActive or not lp.Character or not lp.Character:FindFirstChild("HumanoidRootPart") then return end
     angle = angle + (0.05 * spinSpeed)
     local root = lp.Character.HumanoidRootPart
     local tPos = root.Position + Vector3.new(math.cos(angle)*orbitRadius, orbitHeight, math.sin(angle)*orbitRadius)
-
     for _, p in pairs(workspace:GetDescendants()) do
         if p:IsA("BasePart") and not p.Anchored and not p:IsDescendantOf(lp.Character) then
             if (p.Position - root.Position).Magnitude <= pullRadius then
                 pcall(function() p:SetNetworkOwner(lp) end)
                 p.Velocity = (tPos - p.Position) * followStrength
-                p.RotVelocity = Vector3.new(0, 15, 0)
+                p.RotVelocity = Vector3.new(0, 20, 0)
             end
         end
     end
 end)
 
--- [[ UI SETUP: REQABLE PRO INTERFACE ]] --
+-- [[ UI SETUP: ULTIMATE REQABLE ]] --
 local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
 local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Size = UDim2.new(0, 280, 0, 380)
-MainFrame.Position = UDim2.new(0.5, -140, 0.2, 0)
-MainFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
+MainFrame.Size = UDim2.new(0, 300, 0, 480)
+MainFrame.Position = UDim2.new(0.5, -150, 0.1, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 MainFrame.Visible = false
 Instance.new("UICorner", MainFrame)
+Instance.new("UIStroke", MainFrame).Color = Color3.fromRGB(60, 60, 60)
 
 local Title = Instance.new("TextLabel", MainFrame)
-Title.Size = UDim2.new(1, 0, 0, 35)
-Title.Text = "SPTZYY BEAST REQABLE PRO"
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.Text = "BEAST REQABLE X-RAY V5"
 Title.TextColor3 = Color3.fromRGB(0, 255, 150)
 Title.Font = Enum.Font.GothamBold
 Title.BackgroundTransparency = 1
 
-local LogScroll = Instance.new("ScrollingFrame", MainFrame)
-LogScroll.Size = UDim2.new(0.9, 0, 0, 160)
-LogScroll.Position = UDim2.new(0.05, 0, 0.5, 0)
-LogScroll.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
-LogScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
-local LogLayout = Instance.new("UIListLayout", LogScroll)
-LogLayout.Padding = UDim.new(0, 4)
+local FilterBox = Instance.new("TextBox", MainFrame)
+FilterBox.Size = UDim2.new(0.9, 0, 0, 30)
+FilterBox.Position = UDim2.new(0.05, 0, 0.09, 0)
+FilterBox.PlaceholderText = "🔍 Search Remote / URL Website..."
+FilterBox.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+FilterBox.TextColor3 = Color3.new(1,1,1)
+FilterBox.Font = Enum.Font.GothamMedium
+FilterBox.TextSize = 11
+Instance.new("UICorner", FilterBox)
 
--- Refresh UI Log
-local function updateLogUI()
-    for _, child in pairs(LogScroll:GetChildren()) do if child:IsA("TextButton") then child:Destroy() end end
+FilterBox:GetPropertyChangedSignal("Text"):Connect(function() filterText = FilterBox.Text end)
+
+-- [[ LOG AREA ]] --
+local LogScroll = Instance.new("ScrollingFrame", MainFrame)
+LogScroll.Size = UDim2.new(0.9, 0, 0, 220)
+LogScroll.Position = UDim2.new(0.05, 0, 0.52, 0)
+LogScroll.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
+LogScroll.ScrollBarThickness = 3
+local LogLayout = Instance.new("UIListLayout", LogScroll)
+LogLayout.Padding = UDim.new(0, 5)
+
+local function updateLogs()
+    for _, v in pairs(LogScroll:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end
     for _, log in pairs(interceptedLogs) do
         local b = Instance.new("TextButton", LogScroll)
-        b.Size = UDim2.new(1, -5, 0, 40)
+        b.Size = UDim2.new(1, -10, 0, 55)
         b.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-        b.Text = " ["..log.Method.."] "..log.Name.."\n Data: "..log.Data
-        b.TextColor3 = Color3.fromRGB(200, 200, 200)
-        b.TextSize = 10
+        b.Text = " " .. log.Type .. " | " .. log.Method .. "\n Source: " .. log.Name .. "\n " .. log.Data
+        b.TextColor3 = (log.Type == "🌐 HTTP") and Color3.fromRGB(255, 200, 0) or Color3.fromRGB(0, 255, 150)
+        b.TextSize = 8
         b.Font = Enum.Font.Code
         b.TextXAlignment = Enum.TextXAlignment.Left
+        b.TextWrapped = true
         Instance.new("UICorner", b)
-        
         b.MouseButton1Click:Connect(function()
-            set_clipboard(log.Name .. " | Data: " .. log.Data)
-            local old = b.Text
-            b.Text = " [!] DATA COPIED TO CLIPBOARD"
-            wait(0.7)
-            b.Text = old
+            set_clipboard(log.Name .. " | " .. log.Data)
+            b.Text = "COPIED TO CLIPBOARD!"
+            task.wait(0.5)
+            updateLogs()
         end)
     end
     LogScroll.CanvasSize = UDim2.new(0, 0, 0, LogLayout.AbsoluteContentSize.Y)
 end
 
-spawn(function() while wait(1.5) do if loggerActive then updateLogUI() end end end)
+spawn(function() while task.wait(1.5) do if loggerActive then updateLogs() end end end)
 
--- [[ BUTTON CREATOR ]] --
-local function createBtn(txt, pos, color, callback)
+-- [[ CONTROLS ]] --
+local function btn(t, p, c, cb)
     local b = Instance.new("TextButton", MainFrame)
-    b.Size = UDim2.new(0.43, 0, 0, 30)
-    b.Position = pos
-    b.BackgroundColor3 = color
-    b.Text = txt
+    b.Size = UDim2.new(0.43, 0, 0, 35)
+    b.Position = p
+    b.BackgroundColor3 = c
+    b.Text = t
     b.Font = Enum.Font.GothamBold
-    b.TextSize = 11
+    b.TextSize = 10
     b.TextColor3 = Color3.new(1,1,1)
     Instance.new("UICorner", b)
-    b.MouseButton1Click:Connect(callback)
+    b.MouseButton1Click:Connect(function() cb(b) end)
     return b
 end
 
-local mBtn = createBtn("MAGNET: ON", UDim2.new(0.05, 0, 0.12, 0), Color3.fromRGB(0, 120, 255), function()
+btn("MAGNET: ON", UDim2.new(0.05, 0, 0.17, 0), Color3.fromRGB(0, 100, 255), function(b)
     botActive = not botActive
-    script.Parent.Text = botActive and "MAGNET: ON" or "MAGNET: OFF"
+    b.Text = botActive and "MAGNET: ON" or "MAGNET: OFF"
 end)
 
-local sBtn = createBtn("SNIFFER: ON", UDim2.new(0.52, 0, 0.12, 0), Color3.fromRGB(120, 0, 255), function()
+btn("SNIFFER: ON", UDim2.new(0.52, 0, 0.17, 0), Color3.fromRGB(150, 0, 255), function(b)
     loggerActive = not loggerActive
+    b.Text = loggerActive and "SNIFFER: ON" or "SNIFFER: OFF"
 end)
 
-local bBtn = createBtn("BREAKPOINT: OFF", UDim2.new(0.05, 0, 0.22, 0), Color3.fromRGB(150, 50, 0), function()
-    breakpointActive = not breakpointActive
-    -- Indikasi visual sederhana
-end)
-
-local rBtn = createBtn("REWRITE: OFF", UDim2.new(0.52, 0, 0.22, 0), Color3.fromRGB(50, 150, 0), function()
-    rewriteActive = not rewriteActive
-end)
-
--- Floating Icon & Drag
+-- [[ FLOATING ICON & DRAG ]] --
 local Icon = Instance.new("ImageButton", ScreenGui)
 Icon.Size = UDim2.new(0, 50, 0, 50)
 Icon.Position = UDim2.new(0.05, 0, 0.4, 0)
 Icon.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 Icon.Image = "rbxassetid://6031094678"
 Instance.new("UICorner", Icon).CornerRadius = UDim.new(1,0)
+Instance.new("UIStroke", Icon).Color = Color3.fromRGB(0, 255, 150)
 Icon.MouseButton1Click:Connect(function() MainFrame.Visible = not MainFrame.Visible end)
 
 local function drag(o)
