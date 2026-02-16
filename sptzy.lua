@@ -1,4 +1,4 @@
--- [[ PHANTOM ULTIMATE v3: INTEGRATED EDITION ]] --
+-- [[ PHANTOM ULTIMATE v3: FINAL INTEGRATED EDITION ]] --
 local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -10,19 +10,19 @@ local lp = Players.LocalPlayer
 local activeRemotes = {}
 local selectedRemote = nil
 
--- Hapus GUI lama agar tidak double
-if CoreGui:FindFirstChild("PhantomIntegrated_V3") then
-    CoreGui.PhantomIntegrated_V3:Destroy()
+-- Hapus GUI lama agar tidak tumpang tindih
+if CoreGui:FindFirstChild("PhantomUltimate_Final") then
+    CoreGui.PhantomUltimate_Final:Destroy()
 end
 
 -- [[ UI CONSTRUCTION ]] --
 local ScreenGui = Instance.new("ScreenGui", CoreGui)
-ScreenGui.Name = "PhantomIntegrated_V3"
+ScreenGui.Name = "PhantomUltimate_Final"
 ScreenGui.ResetOnSpawn = false
 
 local Main = Instance.new("Frame", ScreenGui)
-Main.Size = UDim2.new(0, 280, 0, 420) 
-Main.Position = UDim2.new(0.5, -140, 0.4, -210)
+Main.Size = UDim2.new(0, 300, 0, 460) 
+Main.Position = UDim2.new(0.5, -150, 0.4, -230)
 Main.BackgroundColor3 = Color3.fromRGB(15, 20, 30)
 Main.BorderSizePixel = 0
 Main.Visible = true
@@ -33,39 +33,43 @@ Stroke.Thickness = 2
 
 -- [[ HEADER ]] --
 local Title = Instance.new("TextLabel", Main)
-Title.Size = UDim2.new(1, 0, 0, 35)
-Title.Text = "PHANTOM ULTIMATE: ALL-IN-ONE"
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.Text = "PHANTOM ULTIMATE: FISH IT STYLE"
 Title.TextColor3 = Color3.new(1,1,1)
 Title.Font = Enum.Font.GothamBold
-Title.TextSize = 11
+Title.TextSize = 12
 Title.BackgroundTransparency = 1
 
 --- --- --- --- --- ---
--- [[ 1. RANK SPOOFER (HD ADMIN) ]] --
+-- [[ 1. ADVANCED RANK SPOOFER ]] --
 --- --- --- --- --- ---
 local SpooferBtn = Instance.new("TextButton", Main)
-SpooferBtn.Size = UDim2.new(0.9, 0, 0, 30)
-SpooferBtn.Position = UDim2.new(0.05, 0, 0.1, 0)
+SpooferBtn.Size = UDim2.new(0.9, 0, 0, 35)
+SpooferBtn.Position = UDim2.new(0.05, 0, 0.09, 0)
 SpooferBtn.BackgroundColor3 = Color3.fromRGB(25, 30, 45)
-SpooferBtn.Text = "SPOOF RANK (HD ADMIN)"
+SpooferBtn.Text = "SPOOF RANK: OWNER (5)"
 SpooferBtn.TextColor3 = Color3.fromRGB(85, 255, 127)
 SpooferBtn.Font = Enum.Font.GothamBold
 SpooferBtn.TextSize = 10
 Instance.new("UICorner", SpooferBtn)
 
 SpooferBtn.MouseButton1Click:Connect(function()
-    if _G.HDAdminMain and _G.HDAdminMain.pd then
+    if _G.HDAdminMain then
         local pdata = _G.HDAdminMain.pd[lp]
         if pdata then
             pdata.Rank = 5
-            SpooferBtn.Text = "RANK SPOOFED (LVL 5)!"
+            if pdata.SetupData then
+                pdata.SetupData.Rank = 5
+                pdata.SetupData.Permissions = _G.HDAdminMain.permissions
+            end
+            SpooferBtn.Text = "RANK SPOOFED!"
             task.wait(1)
-            SpooferBtn.Text = "SPOOF RANK (HD ADMIN)"
+            SpooferBtn.Text = "SPOOF RANK: OWNER (5)"
         end
     else
-        SpooferBtn.Text = "HD ADMIN NOT FOUND"
+        SpooferBtn.Text = "HD ADMIN NOT DETECTED"
         task.wait(1)
-        SpooferBtn.Text = "SPOOF RANK (HD ADMIN)"
+        SpooferBtn.Text = "SPOOF RANK: OWNER (5)"
     end
 end)
 
@@ -73,8 +77,8 @@ end)
 -- [[ 2. REMOTE LIST & LOGGER ]] --
 --- --- --- --- --- ---
 local Scroll = Instance.new("ScrollingFrame", Main)
-Scroll.Size = UDim2.new(0.9, 0, 0, 110)
-Scroll.Position = UDim2.new(0.05, 0, 0.19, 0)
+Scroll.Size = UDim2.new(0.9, 0, 0, 100)
+Scroll.Position = UDim2.new(0.05, 0, 0.18, 0)
 Scroll.BackgroundColor3 = Color3.fromRGB(10, 12, 18)
 Scroll.BorderSizePixel = 0
 Scroll.ScrollBarThickness = 2
@@ -82,8 +86,8 @@ local ListLayout = Instance.new("UIListLayout", Scroll)
 ListLayout.Padding = UDim.new(0, 4)
 
 local LogFrame = Instance.new("ScrollingFrame", Main)
-LogFrame.Size = UDim2.new(0.9, 0, 0, 70)
-LogFrame.Position = UDim2.new(0.05, 0, 0.47, 0)
+LogFrame.Size = UDim2.new(0.9, 0, 0, 60)
+LogFrame.Position = UDim2.new(0.05, 0, 0.41, 0)
 LogFrame.BackgroundColor3 = Color3.fromRGB(5, 5, 10)
 LogFrame.BorderSizePixel = 0
 LogFrame.ScrollBarThickness = 2
@@ -103,28 +107,38 @@ local function AddLog(text, color)
 end
 
 --- --- --- --- --- ---
--- [[ 3. MANUAL EXECUTION ]] --
+-- [[ 3. DUAL-ARGUMENT EXECUTOR ]] --
 --- --- --- --- --- ---
-local ArgInput = Instance.new("TextBox", Main)
-ArgInput.Size = UDim2.new(0.9, 0, 0, 30)
-ArgInput.Position = UDim2.new(0.05, 0, 0.66, 0)
-ArgInput.BackgroundColor3 = Color3.fromRGB(20, 25, 35)
-ArgInput.PlaceholderText = "Argument (String/Boolean)"
-ArgInput.Text = ""
-ArgInput.TextColor3 = Color3.white
-ArgInput.TextSize = 10
-Instance.new("UICorner", ArgInput)
+local Arg1 = Instance.new("TextBox", Main)
+Arg1.Size = UDim2.new(0.9, 0, 0, 30)
+Arg1.Position = UDim2.new(0.05, 0, 0.56, 0)
+Arg1.BackgroundColor3 = Color3.fromRGB(20, 25, 35)
+Arg1.PlaceholderText = "Argument 1 (Cmd/Value)"
+Arg1.Text = ""
+Arg1.TextColor3 = Color3.white
+Arg1.TextSize = 10
+Instance.new("UICorner", Arg1)
+
+local Arg2 = Instance.new("TextBox", Main)
+Arg2.Size = UDim2.new(0.9, 0, 0, 30)
+Arg2.Position = UDim2.new(0.05, 0, 0.64, 0)
+Arg2.BackgroundColor3 = Color3.fromRGB(20, 25, 35)
+Arg2.PlaceholderText = "Argument 2 (Target/Extra)"
+Arg2.Text = ""
+Arg2.TextColor3 = Color3.white
+Arg2.TextSize = 10
+Instance.new("UICorner", Arg2)
 
 local ExecBtn = Instance.new("TextButton", Main)
 ExecBtn.Size = UDim2.new(0.9, 0, 0, 35)
-ExecBtn.Position = UDim2.new(0.05, 0, 0.75, 0)
+ExecBtn.Position = UDim2.new(0.05, 0, 0.73, 0)
 ExecBtn.BackgroundColor3 = Color3.fromRGB(85, 255, 127)
-ExecBtn.Text = "FIRE SELECTED REMOTE"
+ExecBtn.Text = "FIRE REMOTE"
 ExecBtn.TextColor3 = Color3.fromRGB(15, 20, 30)
 ExecBtn.Font = Enum.Font.GothamBold
 Instance.new("UICorner", ExecBtn)
 
--- [[ SCANNER LOGIC ]] --
+-- [[ SCANNER LOGIC (FISH IT STYLE + BACKDOOR) ]] --
 local function addRemoteItem(remote, isBackdoor)
     local Frame = Instance.new("Frame", Scroll)
     Frame.Size = UDim2.new(1, -6, 0, 30)
@@ -144,7 +158,7 @@ local function addRemoteItem(remote, isBackdoor)
         selectedRemote = remote
         Title.Text = "SELECTED: " .. remote.Name:upper()
         Title.TextColor3 = Color3.fromRGB(85, 255, 127)
-        AddLog("Selected: " .. remote.Name, Color3.fromRGB(255, 255, 255))
+        AddLog("Selected: " .. remote.Name)
     end)
 end
 
@@ -152,12 +166,20 @@ local function ScanAll()
     for _, c in pairs(Scroll:GetChildren()) do if c:IsA("Frame") then c:Destroy() end end
     AddLog("Scanning Remotes...", Color3.fromRGB(255, 255, 100))
     
+    -- Fish It Logic: Scan HD Admin Signals first
+    if _G.HDAdminMain and _G.HDAdminMain.signals then
+        for _, v in pairs(_G.HDAdminMain.signals:GetChildren()) do
+            if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then addRemoteItem(v, false) end
+        end
+        AddLog("HD Admin Signals Scanned.")
+    end
+
     -- Scan ReplicatedStorage
     for _, v in pairs(ReplicatedStorage:GetDescendants()) do
         if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then addRemoteItem(v, false) end
     end
     
-    -- Scan Potential Backdoor Locations
+    -- Scan Backdoor Locations
     local locs = {JointService, game:GetService("LogService")}
     for _, loc in pairs(locs) do
         pcall(function()
@@ -167,13 +189,14 @@ local function ScanAll()
         end)
     end
     Scroll.CanvasSize = UDim2.new(0, 0, 0, ListLayout.AbsoluteContentSize.Y)
+    AddLog("Scan Complete.", Color3.fromRGB(85, 255, 127))
 end
 
 local ScanBtn = Instance.new("TextButton", Main)
-ScanBtn.Size = UDim2.new(0.9, 0, 0, 30)
-ScanBtn.Position = UDim2.new(0.05, 0, 0.88, 0)
+ScanBtn.Size = UDim2.new(0, 270, 0, 35)
+ScanBtn.Position = UDim2.new(0.05, 0, 0.82, 0)
 ScanBtn.BackgroundColor3 = Color3.fromRGB(40, 45, 55)
-ScanBtn.Text = "REFRESH & SCAN LIST"
+ScanBtn.Text = "FULL REFRESH SCAN"
 ScanBtn.TextColor3 = Color3.white
 ScanBtn.Font = Enum.Font.GothamBold
 Instance.new("UICorner", ScanBtn)
@@ -182,26 +205,29 @@ ScanBtn.MouseButton1Click:Connect(ScanAll)
 
 ExecBtn.MouseButton1Click:Connect(function()
     if selectedRemote then
-        local val = ArgInput.Text
-        if val == "true" then val = true elseif val == "false" then val = false end
+        local a1 = Arg1.Text
+        local a2 = Arg2.Text
+        -- Convert simple booleans
+        if a1 == "true" then a1 = true elseif a1 == "false" then a1 = false end
+        if a2 == "true" then a2 = true elseif a2 == "false" then a2 = false end
         
         pcall(function()
             if selectedRemote:IsA("RemoteEvent") then
-                selectedRemote:FireServer(val)
+                selectedRemote:FireServer(a1, a2)
             elseif selectedRemote:IsA("RemoteFunction") then
-                selectedRemote:InvokeServer(val)
+                task.spawn(function() selectedRemote:InvokeServer(a1, a2) end)
             end
         end)
-        AddLog("Executed " .. selectedRemote.Name, Color3.fromRGB(85, 255, 127))
+        AddLog("Fired: " .. selectedRemote.Name, Color3.fromRGB(85, 255, 127))
     else
-        AddLog("Error: No remote selected!", Color3.fromRGB(255, 100, 100))
+        AddLog("Error: Select a remote!", Color3.fromRGB(255, 100, 100))
     end
 end)
 
--- [[ UTILS ]] --
+-- [[ UTILS (DRAG & TOGGLE) ]] --
 local OpenBtn = Instance.new("TextButton", ScreenGui)
-OpenBtn.Size = UDim2.new(0, 45, 0, 45)
-OpenBtn.Position = UDim2.new(0, 20, 0.5, -22)
+OpenBtn.Size = UDim2.new(0, 50, 0, 50)
+OpenBtn.Position = UDim2.new(0, 20, 0.5, -25)
 OpenBtn.BackgroundColor3 = Color3.fromRGB(15, 20, 30)
 OpenBtn.Text = "PH"
 OpenBtn.TextColor3 = Color3.fromRGB(85, 255, 127)
@@ -233,4 +259,4 @@ end
 
 makeDraggable(Main); makeDraggable(OpenBtn)
 ScanAll()
-AddLog("Phantom Integrated V3 Loaded.", Color3.fromRGB(85, 255, 127))
+AddLog("Phantom Ultimate V3 Final Loaded.", Color3.fromRGB(85, 255, 127))
