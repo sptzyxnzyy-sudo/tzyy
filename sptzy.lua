@@ -1,38 +1,30 @@
--- [[ PHANTOM ULTIMATE: FISH IT STYLE ]] --
--- Integrated with HD Admin Framework Logic & Advanced Executor
-
+-- [[ PHANTOM ULTIMATE v3: FIXED VISIBILITY ]] --
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local lp = Players.LocalPlayer
 
--- << WAIT FOR HD ADMIN FRAMEWORK >>
-local mainHD = _G.HDAdminMain
-task.spawn(function()
-    if not mainHD then
-        print("Searching for HD Admin...")
-        local timeout = 0
-        while not _G.HDAdminMain and timeout < 20 do
-            task.wait(0.5)
-            timeout = timeout + 0.5
-        end
-        mainHD = _G.HDAdminMain
-    end
-end)
+-- Hapus GUI lama jika ada agar tidak tumpang tindih
+if CoreGui:FindFirstChild("PhantomUltimate_HD") then
+    CoreGui.PhantomUltimate_HD:Destroy()
+end
 
 -- [[ UI CONSTRUCTION ]] --
 local ScreenGui = Instance.new("ScreenGui", CoreGui)
 ScreenGui.Name = "PhantomUltimate_HD"
 ScreenGui.ResetOnSpawn = false
+ScreenGui.IgnoreGuiInset = true -- Memastikan koordinat tepat
 
 local Main = Instance.new("Frame", ScreenGui)
-Main.Size = UDim2.new(0, 260, 0, 360) -- Ukuran lebih proporsional
-Main.Position = UDim2.new(0.5, -130, 0.3, 0)
+Main.Size = UDim2.new(0, 260, 0, 360) 
+Main.Position = UDim2.new(0.5, -130, 0.5, -180) -- Tengah Layar
 Main.BackgroundColor3 = Color3.fromRGB(15, 20, 30)
 Main.BorderSizePixel = 0
-Main.Visible = false
+Main.Visible = true -- Langsung muncul untuk tes
+Main.ZIndex = 10
 Instance.new("UICorner", Main)
+
 local Stroke = Instance.new("UIStroke", Main)
 Stroke.Color = Color3.fromRGB(85, 255, 127)
 Stroke.Thickness = 2
@@ -40,13 +32,15 @@ Stroke.Thickness = 2
 -- [[ HEADER ]] --
 local Title = Instance.new("TextLabel", Main)
 Title.Size = UDim2.new(1, 0, 0, 35)
-Title.Text = "PHANTOM ULTIMATE v2"
+Title.Text = "PHANTOM ULTIMATE v3"
 Title.TextColor3 = Color3.new(1,1,1)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 12
 Title.BackgroundTransparency = 1
 
+--- --- --- --- --- ---
 -- [[ 1. RANK SPOOFER ]] --
+--- --- --- --- --- ---
 local SpooferFrame = Instance.new("Frame", Main)
 SpooferFrame.Size = UDim2.new(0.9, 0, 0, 35)
 SpooferFrame.Position = UDim2.new(0.05, 0, 0.12, 0)
@@ -56,33 +50,32 @@ Instance.new("UICorner", SpooferFrame)
 local SpooferBtn = Instance.new("TextButton", SpooferFrame)
 SpooferBtn.Size = UDim2.new(1, 0, 1, 0)
 SpooferBtn.BackgroundTransparency = 1
-SpooferBtn.Text = "SPOOF RANK: OWNER"
+SpooferBtn.Text = "SPOOF RANK (HD ADMIN)"
 SpooferBtn.TextColor3 = Color3.fromRGB(85, 255, 127)
 SpooferBtn.Font = Enum.Font.GothamBold
 SpooferBtn.TextSize = 10
 
 SpooferBtn.MouseButton1Click:Connect(function()
-    if _G.HDAdminMain then
+    if _G.HDAdminMain and _G.HDAdminMain.pd then
         local pdata = _G.HDAdminMain.pd[lp]
         if pdata then
             pdata.Rank = 5
-            if pdata.SetupData then
-                pdata.SetupData.Rank = 5
-            end
             SpooferBtn.Text = "RANK SPOOFED!"
             task.wait(1)
-            SpooferBtn.Text = "SPOOF RANK: OWNER"
+            SpooferBtn.Text = "SPOOF RANK (HD ADMIN)"
         end
     else
-        SpooferBtn.Text = "HD ADMIN NOT FOUND"
+        SpooferBtn.Text = "HD ADMIN NOT DETECTED"
         task.wait(1)
-        SpooferBtn.Text = "SPOOF RANK: OWNER"
+        SpooferBtn.Text = "SPOOF RANK (HD ADMIN)"
     end
 end)
 
--- [[ 2. REMOTE LIST (SCROLL) ]] --
+--- --- --- --- --- ---
+-- [[ 2. REMOTE LIST ]] --
+--- --- --- --- --- ---
 local Scroll = Instance.new("ScrollingFrame", Main)
-Scroll.Size = UDim2.new(0.9, 0, 0, 110)
+Scroll.Size = UDim2.new(0.9, 0, 0, 120)
 Scroll.Position = UDim2.new(0.05, 0, 0.25, 0)
 Scroll.BackgroundColor3 = Color3.fromRGB(10, 12, 18)
 Scroll.BorderSizePixel = 0
@@ -95,8 +88,7 @@ local selectedRemote = nil
 local function ScanRemotes()
     for _, child in pairs(Scroll:GetChildren()) do if child:IsA("Frame") then child:Destroy() end end
     
-    local target = ReplicatedStorage
-    for _, v in pairs(target:GetDescendants()) do
+    for _, v in pairs(ReplicatedStorage:GetDescendants()) do
         if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
             local Item = Instance.new("Frame", Scroll)
             Item.Size = UDim2.new(1, -6, 0, 28)
@@ -114,7 +106,7 @@ local function ScanRemotes()
 
             btn.MouseButton1Click:Connect(function()
                 selectedRemote = v
-                Title.Text = "TARGET: " .. v.Name:upper()
+                Title.Text = "SELECTED: " .. v.Name:upper()
                 Title.TextColor3 = Color3.fromRGB(85, 255, 127)
             end)
         end
@@ -122,85 +114,100 @@ local function ScanRemotes()
     Scroll.CanvasSize = UDim2.new(0,0,0, ListLayout.AbsoluteContentSize.Y)
 end
 
--- [[ 3. ARGUMENTS & EXECUTION ]] --
+--- --- --- --- --- ---
+-- [[ 3. EXECUTION ]] --
+--- --- --- --- --- ---
 local Arg1 = Instance.new("TextBox", Main)
 Arg1.Size = UDim2.new(0.9, 0, 0, 30)
-Arg1.Position = UDim2.new(0.05, 0, 0.6, 0)
+Arg1.Position = UDim2.new(0.05, 0, 0.62, 0)
 Arg1.BackgroundColor3 = Color3.fromRGB(20, 25, 35)
-Arg1.PlaceholderText = "Arg 1 (String/Command)"
+Arg1.PlaceholderText = "Argument 1"
 Arg1.Text = ""
 Arg1.TextColor3 = Color3.white
-Arg1.Font = Enum.Font.SourceSans
 Instance.new("UICorner", Arg1)
 
-local Arg2 = Instance.new("TextBox", Main)
-Arg2.Size = UDim2.new(0.9, 0, 0, 30)
-Arg2.Position = UDim2.new(0.05, 0, 0.7, 0)
-Arg2.BackgroundColor3 = Color3.fromRGB(20, 25, 35)
-Arg2.PlaceholderText = "Arg 2 (Value/Target)"
-Arg2.Text = ""
-Arg2.TextColor3 = Color3.white
-Arg2.Font = Enum.Font.SourceSans
-Instance.new("UICorner", Arg2)
-
 local ExecBtn = Instance.new("TextButton", Main)
-ExecBtn.Size = UDim2.new(0.43, 0, 0, 32)
-ExecBtn.Position = UDim2.new(0.05, 0, 0.82, 0)
+ExecBtn.Size = UDim2.new(0.9, 0, 0, 35)
+ExecBtn.Position = UDim2.new(0.05, 0, 0.75, 0)
 ExecBtn.BackgroundColor3 = Color3.fromRGB(85, 255, 127)
-ExecBtn.Text = "FIRE"
+ExecBtn.Text = "EXECUTE"
 ExecBtn.TextColor3 = Color3.fromRGB(15, 20, 30)
 ExecBtn.Font = Enum.Font.GothamBold
-ExecBtn.TextSize = 12
 Instance.new("UICorner", ExecBtn)
 
 local RefreshBtn = Instance.new("TextButton", Main)
-RefreshBtn.Size = UDim2.new(0.43, 0, 0, 32)
-RefreshBtn.Position = UDim2.new(0.52, 0, 0.82, 0)
+RefreshBtn.Size = UDim2.new(0.9, 0, 0, 30)
+RefreshBtn.Position = UDim2.new(0.05, 0, 0.88, 0)
 RefreshBtn.BackgroundColor3 = Color3.fromRGB(45, 50, 60)
-RefreshBtn.Text = "SCAN"
+RefreshBtn.Text = "REFRESH LIST"
 RefreshBtn.TextColor3 = Color3.white
 RefreshBtn.Font = Enum.Font.GothamBold
-RefreshBtn.TextSize = 12
 Instance.new("UICorner", RefreshBtn)
 
--- [[ LOGIC ]] --
+-- [[ BUTTON LOGIC ]] --
 RefreshBtn.MouseButton1Click:Connect(ScanRemotes)
-
 ExecBtn.MouseButton1Click:Connect(function()
     if selectedRemote then
-        local a1 = Arg1.Text
-        local a2 = Arg2.Text
         pcall(function()
             if selectedRemote:IsA("RemoteEvent") then
-                selectedRemote:FireServer(a1, a2)
+                selectedRemote:FireServer(Arg1.Text)
             elseif selectedRemote:IsA("RemoteFunction") then
-                task.spawn(function() selectedRemote:InvokeServer(a1, a2) end)
+                selectedRemote:InvokeServer(Arg1.Text)
             end
         end)
-        ExecBtn.Text = "SENT!"
+        ExecBtn.Text = "SUCCESS!"
         task.wait(0.5)
-        ExecBtn.Text = "FIRE"
+        ExecBtn.Text = "EXECUTE"
     end
 end)
 
--- [[ ICON ]] --
+-- [[ ICON / OPEN BUTTON ]] --
 local OpenBtn = Instance.new("TextButton", ScreenGui)
-OpenBtn.Size = UDim2.new(0, 45, 0, 45)
-OpenBtn.Position = UDim2.new(0.1, 0, 0.1, 0)
+OpenBtn.Name = "ToggleIcon"
+OpenBtn.Size = UDim2.new(0, 50, 0, 50)
+OpenBtn.Position = UDim2.new(0, 20, 0.5, -25) -- Di sisi kiri layar
 OpenBtn.BackgroundColor3 = Color3.fromRGB(15, 20, 30)
-OpenBtn.Text = "ULT"
+OpenBtn.Text = "PH"
 OpenBtn.TextColor3 = Color3.fromRGB(85, 255, 127)
 OpenBtn.Font = Enum.Font.GothamBold
-Instance.new("UICorner", OpenBtn)
-Instance.new("UIStroke", OpenBtn).Color = Color3.fromRGB(85, 255, 127)
+OpenBtn.TextSize = 14
+OpenBtn.ZIndex = 11
+Instance.new("UICorner", OpenBtn).CornerRadius = UDim.new(1, 0)
+local IconStroke = Instance.new("UIStroke", OpenBtn)
+IconStroke.Color = Color3.fromRGB(85, 255, 127)
 
-OpenBtn.MouseButton1Click:Connect(function() Main.Visible = not Main.Visible end)
+OpenBtn.MouseButton1Click:Connect(function()
+    Main.Visible = not Main.Visible
+end)
 
-local function drag(o)
-    local s, i, sp
-    o.InputBegan:Connect(function(inp) if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then s = true; i = inp.Position; sp = o.Position end end)
-    o.InputChanged:Connect(function(inp) if s and (inp.UserInputType == Enum.UserInputType.MouseMovement or inp.UserInputType == Enum.UserInputType.Touch) then local d = inp.Position - i; o.Position = UDim2.new(sp.X.Scale, sp.X.Offset + d.X, sp.Y.Scale, sp.Y.Offset + d.Y) end end)
-    UserInputService.InputEnded:Connect(function(inp) if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then s = false end end)
+-- [[ DRAG LOGIC ]] --
+local function makeDraggable(obj)
+    local dragging, dragInput, dragStart, startPos
+    obj.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = obj.Position
+        end
+    end)
+    obj.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+        end
+    end)
+    RunService.RenderStepped:Connect(function()
+        if dragging and dragInput then
+            local delta = dragInput.Position - dragStart
+            obj.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
 end
-drag(OpenBtn); drag(Main)
+
+makeDraggable(Main)
+makeDraggable(OpenBtn)
 ScanRemotes()
