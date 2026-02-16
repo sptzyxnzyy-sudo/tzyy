@@ -1,4 +1,4 @@
--- [[ PHANTOM REAL-TAP: EXTREME SPEED EDITION (10 - 5000 CPS) ]] --
+-- [[ PHANTOM REAL-TAP: FIXED SLIDER & NO DRIFT ]] --
 local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
@@ -7,11 +7,11 @@ local Camera = workspace.CurrentCamera
 
 local isClicking = false
 local clickCount = 0
-local targetCPS = 10 -- Default 10 CPS
+local targetCPS = 10 
 
 -- [[ UI CONSTRUCTION ]] --
 local ScreenGui = Instance.new("ScreenGui", CoreGui)
-ScreenGui.Name = "PhantomExtremeTap"
+ScreenGui.Name = "PhantomFixedTap"
 ScreenGui.IgnoreGuiInset = true
 ScreenGui.ResetOnSpawn = false
 
@@ -23,7 +23,7 @@ Main.BorderSizePixel = 0
 Main.Visible = false
 Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 10)
 local Stroke = Instance.new("UIStroke", Main)
-Stroke.Color = Color3.fromRGB(255, 50, 50) -- Merah Extreme
+Stroke.Color = Color3.fromRGB(255, 50, 50)
 Stroke.Thickness = 2
 
 -- [[ HEADER ]] --
@@ -50,11 +50,11 @@ ConsoleTxt.TextColor3 = Color3.fromRGB(255, 50, 50)
 ConsoleTxt.Font = Enum.Font.Code
 ConsoleTxt.TextSize = 10
 ConsoleTxt.TextXAlignment = Enum.TextXAlignment.Left
-ConsoleTxt.Text = "> TARGET: CENTER\n> CPS: 10\n> STATUS: READY"
+ConsoleTxt.Text = "> CPS: 10\n> READY"
 
--- [[ SLIDER (CALIBRATED 10 - 5000) ]] --
+-- [[ SLIDER (FIXED LOGIC) ]] --
 local SliderBack = Instance.new("TextButton", Main)
-SliderBack.Size = UDim2.new(0.85, 0, 0, 6)
+SliderBack.Size = UDim2.new(0.85, 0, 0, 8)
 SliderBack.Position = UDim2.new(0.075, 0, 0, 130)
 SliderBack.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
 SliderBack.Text = ""
@@ -67,23 +67,30 @@ SliderFill.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
 Instance.new("UICorner", SliderFill)
 
 local Knob = Instance.new("Frame", SliderFill)
-Knob.Size = UDim2.new(0, 14, 0, 14)
-Knob.Position = UDim2.new(1, -7, 0.5, -7)
+Knob.Size = UDim2.new(0, 16, 0, 16)
+Knob.Position = UDim2.new(1, -8, 0.5, -8)
 Knob.BackgroundColor3 = Color3.new(1, 1, 1)
 Instance.new("UICorner", Knob)
 
--- Slider Logic
-local dragging = false
-SliderBack.MouseButton1Down:Connect(function() dragging = true end)
-UserInputService.InputEnded:Connect(function(inp) if inp.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end end)
+local sliding = false
+
+SliderBack.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        sliding = true
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        sliding = false
+    end
+end)
 
 RunService.RenderStepped:Connect(function()
-    if dragging then
+    if sliding then
         local mousePos = UserInputService:GetMouseLocation().X
         local relPos = math.clamp((mousePos - SliderBack.AbsolutePosition.X) / SliderBack.AbsoluteSize.X, 0, 1)
         SliderFill.Size = UDim2.new(relPos, 0, 1, 0)
-        
-        -- Rumus 10 ke 5000 CPS
         targetCPS = math.floor(10 + (relPos * 4990))
     end
 end)
@@ -102,14 +109,11 @@ Circle.Position = UDim2.new(0, 3, 0.5, -9)
 Circle.BackgroundColor3 = Color3.new(1, 1, 1)
 Instance.new("UICorner", Circle).CornerRadius = UDim.new(1, 0)
 
--- [[ HIGH SPEED ENGINE (BATCH MODE) ]] --
+-- [[ ENGINE ]] --
 task.spawn(function()
     while true do
         if isClicking then
             local center = Camera.ViewportSize / 2
-            
-            -- Jika CPS rendah (< 60), gunakan delay biasa
-            -- Jika CPS tinggi (> 60), gunakan batch per frame
             if targetCPS <= 60 then
                 VirtualInputManager:SendMouseButtonEvent(center.X, center.Y, 0, true, game, 0)
                 VirtualInputManager:SendMouseButtonEvent(center.X, center.Y, 0, false, game, 0)
@@ -141,21 +145,17 @@ ToggleBg.MouseButton1Click:Connect(function()
     end
 end)
 
--- [[ MONITOR LOOP ]] --
+-- [[ UPDATE TEXT ]] --
 task.spawn(function()
     while task.wait(0.1) do
-        if isClicking then
-            ConsoleTxt.Text = string.format("> CLICKING CENTER\n> TARGET CPS: %d\n> TOTAL CLICK: %d", targetCPS, clickCount)
-        else
-            ConsoleTxt.Text = string.format("> STATUS: IDLE\n> TARGET CPS: %d\n> CENTER CLICK", targetCPS)
-        end
+        ConsoleTxt.Text = isClicking and string.format("> CLICKING...\n> CPS: %d\n> TOTAL: %d", targetCPS, clickCount) or string.format("> STATUS: IDLE\n> TARGET CPS: %d", targetCPS)
     end
 end)
 
 -- [[ OPEN BUTTON ]] --
 local OpenBtn = Instance.new("TextButton", ScreenGui)
 OpenBtn.Size = UDim2.new(0, 40, 0, 40)
-OpenBtn.Position = UDim2.new(0.05, 0, 0.45, 0)
+OpenBtn.Position = UDim2.new(0.1, 0, 0.1, 0)
 OpenBtn.BackgroundColor3 = Color3.fromRGB(20, 0, 0)
 OpenBtn.Text = "XTR"
 OpenBtn.TextColor3 = Color3.fromRGB(255, 50, 50)
@@ -167,10 +167,29 @@ BStroke.Color = Color3.fromRGB(255, 50, 50)
 
 OpenBtn.MouseButton1Click:Connect(function() Main.Visible = not Main.Visible end)
 
-local function drag(o)
-    local s, i, sp
-    o.InputBegan:Connect(function(inp) if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then s = true; i = inp.Position; sp = o.Position end end)
-    o.InputChanged:Connect(function(inp) if s and (inp.UserInputType == Enum.UserInputType.MouseMovement or inp.UserInputType == Enum.UserInputType.Touch) then local d = inp.Position - i; o.Position = UDim2.new(sp.X.Scale, sp.X.Offset + d.X, sp.Y.Scale, sp.Y.Offset + d.Y) end end)
-    UserInputService.InputEnded:Connect(function(inp) if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then s = false end end)
+-- [[ FIXED DRAG LOGIC (Will not conflict with Slider) ]] --
+local function makeDraggable(obj)
+    local dragging, dragInput, dragStart, startPos
+    obj.InputBegan:Connect(function(input)
+        -- HANYA drag jika TIDAK sedang menggeser slider
+        if (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) and not sliding then
+            dragging = true
+            dragStart = input.Position
+            startPos = obj.Position
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - dragStart
+            obj.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+        end
+    end)
 end
-drag(OpenBtn); drag(Main)
+
+makeDraggable(Main)
+makeDraggable(OpenBtn)
