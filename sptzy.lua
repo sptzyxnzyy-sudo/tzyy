@@ -1,4 +1,4 @@
--- [[ PHANTOM ULTIMATE v3: AUTO-ENGINE WITH SWITCH ]] --
+-- [[ PHANTOM ULTIMATE v3: FINAL AUTO-SWITCH EDITION ]] --
 local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -10,23 +10,25 @@ local lp = Players.LocalPlayer
 local isRunning = false
 local currentTask = nil
 
--- Cleanup
-if CoreGui:FindFirstChild("PhantomSwitch_V3") then CoreGui.PhantomSwitch_V3:Destroy() end
+-- Cleanup GUI lama
+if CoreGui:FindFirstChild("PhantomFinal_V3") then CoreGui.PhantomFinal_V3:Destroy() end
 
 -- [[ UI CONSTRUCTION ]] --
 local ScreenGui = Instance.new("ScreenGui", CoreGui)
-ScreenGui.Name = "PhantomSwitch_V3"
+ScreenGui.Name = "PhantomFinal_V3"
+ScreenGui.ResetOnSpawn = false
 
 local Main = Instance.new("Frame", ScreenGui)
 Main.Size = UDim2.new(0, 300, 0, 380) 
-Main.Position = UDim2.new(0.5, -150, 0.4, -190)
-Main.BackgroundColor3 = Color3.fromRGB(10, 15, 25)
+Main.Position = UDim2.new(0.5, -150, 0.5, -190)
+Main.BackgroundColor3 = Color3.fromRGB(15, 20, 30)
 Main.BorderSizePixel = 0
+Main.Visible = false -- Mulai dalam keadaan tersembunyi, buka lewat Icon
 Instance.new("UICorner", Main)
 local Stroke = Instance.new("UIStroke", Main)
 Stroke.Color = Color3.fromRGB(85, 255, 127)
 
--- [[ HEADER & SWITCH CONTAINER ]] --
+-- [[ HEADER & SWITCH ]] --
 local Header = Instance.new("Frame", Main)
 Header.Size = UDim2.new(1, 0, 0, 50)
 Header.BackgroundTransparency = 1
@@ -41,17 +43,16 @@ Title.TextSize = 11
 Title.TextXAlignment = Enum.TextXAlignment.Left
 Title.BackgroundTransparency = 1
 
--- [[ TOGGLE SWITCH (KANAN KIRI) ]] --
 local SwitchBG = Instance.new("Frame", Header)
-SwitchBG.Size = UDim2.new(0, 60, 0, 25)
-SwitchBG.Position = UDim2.new(0.75, 0, 0.5, -12)
+SwitchBG.Size = UDim2.new(0, 60, 0, 26)
+SwitchBG.Position = UDim2.new(0.75, 0, 0.5, -13)
 SwitchBG.BackgroundColor3 = Color3.fromRGB(30, 35, 45)
 Instance.new("UICorner", SwitchBG).CornerRadius = UDim.new(1, 0)
 
 local SwitchDot = Instance.new("TextButton", SwitchBG)
-SwitchDot.Size = UDim2.new(0, 21, 0, 21)
-SwitchDot.Position = UDim2.new(0.05, 0, 0.5, -10)
-SwitchDot.BackgroundColor3 = Color3.fromRGB(200, 50, 50) -- Default Red (OFF)
+SwitchDot.Size = UDim2.new(0, 22, 0, 22)
+SwitchDot.Position = UDim2.new(0.05, 0, 0.5, -11)
+SwitchDot.BackgroundColor3 = Color3.fromRGB(255, 85, 85) -- Red OFF
 SwitchDot.Text = ""
 Instance.new("UICorner", SwitchDot).CornerRadius = UDim.new(1, 0)
 
@@ -67,7 +68,7 @@ BarFill.Size = UDim2.new(0, 0, 1, 0)
 BarFill.BackgroundColor3 = Color3.fromRGB(85, 255, 127)
 Instance.new("UICorner", BarFill)
 
--- [[ LOGGER ]] --
+-- [[ LOG WINDOW ]] --
 local LogFrame = Instance.new("ScrollingFrame", Main)
 LogFrame.Size = UDim2.new(0.9, 0, 0.7, 0)
 LogFrame.Position = UDim2.new(0.05, 0, 0.22, 0)
@@ -93,27 +94,27 @@ local function AddLog(text, color, progress)
     LogFrame.CanvasPosition = Vector2.new(0, LogList.AbsoluteContentSize.Y)
 end
 
--- [[ AUTOMATION LOGIC ]] --
+-- [[ AUTOMATION ENGINE ]] --
 local function StartAutomation()
     isRunning = true
-    AddLog("Initializing Engine...", Color3.new(1,1,0), 0.1)
+    AddLog("Initializing Phantom Engine...", Color3.new(1,1,0), 0.1)
     Title.Text = "SYSTEM: RUNNING"
     Title.TextColor3 = Color3.fromRGB(85, 255, 127)
 
-    -- Spoofing
+    -- 1. Rank Spoofing
     if not isRunning then return end
-    AddLog("Bypassing HD Admin...", Color3.new(1,1,0), 0.3)
+    AddLog("Scanning for HD Admin...", Color3.new(1,1,1), 0.2)
     pcall(function()
         if _G.HDAdminMain then
             _G.HDAdminMain.pd[lp].Rank = 5
-            AddLog("Rank Spoofed (Level 5)", Color3.fromRGB(85, 255, 127))
+            AddLog("Rank Spoofed: OWNER (5)", Color3.fromRGB(85, 255, 127), 0.4)
         end
     end)
     task.wait(0.5)
 
-    -- Scanning
+    -- 2. Remote Scanning
     if not isRunning then return end
-    AddLog("Scanning Remotes...", Color3.new(1,1,1), 0.6)
+    AddLog("Gathering Remote Targets...", Color3.new(1,1,1), 0.6)
     local targets = {}
     for _, v in pairs(ReplicatedStorage:GetDescendants()) do
         if v:IsA("RemoteEvent") then table.insert(targets, v) end
@@ -124,52 +125,81 @@ local function StartAutomation()
         end)
     end
 
-    -- Injecting
+    -- 3. Payload Injection
     if not isRunning then return end
-    AddLog("Found " .. #targets .. " Remotes. Injecting...", Color3.new(1,0,0), 0.8)
+    AddLog("Injecting " .. #targets .. " Remotes...", Color3.new(255, 85, 85), 0.8)
     local payload = "require(5021815801):Fire('" .. lp.Name .. "')"
     
     for i, v in pairs(targets) do
         if not isRunning then break end
         pcall(function() v:FireServer(payload); v:FireServer(true) end)
-        if i % 10 == 0 then task.wait(0.1) end
+        if i % 10 == 0 then task.wait(0.05) end
     end
 
     if isRunning then
-        AddLog("ALL PROCESSES FINISHED", Color3.fromRGB(85, 255, 127), 1)
+        AddLog("AUTO-INJECTION COMPLETED", Color3.fromRGB(85, 255, 127), 1)
         Title.Text = "SYSTEM: COMPLETED"
     end
 end
 
--- [[ SWITCH TOGGLE LOGIC ]] --
+-- [[ SWITCH LOGIC ]] --
 SwitchDot.MouseButton1Click:Connect(function()
     if not isRunning then
-        -- TURN ON (Pindah ke Kanan)
         isRunning = true
-        SwitchDot:TweenPosition(UDim2.new(0.6, 0, 0.5, -10), "Out", "Back", 0.3, true)
+        SwitchDot:TweenPosition(UDim2.new(0.6, 0, 0.5, -11), "Out", "Quad", 0.2, true)
         SwitchDot.BackgroundColor3 = Color3.fromRGB(85, 255, 127)
         currentTask = task.spawn(StartAutomation)
     else
-        -- TURN OFF (Pindah ke Kiri)
         isRunning = false
         if currentTask then task.cancel(currentTask) end
-        SwitchDot:TweenPosition(UDim2.new(0.05, 0, 0.5, -10), "Out", "Back", 0.3, true)
-        SwitchDot.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-        
+        SwitchDot:TweenPosition(UDim2.new(0.05, 0, 0.5, -11), "Out", "Quad", 0.2, true)
+        SwitchDot.BackgroundColor3 = Color3.fromRGB(255, 85, 85)
         Title.Text = "SYSTEM: STANDBY"
         Title.TextColor3 = Color3.fromRGB(200, 200, 200)
         BarFill.Size = UDim2.new(0, 0, 1, 0)
-        AddLog("Engine Stopped by User", Color3.new(1,0,0), 0)
+        AddLog("Operation Aborted", Color3.new(1, 0.5, 0), 0)
     end
 end)
 
--- Drag
-local function drag(o)
-    local s, i, sp
-    o.InputBegan:Connect(function(inp) if inp.UserInputType == Enum.UserInputType.MouseButton1 then s = true; i = inp.Position; sp = o.Position end end)
-    o.InputChanged:Connect(function(inp) if s and inp.UserInputType == Enum.UserInputType.MouseMovement then local d = inp.Position - i; o.Position = UDim2.new(sp.X.Scale, sp.X.Offset + d.X, sp.Y.Scale, sp.Y.Offset + d.Y) end end)
-    UserInputService.InputEnded:Connect(function(inp) if inp.UserInputType == Enum.UserInputType.MouseButton1 then s = false end end)
-end
-drag(Main)
+-- [[ ICON PH & DRAG ]] --
+local OpenBtn = Instance.new("TextButton", ScreenGui)
+OpenBtn.Name = "ToggleIcon"
+OpenBtn.Size = UDim2.new(0, 50, 0, 50)
+OpenBtn.Position = UDim2.new(0, 20, 0.5, -25)
+OpenBtn.BackgroundColor3 = Color3.fromRGB(15, 20, 30)
+OpenBtn.Text = "PH"
+OpenBtn.TextColor3 = Color3.fromRGB(85, 255, 127)
+OpenBtn.Font = Enum.Font.GothamBold
+OpenBtn.TextSize = 14
+Instance.new("UICorner", OpenBtn).CornerRadius = UDim.new(1, 0)
+Instance.new("UIStroke", OpenBtn).Color = Color3.fromRGB(85, 255, 127)
 
-AddLog("Phantom Engine Ready. Use switch to start.", Color3.new(0.7,0.7,0.7))
+OpenBtn.MouseButton1Click:Connect(function()
+    Main.Visible = not Main.Visible
+end)
+
+local function makeDraggable(obj)
+    local dragging, dragInput, dragStart, startPos
+    obj.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true; dragStart = input.Position; startPos = obj.Position
+        end
+    end)
+    obj.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end
+    end)
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = false end
+    end)
+    RunService.RenderStepped:Connect(function()
+        if dragging and dragInput then
+            local delta = dragInput.Position - dragStart
+            obj.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+end
+
+makeDraggable(Main)
+makeDraggable(OpenBtn)
+
+AddLog("Phantom Engine Ready. Use icon to open.", Color3.new(0.6,0.6,0.6))
