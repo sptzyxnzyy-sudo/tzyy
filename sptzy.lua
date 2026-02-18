@@ -1,4 +1,6 @@
--- [[ PHANTOM SQUARE: ULTRA BLATANT FINAL REBORN ]] --
+-- [[ PHANTOM SQUARE: ULTRA TURBO & ANTI-FRAME ]] --
+-- Integrated with Ultra Blatant Auto Fishing Module
+
 local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
 local Stats = game:GetService("Stats")
@@ -6,133 +8,34 @@ local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local lp = game:GetService("Players").LocalPlayer
 
--- [[ PRE-CHECK ]] --
+-- [[ ULTRA BLATANT MODULE INITIALIZATION ]] --
 local netFolder = ReplicatedStorage:WaitForChild("Packages"):WaitForChild("_Index"):WaitForChild("sleitnick_net@0.2.0"):WaitForChild("net")
 local RF_ChargeFishingRod = netFolder:WaitForChild("RF/ChargeFishingRod")
 local RF_RequestMinigame = netFolder:WaitForChild("RF/RequestFishingMinigameStarted")
 local RF_CancelFishingInputs = netFolder:WaitForChild("RF/CancelFishingInputs")
 local RF_UpdateAutoFishingState = netFolder:WaitForChild("RF/UpdateAutoFishingState")
 local RE_FishingCompleted = netFolder:WaitForChild("RE/FishingCompleted")
+local RE_MinigameChanged = netFolder:WaitForChild("RE/FishingMinigameChanged")
 
--- [[ SETTINGS ]] --
 local isBrutal = false
 local lastFish = "None"
-local FishingSettings = {
+local lastEventTime = 0
+
+local Settings = {
     CompleteDelay = 0.73,
     CancelDelay = 0.3,
-    ReCastDelay = 0.001
+    ReCastDelay = 0.01
 }
+
 local FishingState = {
     lastCompleteTime = 0,
     completeCooldown = 0.4
 }
 
--- [[ UI CONSTRUCTION ]] --
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "PhantomUltraV2"
-ScreenGui.Parent = CoreGui
-ScreenGui.ResetOnSpawn = false
-ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-
--- [[ TOGGLE ICON (⚡) ]] --
-local OpenBtn = Instance.new("TextButton")
-OpenBtn.Name = "MainIcon"
-OpenBtn.Parent = ScreenGui
-OpenBtn.Size = UDim2.new(0, 50, 0, 50)
-OpenBtn.Position = UDim2.new(0, 20, 0.5, -25)
-OpenBtn.BackgroundColor3 = Color3.fromRGB(10, 10, 15)
-OpenBtn.Text = "⚡"
-OpenBtn.TextSize = 25
-OpenBtn.TextColor3 = Color3.fromRGB(0, 255, 255)
-OpenBtn.ZIndex = 10
-
-local IconCorner = Instance.new("UICorner", OpenBtn)
-IconCorner.CornerRadius = UDim.new(1, 0)
-
-local IconStroke = Instance.new("UIStroke", OpenBtn)
-IconStroke.Color = Color3.fromRGB(0, 255, 255)
-IconStroke.Thickness = 2
-
--- [[ MAIN PANEL ]] --
-local Main = Instance.new("Frame")
-Main.Name = "MainFrame"
-Main.Parent = ScreenGui
-Main.Size = UDim2.new(0, 200, 0, 260)
-Main.Position = UDim2.new(0.5, -100, 0.4, -130)
-Main.BackgroundColor3 = Color3.fromRGB(5, 5, 10)
-Main.Visible = false
-Main.ClipsDescendants = true
-
-local MainCorner = Instance.new("UICorner", Main)
-MainCorner.CornerRadius = UDim.new(0, 12)
-
-local MainStroke = Instance.new("UIStroke", Main)
-MainStroke.Color = Color3.fromRGB(0, 255, 255)
-MainStroke.Thickness = 1.5
-
--- [[ STATUS MONITOR ]] --
-local Status = Instance.new("TextLabel", Main)
-Status.Size = UDim2.new(1, 0, 0, 60)
-Status.BackgroundTransparency = 1
-Status.TextColor3 = Color3.fromRGB(255, 255, 255)
-Status.Font = Enum.Font.Code
-Status.TextSize = 9
-Status.Text = "SYSTEM INITIALIZING..."
-
--- [[ INPUT COMPONENT FUNCTION ]] --
-local function CreateInputField(name, default, yPos)
-    local container = Instance.new("Frame", Main)
-    container.Size = UDim2.new(0.9, 0, 0, 35)
-    container.Position = UDim2.new(0.05, 0, 0, yPos)
-    container.BackgroundTransparency = 1
-
-    local label = Instance.new("TextLabel", container)
-    label.Size = UDim2.new(0.6, 0, 1, 0)
-    label.BackgroundTransparency = 1
-    label.Text = name
-    label.TextColor3 = Color3.fromRGB(180, 180, 180)
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Font = Enum.Font.Code
-    label.TextSize = 10
-
-    local box = Instance.new("TextBox", container)
-    box.Size = UDim2.new(0.35, 0, 0.7, 0)
-    box.Position = UDim2.new(0.65, 0, 0.15, 0)
-    box.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
-    box.TextColor3 = Color3.fromRGB(0, 255, 255)
-    box.Text = tostring(default)
-    box.Font = Enum.Font.Code
-    box.TextSize = 11
-    Instance.new("UICorner", box)
-    Instance.new("UIStroke", box).Color = Color3.fromRGB(0, 255, 255)
-    
-    return box
+-- [[ CORE UTILITIES ]] --
+local function safeFire(func)
+    task.spawn(function() pcall(func) end)
 end
-
-local InpComp = CreateInputField("COMPLETE DELAY:", FishingSettings.CompleteDelay, 70)
-local InpCanc = CreateInputField("CANCEL DELAY:", FishingSettings.CancelDelay, 110)
-local InpReca = CreateInputField("RECAST DELAY:", FishingSettings.ReCastDelay, 150)
-
--- Update Settings on Input
-InpComp.FocusLost:Connect(function() FishingSettings.CompleteDelay = tonumber(InpComp.Text) or 0.73 end)
-InpCanc.FocusLost:Connect(function() FishingSettings.CancelDelay = tonumber(InpCanc.Text) or 0.3 end)
-InpReca.FocusLost:Connect(function() FishingSettings.ReCastDelay = tonumber(InpReca.Text) or 0.001 end)
-
--- [[ ACTION BUTTON ]] --
-local ActionBtn = Instance.new("TextButton", Main)
-ActionBtn.Size = UDim2.new(0.9, 0, 0, 35)
-ActionBtn.Position = UDim2.new(0.05, 0, 0.82, 0)
-ActionBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
-ActionBtn.Text = "START AUTO FISH"
-ActionBtn.TextColor3 = Color3.fromRGB(0, 255, 255)
-ActionBtn.Font = Enum.Font.GothamBold
-ActionBtn.TextSize = 12
-Instance.new("UICorner", ActionBtn)
-local ActionStroke = Instance.new("UIStroke", ActionBtn)
-ActionStroke.Color = Color3.fromRGB(0, 255, 255)
-
--- [[ CORE LOGIC ]] --
-local function safeFire(func) task.spawn(function() pcall(func) end) end
 
 local function protectedComplete()
     local now = tick()
@@ -142,77 +45,124 @@ local function protectedComplete()
     return true
 end
 
--- Main Loop
-task.spawn(function()
-    while true do
+local function performCast()
+    local now = tick()
+    safeFire(function() RF_ChargeFishingRod:InvokeServer({[1] = now}) end)
+    safeFire(function() RF_RequestMinigame:InvokeServer(1, 0, now) end)
+end
+
+-- [[ MAIN FISHING LOOP ]] --
+local function startUltraLoop()
+    while isBrutal do
+        performCast()
+        task.wait(Settings.CompleteDelay)
+        
+        if isBrutal then protectedComplete() end
+        task.wait(Settings.CancelDelay)
+        
         if isBrutal then
-            local now = tick()
-            -- Cast & Start Minigame
-            safeFire(function() RF_ChargeFishingRod:InvokeServer({[1] = now}) end)
-            safeFire(function() RF_RequestMinigame:InvokeServer(1, 0, now) end)
-            
-            task.wait(FishingSettings.CompleteDelay)
-            if isBrutal then protectedComplete() end
-            
-            task.wait(FishingSettings.CancelDelay)
-            if isBrutal then safeFire(function() RF_CancelFishingInputs:InvokeServer() end) end
-            
-            task.wait(FishingSettings.ReCastDelay)
-        else
-            task.wait(0.5)
+            safeFire(function() RF_CancelFishingInputs:InvokeServer() end)
         end
+        task.wait(Settings.ReCastDelay)
     end
+end
+
+-- Listener untuk perubahan minigame (Back-up)
+RE_MinigameChanged.OnClientEvent:Connect(function()
+    if not isBrutal then return end
+    local now = tick()
+    if now - lastEventTime < 0.2 or now - FishingState.lastCompleteTime < 0.3 then return end
+    lastEventTime = now
+    
+    task.spawn(function()
+        task.wait(Settings.CompleteDelay)
+        if protectedComplete() then
+            task.wait(Settings.CancelDelay)
+            safeFire(function() RF_CancelFishingInputs:InvokeServer() end)
+        end
+    end)
 end)
 
--- Button Toggle
-ActionBtn.MouseButton1Click:Connect(function()
-    isBrutal = not isBrutal
-    ActionBtn.Text = isBrutal and "STATUS: RUNNING" or "START AUTO FISH"
-    ActionBtn.BackgroundColor3 = isBrutal and Color3.fromRGB(0, 100, 100) or Color3.fromRGB(20, 20, 30)
-    safeFire(function() RF_UpdateAutoFishingState:InvokeServer(isBrutal) end)
-end)
+-- [[ UI SCREEN ]] --
+local ScreenGui = Instance.new("ScreenGui", CoreGui)
+ScreenGui.Name = "PhantomUltraV2"
+ScreenGui.ResetOnSpawn = false
 
--- Toggle Menu
-OpenBtn.MouseButton1Click:Connect(function()
-    Main.Visible = not Main.Visible
-end)
+local OpenBtn = Instance.new("TextButton", ScreenGui)
+OpenBtn.Size = UDim2.new(0, 45, 0, 45)
+OpenBtn.Position = UDim2.new(0, 20, 0.5, -22)
+OpenBtn.BackgroundColor3 = Color3.fromRGB(10, 10, 15)
+OpenBtn.Text = "⚡"
+OpenBtn.TextColor3 = Color3.fromRGB(0, 255, 255)
+Instance.new("UICorner", OpenBtn).CornerRadius = UDim.new(1, 0)
+Instance.new("UIStroke", OpenBtn).Color = Color3.fromRGB(0, 255, 255)
 
--- Status Loop
+local Main = Instance.new("Frame", ScreenGui)
+Main.Size = UDim2.new(0, 180, 0, 180) 
+Main.Position = UDim2.new(0.5, -90, 0.4, -90)
+Main.BackgroundColor3 = Color3.fromRGB(5, 5, 10)
+Main.Visible = false
+Instance.new("UICorner", Main)
+Instance.new("UIStroke", Main).Color = Color3.fromRGB(0, 255, 255)
+
+local Status = Instance.new("TextLabel", Main)
+Status.Size = UDim2.new(1, 0, 0, 60)
+Status.BackgroundTransparency = 1
+Status.TextColor3 = Color3.fromRGB(255, 255, 255)
+Status.Font = Enum.Font.Code
+Status.TextSize = 8
+Status.Text = "SYSTEM INITIALIZED"
+
 task.spawn(function()
     while task.wait(0.5) do
         local p = math.floor(Stats.Network.ServerStatsItem["Data Ping"]:GetValue())
-        Status.Text = string.format("PING: %dms\nMODE: %s\nSYSTEM: SECURED", 
-            p, (isBrutal and "ACTIVE" or "IDLE"))
+        Status.Text = string.format("PING: %dms\nFISH: %s\nMODE: %s", 
+            p, lastFish, (isBrutal and "ULTRA-BLATANT" or "IDLE"))
     end
 end)
 
--- [[ DRAG SYSTEM ]] --
-local function makeDraggable(obj)
-    local dragging, dragInput, dragStart, startPos
-    obj.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            dragStart = input.Position
-            startPos = obj.Position
-        end
-    end)
-    obj.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-            dragInput = input
-        end
-    end)
-    UserInputService.InputChanged:Connect(function(input)
-        if input == dragInput and dragging then
-            local delta = input.Position - dragStart
-            obj.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-        end
-    end)
-    obj.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = false
-        end
-    end)
-end
+-- Detector Log Ikan
+task.spawn(function()
+    while task.wait(0.2) do
+        pcall(function()
+            for _, v in pairs(lp.PlayerGui:GetDescendants()) do
+                if v:IsA("TextLabel") and v.Visible and (v.Text:find("mendapatkan") or v.Text:find("Shiny")) then
+                    lastFish = v.Text:gsub("Anda mendapatkan:", ""):gsub("<[^>]*>", "")
+                end
+            end
+        end)
+    end
+end)
 
-makeDraggable(Main)
-makeDraggable(OpenBtn)
+local ActionBtn = Instance.new("TextButton", Main)
+ActionBtn.Size = UDim2.new(0.8, 0, 0, 35)
+ActionBtn.Position = UDim2.new(0.1, 0, 0.7, 0)
+ActionBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+ActionBtn.Text = "START TURBO"
+ActionBtn.TextColor3 = Color3.fromRGB(0, 255, 255)
+Instance.new("UICorner", ActionBtn)
+
+ActionBtn.MouseButton1Click:Connect(function()
+    isBrutal = not isBrutal
+    if isBrutal then
+        ActionBtn.Text = "TURBO ON"
+        ActionBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 150)
+        safeFire(function() RF_UpdateAutoFishingState:InvokeServer(true) end)
+        task.spawn(startUltraLoop)
+    else
+        ActionBtn.Text = "START TURBO"
+        ActionBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+        safeFire(function() RF_UpdateAutoFishingState:InvokeServer(false) end) -- Nonaktifkan di server
+        safeFire(function() RF_CancelFishingInputs:InvokeServer() end)
+    end
+end)
+
+-- [[ DRAG SUPPORT ]] --
+local function drag(o)
+    local s, i, sp
+    o.InputBegan:Connect(function(inp) if (inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch) then s = true; i = inp.Position; sp = o.Position end end)
+    o.InputChanged:Connect(function(inp) if s and (inp.UserInputType == Enum.UserInputType.MouseMovement or inp.UserInputType == Enum.UserInputType.Touch) then local d = inp.Position - i; o.Position = UDim2.new(sp.X.Scale, sp.X.Offset + d.X, sp.Y.Scale, sp.Y.Offset + d.Y) end end)
+    UserInputService.InputEnded:Connect(function(inp) if (inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch) then s = false end end)
+end
+drag(Main); drag(OpenBtn)
+OpenBtn.MouseButton1Click:Connect(function() Main.Visible = not Main.Visible end)
