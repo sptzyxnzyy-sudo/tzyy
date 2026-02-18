@@ -7,8 +7,8 @@ local Stats = game:GetService("Stats")
 local lp = game:GetService("Players").LocalPlayer
 
 local activeRemotes = {}
-local catchValue = 100
-local catchDelay = 0.5
+local catchValue = 0.112377
+local catchDelay = 3.123
 
 -- [[ UI CONSTRUCTION ]] --
 local ScreenGui = Instance.new("ScreenGui", CoreGui)
