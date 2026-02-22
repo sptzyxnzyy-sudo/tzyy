@@ -1,4 +1,4 @@
-Fungsi fitur pada kode ini apa
+
 
 -- [[ PHANTOM REMOTE EXECUTOR: BACKDOOR & LOGGER EDITION ]] --
 local RunService = game:GetService("RunService")
