@@ -1,115 +1,117 @@
--- [[ PHANTOM SQUARE: PROFILE UI SYSTEM ]] --
+-- [[ PHANTOM SQUARE: PROFILE SYSTEM (SQUARE EDITION) ]] --
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local CoreGui = game:GetService("CoreGui")
 local lp = Players.LocalPlayer
 
--- [[ GET PLAYER DATA ]] --
+-- [[ AMBIL DATA PROFIL ]] --
 local userId = lp.UserId
 local thumbType = Enum.ThumbnailType.HeadShot
-local thumbSize = Enum.ThumbnailSize.Size150x150
+local thumbSize = Enum.ThumbnailSize.Size420x420
 local content, isReady = Players:GetUserThumbnailAsync(userId, thumbType, thumbSize)
-local playerBio = game:HttpGet("https://users.roblox.com/v1/users/"..userId):match('"description":"(.-)"') or "No Bio Available"
 
 -- [[ UI SCREEN ]] --
 local ScreenGui = Instance.new("ScreenGui", CoreGui)
-ScreenGui.Name = "PhantomProfileSystem"
+ScreenGui.Name = "PhantomSquareUI"
 ScreenGui.ResetOnSpawn = false
 
--- [[ COMPACT ICON ]] --
+-- [[ 1. ICON (LAUNCHER) ]] --
 local IconBtn = Instance.new("ImageButton", ScreenGui)
-IconBtn.Name = "MainIcon"
 IconBtn.Size = UDim2.new(0, 50, 0, 50)
-IconBtn.Position = UDim2.new(0, 20, 0.5, -25)
-IconBtn.BackgroundColor3 = Color3.fromRGB(10, 10, 15)
+IconBtn.Position = UDim2.new(0, 50, 0.5, -25)
+IconBtn.BackgroundColor3 = Color3.fromRGB(15, 15, 25)
 IconBtn.Image = content
-IconBtn.ClipsDescendants = true
-Instance.new("UICorner", IconBtn).CornerRadius = UDim.new(1, 0)
+IconBtn.BorderSizePixel = 0
+Instance.new("UICorner", IconBtn).CornerRadius = UDim.new(0, 8) -- Square-ish round
+
 local IconStroke = Instance.new("UIStroke", IconBtn)
 IconStroke.Color = Color3.fromRGB(0, 255, 255)
 IconStroke.Thickness = 2
 
--- [[ PROFILE MAIN FRAME ]] --
-local ProfileFrame = Instance.new("Frame", ScreenGui)
-ProfileFrame.Name = "ProfileFrame"
-ProfileFrame.Size = UDim2.new(0, 280, 0, 380)
-ProfileFrame.Position = UDim2.new(0.5, -140, 0.5, -190)
-ProfileFrame.BackgroundColor3 = Color3.fromRGB(5, 5, 10)
-ProfileFrame.Visible = false
-ProfileFrame.BorderSizePixel = 0
-Instance.new("UICorner", ProfileFrame).CornerRadius = UDim.new(0, 15)
+-- [[ 2. GUI FITUR (SQUARE FRAME) ]] --
+local MainFrame = Instance.new("Frame", ScreenGui)
+MainFrame.Size = UDim2.new(0, 300, 0, 300) -- Persegi Sempurna
+MainFrame.Position = UDim2.new(0.5, -150, 0.5, -150)
+MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 15)
+MainFrame.Visible = false
+MainFrame.BorderSizePixel = 0
 
-local MainStroke = Instance.new("UIStroke", ProfileFrame)
+local MainStroke = Instance.new("UIStroke", MainFrame)
 MainStroke.Color = Color3.fromRGB(0, 255, 255)
 MainStroke.Thickness = 1.5
 
--- [[ PROFILE COMPONENTS ]] --
-local function createLabel(name, text, pos, size, font, color, parent)
-    local l = Instance.new("TextLabel", parent)
-    l.Name = name
-    l.Size = size
+-- Tombol Close (X)
+local CloseBtn = Instance.new("TextButton", MainFrame)
+CloseBtn.Size = UDim2.new(0, 30, 0, 30)
+CloseBtn.Position = UDim2.new(1, -35, 0, 5)
+CloseBtn.BackgroundTransparency = 1
+CloseBtn.Text = "×"
+CloseBtn.TextColor3 = Color3.fromRGB(255, 50, 50)
+CloseBtn.TextSize = 30
+CloseBtn.Font = Enum.Font.GothamBold
+
+-- Avatar Box (Square)
+local AvatarImg = Instance.new("ImageLabel", MainFrame)
+AvatarImg.Size = UDim2.new(0, 80, 0, 80)
+AvatarImg.Position = UDim2.new(0, 20, 0, 20)
+AvatarImg.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+AvatarImg.Image = content
+AvatarImg.BorderSizePixel = 0
+local AvStroke = Instance.new("UIStroke", AvatarImg)
+AvStroke.Color = Color3.fromRGB(0, 255, 255)
+
+-- Info Box (Text Labels)
+local function addLabel(text, pos, font, size, color)
+    local l = Instance.new("TextLabel", MainFrame)
+    l.Size = UDim2.new(1, -120, 0, 20)
     l.Position = pos
     l.BackgroundTransparency = 1
     l.Text = text
     l.TextColor3 = color
     l.Font = font
-    l.TextSize = 14
-    l.TextXAlignment = Enum.TextXAlignment.Center
+    l.TextSize = size
+    l.TextXAlignment = Enum.TextXAlignment.Left
     return l
 end
 
--- Big Avatar Image
-local AvatarImg = Instance.new("ImageLabel", ProfileFrame)
-AvatarImg.Size = UDim2.new(0, 100, 0, 100)
-AvatarImg.Position = UDim2.new(0.5, -50, 0, 30)
-AvatarImg.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
-AvatarImg.Image = content
-Instance.new("UICorner", AvatarImg).CornerRadius = UDim.new(1, 0)
-local AvStroke = Instance.new("UIStroke", AvatarImg)
-AvStroke.Color = Color3.fromRGB(0, 255, 255)
+addLabel(lp.DisplayName, UDim2.new(0, 115, 0, 30), Enum.Font.GothamBold, 18, Color3.fromRGB(255,255,255))
+addLabel("@"..lp.Name, UDim2.new(0, 115, 0, 50), Enum.Font.Gotham, 14, Color3.fromRGB(150,150,150))
+addLabel("ID: "..lp.UserId, UDim2.new(0, 115, 0, 70), Enum.Font.Code, 12, Color3.fromRGB(0, 255, 255))
 
--- Display Name & Username
-local DisplayName = createLabel("DisplayName", lp.DisplayName, UDim2.new(0,0,0,140), UDim2.new(1,0,0,20), Enum.Font.GothamBold, Color3.fromRGB(255,255,255), ProfileFrame)
-DisplayName.TextSize = 18
+-- Bio / Status Section (Persegi Bawah)
+local BioBox = Instance.new("Frame", MainFrame)
+BioBox.Size = UDim2.new(1, -40, 0, 150)
+BioBox.Position = UDim2.new(0, 20, 0, 120)
+BioBox.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+Instance.new("UIStroke", BioBox).Color = Color3.fromRGB(30, 30, 40)
 
-local UserName = createLabel("UserName", "@"..lp.Name, UDim2.new(0,0,0,160), UDim2.new(1,0,0,20), Enum.Font.Gotham, Color3.fromRGB(150,150,150), ProfileFrame)
+local BioText = Instance.new("TextLabel", BioBox)
+BioText.Size = UDim2.new(1, -10, 1, -10)
+BioText.Position = UDim2.new(0, 5, 0, 5)
+BioText.BackgroundTransparency = 1
+BioText.Text = "ACCOUNT INFO\n\n• Membership: "..lp.MembershipType.Name.."\n• Age: "..lp.AccountAge.." Days\n• Platform: "..UserInputService:GetPlatform().Name
+BioText.TextColor3 = Color3.fromRGB(200, 200, 200)
+BioText.Font = Enum.Font.Gotham
+BioText.TextSize = 14
+BioText.TextWrapped = true
+BioText.TextYAlignment = Enum.TextYAlignment.Top
+BioText.TextXAlignment = Enum.TextXAlignment.Left
 
--- Separator
-local Line = Instance.new("Frame", ProfileFrame)
-Line.Size = UDim2.new(0.8, 0, 0, 1)
-Line.Position = UDim2.new(0.1, 0, 0, 190)
-Line.BackgroundColor3 = Color3.fromRGB(0, 255, 255)
-Line.BackgroundTransparency = 0.5
+-- [[ INTERACTION LOGIC ]] --
 
--- ID & Info Section
-local InfoBox = Instance.new("Frame", ProfileFrame)
-InfoBox.Size = UDim2.new(0.9, 0, 0, 150)
-InfoBox.Position = UDim2.new(0.05, 0, 0, 205)
-InfoBox.BackgroundTransparency = 1
-
-local UserID = createLabel("UserID", "ID: "..lp.UserId, UDim2.new(0,0,0,0), UDim2.new(1,0,0,20), Enum.Font.Code, Color3.fromRGB(0, 255, 255), InfoBox)
-local AccountAge = createLabel("Age", "Account Age: "..lp.AccountAge.." days", UDim2.new(0,0,0,20), UDim2.new(1,0,0,20), Enum.Font.Gotham, Color3.fromRGB(200,200,200), InfoBox)
-
--- Bio Section (Scrolling)
-local BioScroll = Instance.new("ScrollingFrame", InfoBox)
-BioScroll.Size = UDim2.new(1, 0, 0, 80)
-BioScroll.Position = UDim2.new(0, 0, 0, 50)
-BioScroll.BackgroundTransparency = 1
-BioScroll.CanvasSize = UDim2.new(0, 0, 2, 0)
-BioScroll.ScrollBarThickness = 2
-
-local BioLabel = createLabel("Bio", "BIO:\n"..playerBio, UDim2.new(0,0,0,0), UDim2.new(1,0,1,0), Enum.Font.GothamItalic, Color3.fromRGB(180,180,180), BioScroll)
-BioLabel.TextWrapped = true
-BioLabel.TextYAlignment = Enum.TextYAlignment.Top
-
--- [[ INTERACTION ]] --
+-- Buka GUI
 IconBtn.MouseButton1Click:Connect(function()
-    ProfileFrame.Visible = not ProfileFrame.Visible
+    MainFrame.Visible = true
 end)
 
--- Dragging Logic
+-- Tutup GUI
+CloseBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = false
+end)
+
+-- Fungsi Geser (Draggable)
 local function makeDraggable(obj)
-    local dragging, startPos, startObjPos
+    local dragging, input, startPos, startObjPos
     obj.InputBegan:Connect(function(inp)
         if (inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch) then
             dragging = true; startPos = inp.Position; startObjPos = obj.Position
@@ -127,6 +129,6 @@ local function makeDraggable(obj)
 end
 
 makeDraggable(IconBtn)
-makeDraggable(ProfileFrame)
+makeDraggable(MainFrame)
 
-print("PHANTOM PROFILE SYSTEM READY")
+print("PHANTOM SQUARE UI: PROFILE SYSTEM LOADED")
