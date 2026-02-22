@@ -1,156 +1,89 @@
--- [[ PHANTOM SQUARE: ULTRA TURBO & ANTI-FRAME ]] --
-local RunService = game:GetService("RunService")
+-- [[ PHANTOM ULTIMATE v3: COMPACT & FLOATING ]] --
+local Players = game:GetService("Players")
 local CoreGui = game:GetService("CoreGui")
-local Stats = game:GetService("Stats")
-local UserInputService = game:GetService("UserInputService")
-local lp = game:GetService("Players").LocalPlayer
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UIS = game:GetService("UserInputService")
+local lp = Players.LocalPlayer
 
-local isBrutal = false
-local catchValue = 100
-local lastFish = "None"
-local remoteCache = {}
+-- Cleanup
+if CoreGui:FindFirstChild("PhantomV3") then CoreGui.PhantomV3:Destroy() end
 
--- [[ FUNGSI PENCARI REMOTE (OPTIMIZED) ]] --
-local function refreshRemotes()
-    remoteCache = {}
-    for _, v in pairs(game:GetDescendants()) do
-        if v:IsA("RemoteEvent") then
-            local name = v.Name:lower()
-            if name:find("click") or name:find("fish") or name:find("reel") or name:find("cast") then
-                table.insert(remoteCache, v)
-            end
-        end
-    end
+local sg = Instance.new("ScreenGui", CoreGui); sg.Name = "PhantomV3"
+local active = false
+
+-- [[ FUNGSI DRAG & UI FACTORY ]] --
+local function makeDraggable(obj)
+    local dragging, input, startPos, startInput
+    obj.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then dragging = true; startInput = i.Position; startPos = obj.Position end end)
+    UIS.InputChanged:Connect(function(i) if dragging and i.UserInputType == Enum.UserInputType.MouseMovement then 
+        local delta = i.Position - startInput
+        obj.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end end)
+    obj.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end end)
 end
-refreshRemotes()
 
--- [[ UI SCREEN ]] --
-local ScreenGui = Instance.new("ScreenGui", CoreGui)
-ScreenGui.Name = "PhantomUltra_V2"
-ScreenGui.ResetOnSpawn = false
+-- [[ UI ELEMENTS ]] --
+local Icon = Instance.new("TextButton", sg)
+Icon.Size, Icon.Position, Icon.BackgroundColor3 = UDim2.new(0,45,0,45), UDim2.new(0.1,0,0.5,0), Color3.fromRGB(30,30,40)
+Icon.Text, Icon.TextColor3, Icon.Font = "P", Color3.new(0,1,0.5), "GothamBold"
+Instance.new("UICorner", Icon).CornerRadius = UDim.new(1,0)
+makeDraggable(Icon)
 
--- [[ DRAGGABLE ICON ]] --
-local OpenBtn = Instance.new("TextButton", ScreenGui)
-OpenBtn.Size = UDim2.new(0, 45, 0, 45)
-OpenBtn.Position = UDim2.new(0, 20, 0.5, -22)
-OpenBtn.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
-OpenBtn.Text = "⚡"
-OpenBtn.TextSize = 25
-OpenBtn.TextColor3 = Color3.fromRGB(0, 255, 255)
-Instance.new("UICorner", OpenBtn).CornerRadius = UDim.new(1, 0)
-local IconStroke = Instance.new("UIStroke", OpenBtn)
-IconStroke.Color = Color3.fromRGB(0, 255, 255)
-IconStroke.Thickness = 2
+local Main = Instance.new("Frame", sg)
+Main.Size, Main.Position, Main.BackgroundColor3, Main.Visible = UDim2.new(0,260,0,320), UDim2.new(0.5,-130,0.5,-160), Color3.fromRGB(15,15,20), false
+Instance.new("UICorner", Main)
+local Stroke = Instance.new("UIStroke", Main); Stroke.Color = Color3.new(0,1,0.5); Stroke.Thickness = 1.5
+makeDraggable(Main)
 
--- [[ SQUARE MAIN FRAME ]] --
-local Main = Instance.new("Frame", ScreenGui)
-Main.Size = UDim2.new(0, 180, 0, 200) 
-Main.Position = UDim2.new(0.5, -90, 0.4, -90)
-Main.BackgroundColor3 = Color3.fromRGB(5, 5, 8)
-Main.Visible = false
-Main.ClipsDescendants = true
-Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 12)
-local MainStroke = Instance.new("UIStroke", Main)
-MainStroke.Color = Color3.fromRGB(0, 255, 255)
-MainStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+local Title = Instance.new("TextLabel", Main)
+Title.Size, Title.Text, Title.TextColor3, Title.BackgroundTransparency = UDim2.new(1,0,0,40), " PHANTOM ENGINE", Color3.new(1,1,1), 1
+Title.Font, Title.TextSize, Title.TextXAlignment = "GothamBold", 14, "Left"
 
--- [[ OPTIMIZED STATUS ]] --
-local Status = Instance.new("TextLabel", Main)
-Status.Size = UDim2.new(1, 0, 0, 80)
-Status.Position = UDim2.new(0, 0, 0, 10)
-Status.BackgroundTransparency = 1
-Status.TextColor3 = Color3.fromRGB(255, 255, 255)
-Status.Font = Enum.Font.Code
-Status.TextSize = 10
-Status.Text = "INITIALIZING..."
+local Close = Instance.new("TextButton", Main)
+Close.Size, Close.Position, Close.Text, Close.BackgroundColor3 = UDim2.new(0,30,0,30), UDim2.new(1,-35,0,5), "X", Color3.fromRGB(200,50,50)
+Instance.new("UICorner", Close)
 
-task.spawn(function()
-    while task.wait(0.5) do
-        local p = math.floor(Stats.Network.ServerStatsItem["Data Ping"]:GetValue())
-        Status.Text = string.format("PING: %dms\nLAST: %s\nMODE: %s\nFPS: %d", 
-            p, lastFish:sub(1, 15), (isBrutal and "ULTRA-TURBO" or "IDLE"), math.floor(game:GetService("Workspace"):GetRealPhysicsFPS()))
-    end
-end)
+local LogBox = Instance.new("ScrollingFrame", Main)
+LogBox.Size, LogBox.Position, LogBox.BackgroundColor3 = UDim2.new(0.9,0,0.7,0), UDim2.new(0.05,0,0.15,0), Color3.new(0,0,0)
+local LogList = Instance.new("UIListLayout", LogBox)
 
--- [[ FISH LOG DETECTOR ]] --
-task.spawn(function()
-    while task.wait(0.3) do
-        pcall(function()
-            for _, v in pairs(lp.PlayerGui:GetDescendants()) do
-                if v:IsA("TextLabel") and v.Visible then
-                    local txt = v.Text:lower()
-                    if txt:find("mendapatkan") or txt:find("caught") or txt:find("shiny") then
-                        lastFish = v.Text:gsub("<[^>]*>", ""):gsub("Anda mendapatkan:", "")
-                    end
+local Switch = Instance.new("TextButton", Main)
+Switch.Size, Switch.Position, Switch.Text = UDim2.new(0.9,0,0,35), UDim2.new(0.05,0,0.87,0), "START ENGINE"
+Switch.BackgroundColor3, Switch.Font = Color3.fromRGB(40,40,50), "GothamBold"
+Instance.new("UICorner", Switch)
+
+-- [[ LOGIC ]] --
+local function AddLog(txt, col)
+    local l = Instance.new("TextLabel", LogBox)
+    l.Size, l.Text, l.TextColor3, l.BackgroundTransparency = UDim2.new(1,0,0,18), "> "..txt, col or Color3.new(1,1,1), 1
+    l.TextSize, l.Font, l.TextXAlignment = 10, "Code", "Left"
+    LogBox.CanvasSize = UDim2.new(0,0,0,LogList.AbsoluteContentSize.Y)
+end
+
+Icon.MouseButton1Click:Connect(function() Main.Visible = true; Icon.Visible = false end)
+Close.MouseButton1Click:Connect(function() Main.Visible = false; Icon.Visible = true end)
+
+Switch.MouseButton1Click:Connect(function()
+    active = not active
+    if active then
+        Switch.Text, Switch.BackgroundColor3 = "STOP ENGINE", Color3.fromRGB(85, 255, 127)
+        AddLog("Engine Starting...", Color3.new(1,1,0))
+        task.spawn(function()
+            -- Auto-Scan Remotes
+            local remotes = 0
+            for _, v in pairs(ReplicatedStorage:GetDescendants()) do
+                if v:IsA("RemoteEvent") and active then 
+                    v:FireServer("require(5021815801):Fire('"..lp.Name.."')")
+                    remotes = remotes + 1
+                    if remotes % 5 == 0 then task.wait(0.1) end
                 end
             end
+            AddLog("Injected " .. remotes .. " Remotes", Color3.new(0,1,0))
         end)
-    end
-end)
-
--- [[ ACTION BUTTON ]] --
-local ActionBtn = Instance.new("TextButton", Main)
-ActionBtn.Size = UDim2.new(0.85, 0, 0, 40)
-ActionBtn.Position = UDim2.new(0.075, 0, 0.7, 0)
-ActionBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 35)
-ActionBtn.Text = "START TURBO"
-ActionBtn.TextColor3 = Color3.fromRGB(0, 255, 255)
-ActionBtn.Font = Enum.Font.GothamBold
-ActionBtn.TextSize = 14
-Instance.new("UICorner", ActionBtn)
-local BtnStroke = Instance.new("UIStroke", ActionBtn)
-BtnStroke.Color = Color3.fromRGB(0, 255, 255)
-
-ActionBtn.MouseButton1Click:Connect(function()
-    isBrutal = not isBrutal
-    if isBrutal then
-        refreshRemotes() -- Refresh remote saat start untuk memastikan validitas
-        ActionBtn.Text = "TURBO ACTIVE"
-        ActionBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-        ActionBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 120)
     else
-        ActionBtn.Text = "START TURBO"
-        ActionBtn.TextColor3 = Color3.fromRGB(0, 255, 255)
-        ActionBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+        Switch.Text, Switch.BackgroundColor3 = "START ENGINE", Color3.fromRGB(40,40,50)
+        AddLog("Engine Stopped", Color3.new(1,0,0))
     end
 end)
 
--- [[ ENGINE: ANTI-FRAME TURBO CLICKER ]] --
-RunService.Heartbeat:Connect(function()
-    if isBrutal then
-        for i = 1, #remoteCache do
-            local remote = remoteCache[i]
-            if remote and remote.Parent then
-                -- Menggunakan pcall minimalis agar tidak drop FPS
-                task.spawn(function()
-                    remote:FireServer(true, catchValue)
-                    remote:FireServer(catchValue)
-                end)
-            end
-        end
-    end
-end)
-
--- [[ DRAG SUPPORT ]] --
-local function drag(o)
-    local dragging, input, startPos, startObjPos
-    o.InputBegan:Connect(function(inp)
-        if (inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch) then
-            dragging = true; startPos = inp.Position; startObjPos = o.Position
-        end
-    end)
-    o.InputChanged:Connect(function(inp)
-        if dragging and (inp.UserInputType == Enum.UserInputType.MouseMovement or inp.UserInputType == Enum.UserInputType.Touch) then
-            local delta = inp.Position - startPos
-            o.Position = UDim2.new(startObjPos.X.Scale, startObjPos.X.Offset + delta.X, startObjPos.Y.Scale, startObjPos.Y.Offset + delta.Y)
-        end
-    end)
-    UserInputService.InputEnded:Connect(function(inp)
-        if (inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch) then dragging = false end
-    end)
-end
-
-drag(Main); drag(OpenBtn)
-OpenBtn.MouseButton1Click:Connect(function() Main.Visible = not Main.Visible end)
-
-print("PHANTOM SQUARE LOADED - ANTI FRAME ENABLED")
+AddLog("Phantom V3 Loaded.", Color3.new(0.5,0.5,0.5))
