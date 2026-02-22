@@ -1,4 +1,4 @@
--- [[ PHANTOM SQUARE: NETWORK OWNERSHIP EXPANDER ]] --
+-- [[ PHANTOM SQUARE: ULTIMATE NETWORK EXPANDER ]] --
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -7,44 +7,47 @@ local lp = Players.LocalPlayer
 
 -- [[ STATE ]] --
 local serverExpandActive = false
+local originalData = {} -- Menyimpan data asli agar bisa di-reset
 
 -- [[ UI SCREEN SETUP ]] --
 local ScreenGui = Instance.new("ScreenGui", CoreGui)
-ScreenGui.Name = "PhantomNetworkSystem"
+ScreenGui.Name = "PhantomNetworkFinal"
 ScreenGui.ResetOnSpawn = false
 
 -- [[ 1. LAUNCHER ICON ]] --
 local IconBtn = Instance.new("ImageButton", ScreenGui)
 IconBtn.Size = UDim2.new(0, 55, 0, 55)
 IconBtn.Position = UDim2.new(0, 30, 0.5, -27)
-IconBtn.BackgroundColor3 = Color3.fromRGB(20, 0, 40)
+IconBtn.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 IconBtn.Image = "rbxassetid://12503521360"
 Instance.new("UICorner", IconBtn).CornerRadius = UDim.new(1, 0)
-Instance.new("UIStroke", IconBtn).Color = Color3.fromRGB(0, 255, 255)
+local IconStroke = Instance.new("UIStroke", IconBtn)
+IconStroke.Color = Color3.fromRGB(0, 255, 100)
+IconStroke.Thickness = 2
 
 -- [[ 2. MAIN FRAME ]] --
 local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Size = UDim2.new(0, 300, 0, 200)
-MainFrame.Position = UDim2.new(0.5, -150, 0.5, -100)
-MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 15)
+MainFrame.Size = UDim2.new(0, 280, 0, 180)
+MainFrame.Position = UDim2.new(0.5, -140, 0.5, -90)
+MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 12)
 MainFrame.Visible = false
-Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 12)
-local MainStroke = Instance.new("UIStroke", MainFrame)
-MainStroke.Color = Color3.fromRGB(0, 255, 255)
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
+Instance.new("UIStroke", MainFrame).Color = Color3.fromRGB(0, 255, 100)
 
 local Title = Instance.new("TextLabel", MainFrame)
 Title.Size = UDim2.new(1, 0, 0, 40)
-Title.Text = "NETWORK EXPANDER"
+Title.Text = "REALTIME EXPANDER"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
+Title.TextSize = 14
 Title.BackgroundTransparency = 1
 
 -- [[ TOMBOL TOGGLE ]] --
 local ToggleBtn = Instance.new("TextButton", MainFrame)
-ToggleBtn.Size = UDim2.new(0, 240, 0, 50)
-ToggleBtn.Position = UDim2.new(0.5, -120, 0.5, -10)
-ToggleBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-ToggleBtn.Text = "SERVER VISIBLE: OFF"
+ToggleBtn.Size = UDim2.new(0, 220, 0, 50)
+ToggleBtn.Position = UDim2.new(0.5, -110, 0.5, -5)
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+ToggleBtn.Text = "SYSTEM: DISABLED"
 ToggleBtn.TextColor3 = Color3.fromRGB(255, 50, 50)
 ToggleBtn.Font = Enum.Font.GothamBold
 ToggleBtn.TextSize = 16
@@ -52,23 +55,41 @@ Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(0, 8)
 local BtnStroke = Instance.new("UIStroke", ToggleBtn)
 BtnStroke.Color = Color3.fromRGB(255, 50, 50)
 
--- [[ LOGIKA MANIPULASI AKSESORIS (NETWORK REPLICATION) ]] --
-local function updateAksesoris()
+-- [[ LOGIKA BYPASS NETWORK OWNERSHIP ]] --
+local function toggleNetworkExpand(state)
     local char = lp.Character
     if not char then return end
 
-    for _, v in pairs(char:GetDescendants()) do
-        if v:IsA("Accessory") then
-            local handle = v:FindFirstChild("Handle")
+    for _, acc in pairs(char:GetChildren()) do
+        if acc:IsA("Accessory") then
+            local handle = acc:FindFirstChild("Handle")
             if handle then
-                local mesh = handle:FindFirstChildOfClass("SpecialMesh")
-                if mesh then
-                    if serverExpandActive then
-                        -- Ukuran raksasa (Sumbu X dan Z lebar, Y tipis untuk menutupi pandangan)
-                        mesh.Scale = Vector3.new(100, 0.05, 100) 
-                    else
-                        -- Reset ke ukuran normal
-                        mesh.Scale = Vector3.new(1, 1, 1)
+                -- Ambil Mesh di dalamnya
+                local mesh = handle:FindFirstChildOfClass("SpecialMesh") or handle:FindFirstChildOfClass("MeshPart")
+                
+                if state then
+                    -- Simpan data asli jika belum ada
+                    if not originalData[acc.Name] then
+                        originalData[acc.Name] = {
+                            Size = handle.Size,
+                            Scale = mesh and (mesh:IsA("SpecialMesh") and mesh.Scale or nil)
+                        }
+                    end
+                    
+                    -- LOGIKA UTAMA: Membesarkan PART (Handle) bukan cuma Mesh visual
+                    -- Ini yang memaksa Server mengupdate posisi physics-nya
+                    handle.Size = Vector3.new(20, 0.2, 20) -- Membentuk lempengan raksasa
+                    
+                    if mesh and mesh:IsA("SpecialMesh") then
+                        mesh.Scale = Vector3.new(50, 0.1, 50) -- Melebarkan visual tekstur baju/topi
+                    end
+                else
+                    -- RESET ke ukuran semula
+                    if originalData[acc.Name] then
+                        handle.Size = originalData[acc.Name].Size
+                        if mesh and mesh:IsA("SpecialMesh") then
+                            mesh.Scale = originalData[acc.Name].Scale
+                        end
                     end
                 end
             end
@@ -80,21 +101,22 @@ ToggleBtn.MouseButton1Click:Connect(function()
     serverExpandActive = not serverExpandActive
     
     if serverExpandActive then
-        ToggleBtn.Text = "SERVER VISIBLE: ON"
-        ToggleBtn.TextColor3 = Color3.fromRGB(50, 255, 150)
-        BtnStroke.Color = Color3.fromRGB(50, 255, 150)
+        ToggleBtn.Text = "SYSTEM: ENABLED"
+        ToggleBtn.TextColor3 = Color3.fromRGB(0, 255, 100)
+        BtnStroke.Color = Color3.fromRGB(0, 255, 100)
+        toggleNetworkExpand(true)
     else
-        ToggleBtn.Text = "SERVER VISIBLE: OFF"
+        ToggleBtn.Text = "SYSTEM: DISABLED"
         ToggleBtn.TextColor3 = Color3.fromRGB(255, 50, 50)
         BtnStroke.Color = Color3.fromRGB(255, 50, 50)
+        toggleNetworkExpand(false)
     end
-    updateAksesoris()
 end)
 
--- Loop Heartbeat untuk memastikan perubahan tetap terkunci (Mencegah auto-reset server)
+-- Loop Heartbeat untuk mencegah Server/Game merefresh ukuran secara paksa
 RunService.Heartbeat:Connect(function()
     if serverExpandActive then
-        updateAksesoris()
+        toggleNetworkExpand(true)
     end
 end)
 
@@ -123,4 +145,4 @@ end
 makeDraggable(MainFrame)
 makeDraggable(IconBtn)
 
-print("PHANTOM SYSTEM: NETWORK OWNERSHIP CLOTHES LOADED")
+print("PHANTOM SYSTEM: REALTIME SERVER-SIDE ENABLED")
