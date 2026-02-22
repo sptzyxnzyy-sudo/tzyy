@@ -1,4 +1,3 @@
-
 -- [[ PHANTOM SQUARE: ULTRA TURBO & ANTI-FRAME ]] --
 local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
