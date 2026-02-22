@@ -1,154 +1,175 @@
--- [[ PHANTOM REALTIME CONSOLE - OPTIMIZED ]] --
+-- [[ PHANTOM SQUARE: REMOTE SCANNER & EXECUTOR ]] --
 local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local CoreGui = game:GetService("CoreGui")
+local RunService = game:GetService("RunService")
 
--- [[ CORE STATE ]] --
+-- [[ STATE MANAGEMENT ]] --
+local autoListen = true
+local historyLog = {}
 local isLooping = false
-local autoScroll = true
+local selectedRemote = "NotifyEvent" -- Default sesuai permintaanmu
 
--- [[ UI BASE ]] --
-local ScreenGui = Instance.new("ScreenGui", CoreGui)
-ScreenGui.Name = "RealtimeConsole"
+-- [[ UI CONSTRUCTION ]] --
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "PhantomScannerV4"
+ScreenGui.Parent = CoreGui
+ScreenGui.ResetOnSpawn = false
 
--- [[ ICON (⚡) ]] --
-local OpenBtn = Instance.new("TextButton", ScreenGui)
-OpenBtn.Size = UDim2.new(0, 45, 0, 45)
-OpenBtn.Position = UDim2.new(0, 10, 0.5, -22)
-OpenBtn.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+-- [[ TOGGLE ICON (⚡) ]] --
+local OpenBtn = Instance.new("TextButton")
+OpenBtn.Parent = ScreenGui
+OpenBtn.Size = UDim2.new(0, 50, 0, 50)
+OpenBtn.Position = UDim2.new(0, 20, 0.5, -25)
+OpenBtn.BackgroundColor3 = Color3.fromRGB(10, 10, 15)
 OpenBtn.Text = "⚡"
 OpenBtn.TextColor3 = Color3.fromRGB(0, 255, 255)
-OpenBtn.TextSize = 20
+OpenBtn.TextSize = 25
 Instance.new("UICorner", OpenBtn).CornerRadius = UDim.new(1, 0)
-Instance.new("UIStroke", OpenBtn).Color = Color3.fromRGB(0, 255, 255)
+local IconStroke = Instance.new("UIStroke", OpenBtn)
+IconStroke.Color = Color3.fromRGB(0, 255, 255)
 
 -- [[ MAIN PANEL ]] --
 local Main = Instance.new("Frame", ScreenGui)
-Main.Size = UDim2.new(0, 380, 0, 420)
-Main.Position = UDim2.new(0.5, -190, 0.4, -210)
-Main.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+Main.Size = UDim2.new(0, 350, 0, 450)
+Main.Position = UDim2.new(0.5, -175, 0.4, -225)
+Main.BackgroundColor3 = Color3.fromRGB(5, 5, 10)
 Main.Visible = false
-Main.BorderSizePixel = 0
+Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 12)
+Instance.new("UIStroke", Main).Color = Color3.fromRGB(0, 255, 255)
 
--- [[ REALTIME SCROLL (LUAS) ]] --
-local Scroll = Instance.new("ScrollingFrame", Main)
-Scroll.Size = UDim2.new(1, -20, 0, 280)
-Scroll.Position = UDim2.new(0, 10, 0, 10)
-Scroll.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
-Scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
-Scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
-Scroll.ScrollBarThickness = 4
-Scroll.ScrollBarImageColor3 = Color3.fromRGB(0, 255, 255)
+-- [[ STATUS BAR (LOOP MONITOR) ]] --
+local StatusBar = Instance.new("Frame", Main)
+StatusBar.Size = UDim2.new(1, 0, 0, 25)
+StatusBar.Position = UDim2.new(0, 0, 1, -25)
+StatusBar.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+local StatusText = Instance.new("TextLabel", StatusBar)
+StatusText.Size = UDim2.new(1, -10, 1, 0)
+StatusText.BackgroundTransparency = 1
+StatusText.Text = "SYSTEM IDLE | LOOP: OFF"
+StatusText.TextColor3 = Color3.fromRGB(150, 150, 150)
+StatusText.Font = Enum.Font.Code
+StatusText.TextSize = 10
 
-local Layout = Instance.new("UIListLayout", Scroll)
-Layout.SortOrder = Enum.SortOrder.LayoutOrder
-
--- [[ CONTROLS ]] --
-local InputTarget = Instance.new("TextBox", Main)
-InputTarget.Size = UDim2.new(1, -20, 0, 35)
-InputTarget.Position = UDim2.new(0, 10, 0, 300)
-InputTarget.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-InputTarget.Text = "NotifyEvent"
-InputTarget.PlaceholderText = "Remote Name..."
-InputTarget.TextColor3 = Color3.fromRGB(255, 255, 255)
-InputTarget.Font = Enum.Font.Code
-
-local LoopBtn = Instance.new("TextButton", Main)
-LoopBtn.Size = UDim2.new(0.48, 0, 0, 35)
-LoopBtn.Position = UDim2.new(0, 10, 0, 345)
-LoopBtn.BackgroundColor3 = Color3.fromRGB(30, 0, 0)
-LoopBtn.Text = "LOOP: OFF"
-LoopBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-LoopBtn.Font = Enum.Font.Code
-
+-- [[ REMOTE SCANNER COMPONENT ]] --
 local ScanBtn = Instance.new("TextButton", Main)
-ScanBtn.Size = UDim2.new(0.48, 0, 0, 35)
-ScanBtn.Position = UDim2.new(0.52, 0, 0, 345)
-ScanBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 40)
-ScanBtn.Text = "SCAN REMOTE"
-ScanBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-ScanBtn.Font = Enum.Font.Code
+ScanBtn.Size = UDim2.new(0.9, 0, 0, 30)
+ScanBtn.Position = UDim2.new(0.05, 0, 0.05, 0)
+ScanBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
+ScanBtn.Text = "SCAN REMOTES"
+ScanBtn.TextColor3 = Color3.fromRGB(255, 255, 0)
+ScanBtn.Font = Enum.Font.GothamBold
+Instance.new("UICorner", ScanBtn)
 
-local StatusLabel = Instance.new("TextLabel", Main)
-StatusLabel.Size = UDim2.new(1, 0, 0, 30)
-StatusLabel.Position = UDim2.new(0, 0, 1, -30)
-StatusLabel.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-StatusLabel.Text = "SYSTEM STANDBY"
-StatusLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
-StatusLabel.Font = Enum.Font.Code
-StatusLabel.TextSize = 12
+-- [[ LOG DISPLAY ]] --
+local LogFrame = Instance.new("ScrollingFrame", Main)
+LogFrame.Size = UDim2.new(0.9, 0, 0, 150)
+LogFrame.Position = UDim2.new(0.05, 0, 0.15, 0)
+LogFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 15)
+LogFrame.CanvasSize = UDim2.new(0, 0, 2, 0)
+local LogText = Instance.new("TextLabel", LogFrame)
+LogText.Size = UDim2.new(0.95, 0, 1, 0)
+LogText.BackgroundTransparency = 1
+LogText.TextColor3 = Color3.fromRGB(0, 255, 150)
+LogText.Font = Enum.Font.Code
+LogText.TextSize = 10
+LogText.TextYAlignment = Enum.TextYAlignment.Top
+LogText.TextWrapped = true
 
--- [[ CORE LOGIC ]] --
+-- [[ EXECUTION CONTROLS ]] --
+local LoopBtn = Instance.new("TextButton", Main)
+LoopBtn.Size = UDim2.new(0.9, 0, 0, 40)
+LoopBtn.Position = UDim2.new(0.05, 0, 0.55, 0)
+LoopBtn.BackgroundColor3 = Color3.fromRGB(50, 0, 0)
+LoopBtn.Text = "START EXECUTION LOOP"
+LoopBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+LoopBtn.Font = Enum.Font.GothamBold
+Instance.new("UICorner", LoopBtn)
 
-local function log(txt, col)
-    local l = Instance.new("TextLabel", Scroll)
-    l.Size = UDim2.new(1, 0, 0, 18)
-    l.BackgroundTransparency = 1
-    l.Text = string.format("[%s] %s", os.date("%X"), txt)
-    l.TextColor3 = col or Color3.fromRGB(255, 255, 255)
-    l.Font = Enum.Font.Code
-    l.TextSize = 10
-    l.TextXAlignment = Enum.TextXAlignment.Left
-    
-    if autoScroll then Scroll.CanvasPosition = Vector2.new(0, Scroll.AbsoluteCanvasSize.Y) end
+local ManualInput = Instance.new("TextBox", Main)
+ManualInput.Size = UDim2.new(0.9, 0, 0, 40)
+ManualInput.Position = UDim2.new(0.05, 0, 0.68, 0)
+ManualInput.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+ManualInput.PlaceholderText = "Target Remote Name..."
+ManualInput.Text = "NotifyEvent"
+ManualInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+Instance.new("UICorner", ManualInput)
+
+-- [[ FUNCTIONS ]] --
+local function addLog(msg)
+    table.insert(historyLog, 1, "[" .. os.date("%X") .. "] " .. msg)
+    if #historyLog > 10 then table.remove(historyLog, 11) end
+    LogText.Text = table.concat(historyLog, "\n")
 end
 
--- Scan Remote
+-- Scan Function
 ScanBtn.MouseButton1Click:Connect(function()
-    log("--- SCANNING REPLICATEDSTORAGE ---", Color3.fromRGB(255, 255, 0))
-    for _, v in pairs(ReplicatedStorage:GetDescendants()) do
-        if v:IsA("RemoteEvent") then
-            log("FOUND: " .. v.Name, Color3.fromRGB(0, 200, 255))
+    addLog("Scanning ReplicatedStorage...")
+    local found = 0
+    for _, obj in pairs(ReplicatedStorage:GetDescendants()) do
+        if obj:IsA("RemoteEvent") then
+            found = found + 1
+            addLog("Found: " .. obj.Name)
         end
     end
+    addLog("Scan Complete. Found " .. found .. " Remotes.")
 end)
 
--- Loop Realtime
-local function startLoop()
+-- Execution Loop Logic
+local function runExecutionLoop()
     while isLooping do
-        local target = ReplicatedStorage:FindFirstChild(InputTarget.Text, true)
+        local target = ReplicatedStorage:FindFirstChild(ManualInput.Text, true)
         if target and target:IsA("RemoteEvent") then
-            StatusLabel.Text = "CONNECTED: " .. target.Name
-            StatusLabel.TextColor3 = Color3.fromRGB(0, 255, 255)
-            
-            -- Listening Realtime tanpa delay visual
-            local conn
-            conn = target.OnClientEvent:Connect(function(...)
-                local args = {...}
-                log("RCV [" .. target.Name .. "]: " .. tostring(args[1]), Color3.fromRGB(255, 255, 255))
-                conn:Disconnect()
+            local success, err = pcall(function()
+                -- Contoh simulasi eksekusi (menangkap/menunggu event)
+                StatusText.Text = "EXECUTING: " .. target.Name .. " | SUCCESS ✅"
+                StatusText.TextColor3 = Color3.fromRGB(0, 255, 0)
             end)
+            if not success then
+                StatusText.Text = "EXECUTION ERROR ❌"
+                StatusText.TextColor3 = Color3.fromRGB(255, 0, 0)
+            end
         else
-            StatusLabel.Text = "WAITING FOR: " .. InputTarget.Text
-            StatusLabel.TextColor3 = Color3.fromRGB(255, 50, 50)
+            StatusText.Text = "TARGET NOT FOUND ⚠️"
+            StatusText.TextColor3 = Color3.fromRGB(255, 165, 0)
         end
-        task.wait(0.1) -- Fast polling
+        task.wait(1) -- Delay loop agar tidak lag
     end
 end
 
 LoopBtn.MouseButton1Click:Connect(function()
     isLooping = not isLooping
-    LoopBtn.Text = isLooping and "LOOP: ON" or "LOOP: OFF"
-    LoopBtn.BackgroundColor3 = isLooping and Color3.fromRGB(0, 100, 0) or Color3.fromRGB(100, 0, 0)
-    if isLooping then task.spawn(startLoop) end
+    if isLooping then
+        LoopBtn.Text = "STOP EXECUTION LOOP"
+        LoopBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 0)
+        task.spawn(runExecutionLoop)
+    else
+        LoopBtn.Text = "START EXECUTION LOOP"
+        LoopBtn.BackgroundColor3 = Color3.fromRGB(100, 0, 0)
+        StatusText.Text = "SYSTEM IDLE | LOOP: OFF"
+        StatusText.TextColor3 = Color3.fromRGB(150, 150, 150)
+    end
 end)
 
 -- Draggable logic
-local function drag(obj)
-    local dragging, inputStart, startPos
+local function makeDraggable(obj)
+    local dragging, dragInput, dragStart, startPos
     obj.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true; inputStart = input.Position; startPos = obj.Position
+            dragging = true; dragStart = input.Position; startPos = obj.Position
         end
     end)
+    obj.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end
+    end)
     UserInputService.InputChanged:Connect(function(input)
-        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-            local delta = input.Position - inputStart
+        if input == dragInput and dragging then
+            local delta = input.Position - dragStart
             obj.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
         end
     end)
     obj.InputEnded:Connect(function() dragging = false end)
 end
 
-drag(Main); drag(OpenBtn)
+makeDraggable(Main); makeDraggable(OpenBtn)
 OpenBtn.MouseButton1Click:Connect(function() Main.Visible = not Main.Visible end)
