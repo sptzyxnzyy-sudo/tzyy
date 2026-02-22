@@ -1,69 +1,74 @@
--- [[ PHANTOM SQUARE: PROFILE SYSTEM (SQUARE EDITION) ]] --
+-- [[ PHANTOM SQUARE: FULL PROFILE & LAUNCHER SYSTEM ]] --
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local CoreGui = game:GetService("CoreGui")
 local lp = Players.LocalPlayer
 
--- [[ AMBIL DATA PROFIL ]] --
+-- [[ PENGAMBILAN DATA ]] --
 local userId = lp.UserId
 local thumbType = Enum.ThumbnailType.HeadShot
 local thumbSize = Enum.ThumbnailSize.Size420x420
-local content, isReady = Players:GetUserThumbnailAsync(userId, thumbType, thumbSize)
+local profilePic, isReady = Players:GetUserThumbnailAsync(userId, thumbType, thumbSize)
 
 -- [[ UI SCREEN ]] --
 local ScreenGui = Instance.new("ScreenGui", CoreGui)
-ScreenGui.Name = "PhantomSquareUI"
+ScreenGui.Name = "PhantomProfileFinal"
 ScreenGui.ResetOnSpawn = false
 
--- [[ 1. ICON (LAUNCHER) ]] --
+-- [[ 1. LAUNCHER ICON ]] --
 local IconBtn = Instance.new("ImageButton", ScreenGui)
-IconBtn.Size = UDim2.new(0, 50, 0, 50)
-IconBtn.Position = UDim2.new(0, 50, 0.5, -25)
-IconBtn.BackgroundColor3 = Color3.fromRGB(15, 15, 25)
-IconBtn.Image = content
+IconBtn.Name = "LauncherIcon"
+IconBtn.Size = UDim2.new(0, 55, 0, 55)
+IconBtn.Position = UDim2.new(0, 30, 0.5, -27)
+IconBtn.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+IconBtn.Image = profilePic
 IconBtn.BorderSizePixel = 0
-Instance.new("UICorner", IconBtn).CornerRadius = UDim.new(0, 8) -- Square-ish round
+Instance.new("UICorner", IconBtn).CornerRadius = UDim.new(1, 0) -- Lingkaran sempurna untuk icon
 
 local IconStroke = Instance.new("UIStroke", IconBtn)
 IconStroke.Color = Color3.fromRGB(0, 255, 255)
 IconStroke.Thickness = 2
 
--- [[ 2. GUI FITUR (SQUARE FRAME) ]] --
+-- [[ 2. MAIN SQUARE GUI ]] --
 local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Size = UDim2.new(0, 300, 0, 300) -- Persegi Sempurna
-MainFrame.Position = UDim2.new(0.5, -150, 0.5, -150)
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 320, 0, 320) -- Persegi Sempurna
+MainFrame.Position = UDim2.new(0.5, -160, 0.5, -160)
 MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 15)
 MainFrame.Visible = false
 MainFrame.BorderSizePixel = 0
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 15)
 
 local MainStroke = Instance.new("UIStroke", MainFrame)
 MainStroke.Color = Color3.fromRGB(0, 255, 255)
 MainStroke.Thickness = 1.5
 
--- Tombol Close (X)
+-- [[ KOMPONEN DALAM GUI ]] --
+
+-- Tombol Close
 local CloseBtn = Instance.new("TextButton", MainFrame)
-CloseBtn.Size = UDim2.new(0, 30, 0, 30)
-CloseBtn.Position = UDim2.new(1, -35, 0, 5)
+CloseBtn.Name = "CloseBtn"
+CloseBtn.Size = UDim2.new(0, 35, 0, 35)
+CloseBtn.Position = UDim2.new(1, -40, 0, 5)
 CloseBtn.BackgroundTransparency = 1
 CloseBtn.Text = "×"
 CloseBtn.TextColor3 = Color3.fromRGB(255, 50, 50)
-CloseBtn.TextSize = 30
+CloseBtn.TextSize = 35
 CloseBtn.Font = Enum.Font.GothamBold
 
--- Avatar Box (Square)
+-- Avatar Image (Inside)
 local AvatarImg = Instance.new("ImageLabel", MainFrame)
-AvatarImg.Size = UDim2.new(0, 80, 0, 80)
-AvatarImg.Position = UDim2.new(0, 20, 0, 20)
+AvatarImg.Size = UDim2.new(0, 90, 0, 90)
+AvatarImg.Position = UDim2.new(0, 20, 0, 25)
 AvatarImg.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
-AvatarImg.Image = content
-AvatarImg.BorderSizePixel = 0
-local AvStroke = Instance.new("UIStroke", AvatarImg)
-AvStroke.Color = Color3.fromRGB(0, 255, 255)
+AvatarImg.Image = profilePic
+Instance.new("UICorner", AvatarImg).CornerRadius = UDim.new(0, 10)
+Instance.new("UIStroke", AvatarImg).Color = Color3.fromRGB(0, 255, 255)
 
--- Info Box (Text Labels)
-local function addLabel(text, pos, font, size, color)
-    local l = Instance.new("TextLabel", MainFrame)
-    l.Size = UDim2.new(1, -120, 0, 20)
+-- Label Generator
+local function createLabel(text, pos, font, size, color, parent)
+    local l = Instance.new("TextLabel", parent)
+    l.Size = UDim2.new(1, -130, 0, 25)
     l.Position = pos
     l.BackgroundTransparency = 1
     l.Text = text
@@ -74,61 +79,83 @@ local function addLabel(text, pos, font, size, color)
     return l
 end
 
-addLabel(lp.DisplayName, UDim2.new(0, 115, 0, 30), Enum.Font.GothamBold, 18, Color3.fromRGB(255,255,255))
-addLabel("@"..lp.Name, UDim2.new(0, 115, 0, 50), Enum.Font.Gotham, 14, Color3.fromRGB(150,150,150))
-addLabel("ID: "..lp.UserId, UDim2.new(0, 115, 0, 70), Enum.Font.Code, 12, Color3.fromRGB(0, 255, 255))
+createLabel(lp.DisplayName, UDim2.new(0, 125, 0, 35), Enum.Font.GothamBold, 18, Color3.fromRGB(255, 255, 255), MainFrame)
+createLabel("@"..lp.Name, UDim2.new(0, 125, 0, 55), Enum.Font.Gotham, 14, Color3.fromRGB(150, 150, 150), MainFrame)
+createLabel("ID: "..lp.UserId, UDim2.new(0, 125, 0, 75), Enum.Font.Code, 12, Color3.fromRGB(0, 255, 255), MainFrame)
 
--- Bio / Status Section (Persegi Bawah)
-local BioBox = Instance.new("Frame", MainFrame)
-BioBox.Size = UDim2.new(1, -40, 0, 150)
-BioBox.Position = UDim2.new(0, 20, 0, 120)
-BioBox.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
-Instance.new("UIStroke", BioBox).Color = Color3.fromRGB(30, 30, 40)
+-- Info Container (Lower Box)
+local InfoBox = Instance.new("Frame", MainFrame)
+InfoBox.Size = UDim2.new(1, -40, 0, 160)
+InfoBox.Position = UDim2.new(0, 20, 0, 130)
+InfoBox.BackgroundColor3 = Color3.fromRGB(15, 15, 25)
+Instance.new("UICorner", InfoBox).CornerRadius = UDim.new(0, 10)
+Instance.new("UIStroke", InfoBox).Color = Color3.fromRGB(30, 30, 45)
 
-local BioText = Instance.new("TextLabel", BioBox)
-BioText.Size = UDim2.new(1, -10, 1, -10)
-BioText.Position = UDim2.new(0, 5, 0, 5)
-BioText.BackgroundTransparency = 1
-BioText.Text = "ACCOUNT INFO\n\n• Membership: "..lp.MembershipType.Name.."\n• Age: "..lp.AccountAge.." Days\n• Platform: "..UserInputService:GetPlatform().Name
-BioText.TextColor3 = Color3.fromRGB(200, 200, 200)
-BioText.Font = Enum.Font.Gotham
-BioText.TextSize = 14
-BioText.TextWrapped = true
-BioText.TextYAlignment = Enum.TextYAlignment.Top
-BioText.TextXAlignment = Enum.TextXAlignment.Left
+local DetailText = Instance.new("TextLabel", InfoBox)
+DetailText.Size = UDim2.new(1, -20, 1, -20)
+DetailText.Position = UDim2.new(0, 10, 0, 10)
+DetailText.BackgroundTransparency = 1
+DetailText.Text = "ACCOUNT DETAILS\n\n" .. 
+                 "• Membership: " .. lp.MembershipType.Name .. "\n" ..
+                 "• Account Age: " .. lp.AccountAge .. " Days\n" ..
+                 "• Device: " .. (UserInputService.TouchEnabled and "Mobile/Tablet" or "PC/Laptop") .. "\n" ..
+                 "• Status: Active"
+DetailText.TextColor3 = Color3.fromRGB(220, 220, 220)
+DetailText.Font = Enum.Font.Gotham
+DetailText.TextSize = 14
+DetailText.TextWrapped = true
+DetailText.TextXAlignment = Enum.TextXAlignment.Left
+DetailText.TextYAlignment = Enum.TextYAlignment.Top
 
--- [[ INTERACTION LOGIC ]] --
+-- [[ LOGIKA INTERAKSI ]] --
 
--- Buka GUI
+-- Buka MainFrame
 IconBtn.MouseButton1Click:Connect(function()
     MainFrame.Visible = true
 end)
 
--- Tutup GUI
+-- Tutup MainFrame
 CloseBtn.MouseButton1Click:Connect(function()
     MainFrame.Visible = false
 end)
 
--- Fungsi Geser (Draggable)
-local function makeDraggable(obj)
-    local dragging, input, startPos, startObjPos
-    obj.InputBegan:Connect(function(inp)
-        if (inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch) then
-            dragging = true; startPos = inp.Position; startObjPos = obj.Position
+-- Fungsi Geser (Draggable System)
+local function makeDraggable(gui)
+    local dragging, dragInput, dragStart, startPos
+    
+    local function update(input)
+        local delta = input.Position - dragStart
+        gui.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+    
+    gui.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = gui.Position
+            
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
         end
     end)
-    obj.InputChanged:Connect(function(inp)
-        if dragging and (inp.UserInputType == Enum.UserInputType.MouseMovement or inp.UserInputType == Enum.UserInputType.Touch) then
-            local delta = inp.Position - startPos
-            obj.Position = UDim2.new(startObjPos.X.Scale, startObjPos.X.Offset + delta.X, startObjPos.Y.Scale, startObjPos.Y.Offset + delta.Y)
+    
+    gui.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
         end
     end)
-    UserInputService.InputEnded:Connect(function(inp)
-        if (inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch) then dragging = false end
+    
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            update(input)
+        end
     end)
 end
 
 makeDraggable(IconBtn)
 makeDraggable(MainFrame)
 
-print("PHANTOM SQUARE UI: PROFILE SYSTEM LOADED")
+print("PHANTOM SYSTEM: SUCCESS LOADED")
