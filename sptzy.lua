@@ -1,15 +1,19 @@
--- [[ PHANTOM SQUARE: CUSTOM MESSAGE REBORN ]] --
+-- [[ PHANTOM SQUARE: ULTIMATE MONITOR REBORN ]] --
 local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local CoreGui = game:GetService("CoreGui")
 
+-- [[ SETTINGS & STATE ]] --
+local autoListen = true
+local historyLog = {}
+
 -- [[ UI CONSTRUCTION ]] --
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "PhantomMessengerV2"
+ScreenGui.Name = "PhantomLogV3"
 ScreenGui.Parent = CoreGui
 ScreenGui.ResetOnSpawn = false
 
--- [[ TOGGLE ICON (⚡) SUPPORT GESER ]] --
+-- [[ TOGGLE ICON (⚡) ]] --
 local OpenBtn = Instance.new("TextButton")
 OpenBtn.Name = "MainIcon"
 OpenBtn.Parent = ScreenGui
@@ -20,77 +24,82 @@ OpenBtn.Text = "⚡"
 OpenBtn.TextSize = 25
 OpenBtn.TextColor3 = Color3.fromRGB(0, 255, 255)
 OpenBtn.ZIndex = 10
+Instance.new("UICorner", OpenBtn).CornerRadius = UDim.new(1, 0)
+Instance.new("UIStroke", OpenBtn).Color = Color3.fromRGB(0, 255, 255)
 
-local IconCorner = Instance.new("UICorner", OpenBtn)
-IconCorner.CornerRadius = UDim.new(1, 0)
-local IconStroke = Instance.new("UIStroke", OpenBtn)
-IconStroke.Color = Color3.fromRGB(0, 255, 255)
-IconStroke.Thickness = 2
-
--- [[ MAIN PANEL (PERSEGI RAPI) ]] --
+-- [[ MAIN PANEL ]] --
 local Main = Instance.new("Frame")
 Main.Name = "MainFrame"
 Main.Parent = ScreenGui
-Main.Size = UDim2.new(0, 280, 0, 220) -- Ukuran sedikit lebih besar untuk input
-Main.Position = UDim2.new(0.5, -140, 0.4, -110)
+Main.Size = UDim2.new(0, 320, 0, 380)
+Main.Position = UDim2.new(0.5, -160, 0.4, -190)
 Main.BackgroundColor3 = Color3.fromRGB(5, 5, 10)
 Main.Visible = false
+Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 12)
+Instance.new("UIStroke", Main).Color = Color3.fromRGB(0, 255, 255)
 
-local MainCorner = Instance.new("UICorner", Main)
-MainCorner.CornerRadius = UDim.new(0, 12)
-local MainStroke = Instance.new("UIStroke", Main)
-MainStroke.Color = Color3.fromRGB(0, 255, 255)
-MainStroke.Thickness = 1.5
+-- [[ HEADER & ON/OFF BUTTON ]] --
+local Header = Instance.new("Frame", Main)
+Header.Size = UDim2.new(1, 0, 0, 40)
+Header.BackgroundTransparency = 1
 
--- [[ TITLE ]] --
-local Title = Instance.new("TextLabel", Main)
-Title.Size = UDim2.new(1, 0, 0, 40)
-Title.BackgroundTransparency = 1
-Title.Text = "MESSAGE EXECUTOR"
+local Title = Instance.new("TextLabel", Header)
+Title.Size = UDim2.new(0.6, 0, 1, 0)
+Title.Position = UDim2.new(0.05, 0, 0, 0)
+Title.Text = "SYSTEM MONITOR"
 Title.TextColor3 = Color3.fromRGB(0, 255, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 14
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.BackgroundTransparency = 1
 
--- [[ DISPLAY AREA (HASIL TEKS) ]] --
-local DisplayLabel = Instance.new("TextLabel", Main)
-DisplayLabel.Name = "DisplayLabel"
-DisplayLabel.Size = UDim2.new(0.9, 0, 0, 50)
-DisplayLabel.Position = UDim2.new(0.05, 0, 0.2, 0)
-DisplayLabel.BackgroundColor3 = Color3.fromRGB(15, 15, 25)
-DisplayLabel.Text = "Menunggu Input..."
-DisplayLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-DisplayLabel.Font = Enum.Font.Code
-DisplayLabel.TextSize = 11
-DisplayLabel.TextWrapped = true
-Instance.new("UICorner", DisplayLabel)
+local ToggleBtn = Instance.new("TextButton", Header)
+ToggleBtn.Size = UDim2.new(0, 80, 0, 25)
+ToggleBtn.Position = UDim2.new(0.68, 0, 0.2, 0)
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 100)
+ToggleBtn.Text = "AUTO: ON"
+ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleBtn.Font = Enum.Font.GothamBold
+ToggleBtn.TextSize = 10
+Instance.new("UICorner", ToggleBtn)
 
--- [[ INPUT BOX (TEMPAT KETIK) ]] --
+-- [[ DISPLAY LOG (HISTORY) ]] --
+local LogFrame = Instance.new("Frame", Main)
+LogFrame.Size = UDim2.new(0.9, 0, 0, 150)
+LogFrame.Position = UDim2.new(0.05, 0, 0.12, 0)
+LogFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 25)
+Instance.new("UICorner", LogFrame)
+
+local LogText = Instance.new("TextLabel", LogFrame)
+LogText.Size = UDim2.new(0.95, 0, 0.9, 0)
+LogText.Position = UDim2.new(0.025, 0, 0.05, 0)
+LogText.BackgroundTransparency = 1
+LogText.Text = "--- History Log ---"
+LogText.TextColor3 = Color3.fromRGB(200, 200, 200)
+LogText.TextSize = 10
+LogText.Font = Enum.Font.Code
+LogText.TextWrapped = true
+LogText.TextYAlignment = Enum.TextYAlignment.Top
+
+-- [[ INPUT AREA ]] --
 local InputBox = Instance.new("TextBox", Main)
-InputBox.Name = "InputBox"
 InputBox.Size = UDim2.new(0.9, 0, 0, 40)
-InputBox.Position = UDim2.new(0.05, 0, 0.48, 0)
+InputBox.Position = UDim2.new(0.05, 0, 0.55, 0)
 InputBox.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
-InputBox.PlaceholderText = "Ketik pesan di sini..."
+InputBox.PlaceholderText = "Ketik pesan manual..."
 InputBox.Text = ""
 InputBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-InputBox.PlaceholderColor3 = Color3.fromRGB(100, 100, 100)
 InputBox.Font = Enum.Font.Gotham
 InputBox.TextSize = 12
 Instance.new("UICorner", InputBox)
-local InputStroke = Instance.new("UIStroke", InputBox)
-InputStroke.Color = Color3.fromRGB(0, 255, 255)
-InputStroke.Thickness = 1
 
--- [[ ACTION BUTTON (UPDATE) ]] --
 local UpdateBtn = Instance.new("TextButton", Main)
-UpdateBtn.Name = "UpdateBtn"
-UpdateBtn.Size = UDim2.new(0.9, 0, 0, 35)
-UpdateBtn.Position = UDim2.new(0.05, 0, 0.75, 0)
+UpdateBtn.Size = UDim2.new(0.9, 0, 0, 40)
+UpdateBtn.Position = UDim2.new(0.05, 0, 0.7, 0)
 UpdateBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 150)
-UpdateBtn.Text = "UPDATE PESAN"
+UpdateBtn.Text = "ADD MANUAL LOG"
 UpdateBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 UpdateBtn.Font = Enum.Font.GothamBold
-UpdateBtn.TextSize = 12
 Instance.new("UICorner", UpdateBtn)
 
 -- [[ DRAG SYSTEM ]] --
@@ -114,35 +123,49 @@ local function makeDraggable(obj)
             obj.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
         end
     end)
-    obj.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = false
-        end
-    end)
+    obj.InputEnded:Connect(function() dragging = false end)
 end
-
 makeDraggable(Main)
 makeDraggable(OpenBtn)
 
--- [[ LOGIKA FITUR ]] --
+-- [[ CORE LOGIC ]] --
 
--- 1. Fungsi Ganti Teks Manual
-UpdateBtn.MouseButton1Click:Connect(function()
-    if InputBox.Text ~= "" then
-        DisplayLabel.Text = InputBox.Text
-        InputBox.Text = "" -- Bersihkan input setelah update
+local function updateDisplay()
+    local fullText = ""
+    for i, msg in ipairs(historyLog) do
+        fullText = fullText .. "[" .. i .. "] " .. msg .. "\n\n"
+    end
+    LogText.Text = fullText
+end
+
+local function addLog(msg)
+    table.insert(historyLog, 1, msg) -- Masukkan ke urutan paling atas
+    if #historyLog > 5 then
+        table.remove(historyLog, 6) -- Simpan hanya 5 terakhir
+    end
+    updateDisplay()
+end
+
+-- Listener NotifyEvent
+ReplicatedStorage:WaitForChild("NotifyEvent").OnClientEvent:Connect(function(message)
+    if autoListen then
+        addLog(tostring(message))
     end
 end)
 
--- 2. Integrasi Event (Tetap jalan jika event dikirim dari server)
-task.spawn(function()
-    pcall(function()
-        ReplicatedStorage:WaitForChild("NotifyEvent").OnClientEvent:Connect(function(customMsg)
-            -- Jika event mengirim data, tampilkan. Jika tidak, gunakan teks default kamu.
-            local msg = customMsg or "🎶 Lagu Dimainkan: Budak Ciamis (Requested by: Lawraa06)"
-            DisplayLabel.Text = msg
-        end)
-    end)
+-- Tombol On/Off
+ToggleBtn.MouseButton1Click:Connect(function()
+    autoListen = not autoListen
+    ToggleBtn.Text = autoListen and "AUTO: ON" or "AUTO: OFF"
+    ToggleBtn.BackgroundColor3 = autoListen and Color3.fromRGB(0, 200, 100) or Color3.fromRGB(200, 50, 50)
+end)
+
+-- Tombol Manual
+UpdateBtn.MouseButton1Click:Connect(function()
+    if InputBox.Text ~= "" then
+        addLog("MANUAL: " .. InputBox.Text)
+        InputBox.Text = ""
+    end
 end)
 
 -- Toggle Menu
