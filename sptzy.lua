@@ -1,161 +1,126 @@
--- [[ PHANTOM SQUARE: FULL PROFILE & LAUNCHER SYSTEM ]] --
+-- [[ PHANTOM SQUARE: NETWORK OWNERSHIP EXPANDER ]] --
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local CoreGui = game:GetService("CoreGui")
 local lp = Players.LocalPlayer
 
--- [[ PENGAMBILAN DATA ]] --
-local userId = lp.UserId
-local thumbType = Enum.ThumbnailType.HeadShot
-local thumbSize = Enum.ThumbnailSize.Size420x420
-local profilePic, isReady = Players:GetUserThumbnailAsync(userId, thumbType, thumbSize)
+-- [[ STATE ]] --
+local serverExpandActive = false
 
--- [[ UI SCREEN ]] --
+-- [[ UI SCREEN SETUP ]] --
 local ScreenGui = Instance.new("ScreenGui", CoreGui)
-ScreenGui.Name = "PhantomProfileFinal"
+ScreenGui.Name = "PhantomNetworkSystem"
 ScreenGui.ResetOnSpawn = false
 
 -- [[ 1. LAUNCHER ICON ]] --
 local IconBtn = Instance.new("ImageButton", ScreenGui)
-IconBtn.Name = "LauncherIcon"
 IconBtn.Size = UDim2.new(0, 55, 0, 55)
 IconBtn.Position = UDim2.new(0, 30, 0.5, -27)
-IconBtn.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
-IconBtn.Image = profilePic
-IconBtn.BorderSizePixel = 0
-Instance.new("UICorner", IconBtn).CornerRadius = UDim.new(1, 0) -- Lingkaran sempurna untuk icon
+IconBtn.BackgroundColor3 = Color3.fromRGB(20, 0, 40)
+IconBtn.Image = "rbxassetid://12503521360"
+Instance.new("UICorner", IconBtn).CornerRadius = UDim.new(1, 0)
+Instance.new("UIStroke", IconBtn).Color = Color3.fromRGB(0, 255, 255)
 
-local IconStroke = Instance.new("UIStroke", IconBtn)
-IconStroke.Color = Color3.fromRGB(0, 255, 255)
-IconStroke.Thickness = 2
-
--- [[ 2. MAIN SQUARE GUI ]] --
+-- [[ 2. MAIN FRAME ]] --
 local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 320, 0, 320) -- Persegi Sempurna
-MainFrame.Position = UDim2.new(0.5, -160, 0.5, -160)
+MainFrame.Size = UDim2.new(0, 300, 0, 200)
+MainFrame.Position = UDim2.new(0.5, -150, 0.5, -100)
 MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 15)
 MainFrame.Visible = false
-MainFrame.BorderSizePixel = 0
-Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 15)
-
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 12)
 local MainStroke = Instance.new("UIStroke", MainFrame)
 MainStroke.Color = Color3.fromRGB(0, 255, 255)
-MainStroke.Thickness = 1.5
 
--- [[ KOMPONEN DALAM GUI ]] --
+local Title = Instance.new("TextLabel", MainFrame)
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.Text = "NETWORK EXPANDER"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.Font = Enum.Font.GothamBold
+Title.BackgroundTransparency = 1
 
--- Tombol Close
-local CloseBtn = Instance.new("TextButton", MainFrame)
-CloseBtn.Name = "CloseBtn"
-CloseBtn.Size = UDim2.new(0, 35, 0, 35)
-CloseBtn.Position = UDim2.new(1, -40, 0, 5)
-CloseBtn.BackgroundTransparency = 1
-CloseBtn.Text = "×"
-CloseBtn.TextColor3 = Color3.fromRGB(255, 50, 50)
-CloseBtn.TextSize = 35
-CloseBtn.Font = Enum.Font.GothamBold
+-- [[ TOMBOL TOGGLE ]] --
+local ToggleBtn = Instance.new("TextButton", MainFrame)
+ToggleBtn.Size = UDim2.new(0, 240, 0, 50)
+ToggleBtn.Position = UDim2.new(0.5, -120, 0.5, -10)
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+ToggleBtn.Text = "SERVER VISIBLE: OFF"
+ToggleBtn.TextColor3 = Color3.fromRGB(255, 50, 50)
+ToggleBtn.Font = Enum.Font.GothamBold
+ToggleBtn.TextSize = 16
+Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(0, 8)
+local BtnStroke = Instance.new("UIStroke", ToggleBtn)
+BtnStroke.Color = Color3.fromRGB(255, 50, 50)
 
--- Avatar Image (Inside)
-local AvatarImg = Instance.new("ImageLabel", MainFrame)
-AvatarImg.Size = UDim2.new(0, 90, 0, 90)
-AvatarImg.Position = UDim2.new(0, 20, 0, 25)
-AvatarImg.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
-AvatarImg.Image = profilePic
-Instance.new("UICorner", AvatarImg).CornerRadius = UDim.new(0, 10)
-Instance.new("UIStroke", AvatarImg).Color = Color3.fromRGB(0, 255, 255)
+-- [[ LOGIKA MANIPULASI AKSESORIS (NETWORK REPLICATION) ]] --
+local function updateAksesoris()
+    local char = lp.Character
+    if not char then return end
 
--- Label Generator
-local function createLabel(text, pos, font, size, color, parent)
-    local l = Instance.new("TextLabel", parent)
-    l.Size = UDim2.new(1, -130, 0, 25)
-    l.Position = pos
-    l.BackgroundTransparency = 1
-    l.Text = text
-    l.TextColor3 = color
-    l.Font = font
-    l.TextSize = size
-    l.TextXAlignment = Enum.TextXAlignment.Left
-    return l
-end
-
-createLabel(lp.DisplayName, UDim2.new(0, 125, 0, 35), Enum.Font.GothamBold, 18, Color3.fromRGB(255, 255, 255), MainFrame)
-createLabel("@"..lp.Name, UDim2.new(0, 125, 0, 55), Enum.Font.Gotham, 14, Color3.fromRGB(150, 150, 150), MainFrame)
-createLabel("ID: "..lp.UserId, UDim2.new(0, 125, 0, 75), Enum.Font.Code, 12, Color3.fromRGB(0, 255, 255), MainFrame)
-
--- Info Container (Lower Box)
-local InfoBox = Instance.new("Frame", MainFrame)
-InfoBox.Size = UDim2.new(1, -40, 0, 160)
-InfoBox.Position = UDim2.new(0, 20, 0, 130)
-InfoBox.BackgroundColor3 = Color3.fromRGB(15, 15, 25)
-Instance.new("UICorner", InfoBox).CornerRadius = UDim.new(0, 10)
-Instance.new("UIStroke", InfoBox).Color = Color3.fromRGB(30, 30, 45)
-
-local DetailText = Instance.new("TextLabel", InfoBox)
-DetailText.Size = UDim2.new(1, -20, 1, -20)
-DetailText.Position = UDim2.new(0, 10, 0, 10)
-DetailText.BackgroundTransparency = 1
-DetailText.Text = "ACCOUNT DETAILS\n\n" .. 
-                 "• Membership: " .. lp.MembershipType.Name .. "\n" ..
-                 "• Account Age: " .. lp.AccountAge .. " Days\n" ..
-                 "• Device: " .. (UserInputService.TouchEnabled and "Mobile/Tablet" or "PC/Laptop") .. "\n" ..
-                 "• Status: Active"
-DetailText.TextColor3 = Color3.fromRGB(220, 220, 220)
-DetailText.Font = Enum.Font.Gotham
-DetailText.TextSize = 14
-DetailText.TextWrapped = true
-DetailText.TextXAlignment = Enum.TextXAlignment.Left
-DetailText.TextYAlignment = Enum.TextYAlignment.Top
-
--- [[ LOGIKA INTERAKSI ]] --
-
--- Buka MainFrame
-IconBtn.MouseButton1Click:Connect(function()
-    MainFrame.Visible = true
-end)
-
--- Tutup MainFrame
-CloseBtn.MouseButton1Click:Connect(function()
-    MainFrame.Visible = false
-end)
-
--- Fungsi Geser (Draggable System)
-local function makeDraggable(gui)
-    local dragging, dragInput, dragStart, startPos
-    
-    local function update(input)
-        local delta = input.Position - dragStart
-        gui.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-    end
-    
-    gui.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            dragStart = input.Position
-            startPos = gui.Position
-            
-            input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then
-                    dragging = false
+    for _, v in pairs(char:GetDescendants()) do
+        if v:IsA("Accessory") then
+            local handle = v:FindFirstChild("Handle")
+            if handle then
+                local mesh = handle:FindFirstChildOfClass("SpecialMesh")
+                if mesh then
+                    if serverExpandActive then
+                        -- Ukuran raksasa (Sumbu X dan Z lebar, Y tipis untuk menutupi pandangan)
+                        mesh.Scale = Vector3.new(100, 0.05, 100) 
+                    else
+                        -- Reset ke ukuran normal
+                        mesh.Scale = Vector3.new(1, 1, 1)
+                    end
                 end
-            end)
+            end
+        end
+    end
+end
+
+ToggleBtn.MouseButton1Click:Connect(function()
+    serverExpandActive = not serverExpandActive
+    
+    if serverExpandActive then
+        ToggleBtn.Text = "SERVER VISIBLE: ON"
+        ToggleBtn.TextColor3 = Color3.fromRGB(50, 255, 150)
+        BtnStroke.Color = Color3.fromRGB(50, 255, 150)
+    else
+        ToggleBtn.Text = "SERVER VISIBLE: OFF"
+        ToggleBtn.TextColor3 = Color3.fromRGB(255, 50, 50)
+        BtnStroke.Color = Color3.fromRGB(255, 50, 50)
+    end
+    updateAksesoris()
+end)
+
+-- Loop Heartbeat untuk memastikan perubahan tetap terkunci (Mencegah auto-reset server)
+RunService.Heartbeat:Connect(function()
+    if serverExpandActive then
+        updateAksesoris()
+    end
+end)
+
+-- [[ UI INTERACTION ]] --
+IconBtn.MouseButton1Click:Connect(function() MainFrame.Visible = not MainFrame.Visible end)
+
+-- Draggable Logic
+local function makeDraggable(obj)
+    local dragging, input, startPos, startObjPos
+    obj.InputBegan:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+            dragging = true; startPos = i.Position; startObjPos = obj.Position
         end
     end)
-    
-    gui.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-            dragInput = input
+    UserInputService.InputChanged:Connect(function(i)
+        if dragging and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
+            local delta = i.Position - startPos
+            obj.Position = UDim2.new(startObjPos.X.Scale, startObjPos.X.Offset + delta.X, startObjPos.Y.Scale, startObjPos.Y.Offset + delta.Y)
         end
     end)
-    
-    UserInputService.InputChanged:Connect(function(input)
-        if input == dragInput and dragging then
-            update(input)
-        end
+    obj.InputEnded:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then dragging = false end
     end)
 end
 
-makeDraggable(IconBtn)
 makeDraggable(MainFrame)
+makeDraggable(IconBtn)
 
-print("PHANTOM SYSTEM: SUCCESS LOADED")
+print("PHANTOM SYSTEM: NETWORK OWNERSHIP CLOTHES LOADED")
