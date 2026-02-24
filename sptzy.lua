@@ -1,43 +1,44 @@
--- [[ SPTZYY NETWORK ANALYZER - CODE GENERATOR + COPY ]] --
+-- [[ SPTZYY ADMIN FLOW EXECUTOR - SQUARE EDITION ]] --
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local lp = Players.LocalPlayer
 
 -- [[ SETTINGS ]] --
-local scanActive = false
-local execSupport = false
-local monitored = {}
+local adminFlowActive = false
+local myID = lp.UserId
 
 -- [[ UI SETUP: SQUARE INDUSTRIAL ]] --
 local ScreenGui = Instance.new("ScreenGui", game:GetService("CoreGui") or lp:WaitForChild("PlayerGui"))
-ScreenGui.Name = "Sptzyy_ScriptSpy"
+ScreenGui.Name = "Sptzyy_AdminFlow"
 
 local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Size = UDim2.new(0, 300, 0, 340)
+MainFrame.Size = UDim2.new(0, 300, 0, 350)
 MainFrame.Position = UDim2.new(0.5, -150, 0.4, 0)
-MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
 MainFrame.BorderSizePixel = 2
-MainFrame.BorderColor3 = Color3.fromRGB(0, 255, 150)
+MainFrame.BorderColor3 = Color3.fromRGB(255, 0, 0)
 
+-- Header baris tajam
 local Header = Instance.new("Frame", MainFrame)
 Header.Size = UDim2.new(1, 0, 0, 30)
-Header.BackgroundColor3 = Color3.fromRGB(0, 255, 150)
+Header.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
 Header.BorderSizePixel = 0
 
 local Title = Instance.new("TextLabel", Header)
 Title.Size = UDim2.new(1, -10, 1, 0)
 Title.Position = UDim2.new(0, 10, 0, 0)
-Title.Text = "REMOTE CODE SPY (AUTO-GEN)"
-Title.TextColor3 = Color3.fromRGB(0, 0, 0)
+Title.Text = "ADMIN FLOW SUPPORT V10"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.RobotoMono
 Title.TextSize = 10
 Title.TextXAlignment = Enum.TextXAlignment.Left
 Title.BackgroundTransparency = 1
 
+-- Terminal Box
 local LogBox = Instance.new("ScrollingFrame", MainFrame)
-LogBox.Size = UDim2.new(1, -20, 0, 230)
-LogBox.Position = UDim2.new(0, 10, 0, 40)
+LogBox.Size = UDim2.new(1, -20, 0, 220)
+LogBox.Position = UDim2.new(0, 10, 0, 45)
 LogBox.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
 LogBox.BorderSizePixel = 1
 LogBox.BorderColor3 = Color3.fromRGB(40, 40, 40)
@@ -45,109 +46,99 @@ LogBox.CanvasSize = UDim2.new(0, 0, 0, 0)
 LogBox.ScrollBarThickness = 2
 
 local UIList = Instance.new("UIListLayout", LogBox)
-UIList.Padding = UDim.new(0, 5)
+UIList.Padding = UDim.new(0, 4)
 
--- [[ LOGIKA GENERATOR KODE ]] --
+-- [[ LOGIKA ALUR EKSEKUSI ]] --
 local function GetPath(obj)
     local path = obj.Name
-    local parent = obj.Parent
-    while parent and parent ~= game do
-        path = parent.Name .. "." .. path
-        parent = parent.Parent
+    local p = obj.Parent
+    while p and p ~= game do
+        path = p.Name .. "." .. path
+        p = p.Parent
     end
     return "game." .. path
 end
 
-local function GenerateCode(obj, args)
-    local path = GetPath(obj)
-    local method = obj:IsA("RemoteEvent") and "FireServer" or "InvokeServer"
-    -- Membersihkan argumen menjadi string kode
-    local argStr = ""
-    if args then
-        for i, v in pairs(args) do
-            local val = type(v) == "string" and '"'..v..'"' or tostring(v)
-            argStr = argStr .. val .. (i < #args and ", " or "")
-        end
-    end
-    return string.format('%s:%s(%s)', path, method, argStr)
-end
+local function AddLog(remote, code)
+    local LogBtn = Instance.new("TextButton", LogBox)
+    LogBtn.Size = UDim2.new(1, 0, 0, 50)
+    LogBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    LogBtn.BorderSizePixel = 0
+    LogBtn.Text = "  [REMOTE] " .. remote.Name .. "\n  [FLOW] Injected ID: " .. myID
+    LogBtn.TextColor3 = Color3.fromRGB(255, 200, 0)
+    LogBtn.Font = Enum.Font.Code
+    LogBtn.TextSize = 9
+    LogBtn.TextXAlignment = Enum.TextXAlignment.Left
 
-local function AddLog(fullCode)
-    local LogEntry = Instance.new("TextButton", LogBox)
-    LogEntry.Size = UDim2.new(1, 0, 0, 40)
-    LogEntry.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-    LogEntry.BorderSizePixel = 0
-    LogEntry.Text = "  " .. fullCode
-    LogEntry.TextColor3 = Color3.fromRGB(0, 255, 150)
-    LogEntry.Font = Enum.Font.Code
-    LogEntry.TextSize = 9
-    LogEntry.TextXAlignment = Enum.TextXAlignment.Left
-    LogEntry.ClipsDescendants = true
-
-    LogEntry.MouseButton1Click:Connect(function()
+    LogBtn.MouseButton1Click:Connect(function()
         if setclipboard then
-            setclipboard(fullCode)
-            LogEntry.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+            setclipboard(code)
+            LogBtn.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
             task.wait(0.2)
-            LogEntry.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+            LogBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
         end
     end)
-    LogBox.CanvasSize = UDim2.new(0, 0, 0, UIList.AbsoluteContentSize.Y + 40)
+    LogBox.CanvasSize = UDim2.new(0, 0, 0, UIList.AbsoluteContentSize.Y)
 end
 
--- [[ MONITORING TANPA METATABLE ]] --
--- Menggunakan pcall scan untuk mendapatkan struktur pengirimnya
-local function ScanRemoteActivity()
+local function ExecuteAdminFlow()
     for _, v in pairs(game:GetDescendants()) do
-        if (v:IsA("RemoteEvent") or v:IsA("RemoteFunction")) and not monitored[v] then
-            monitored[v] = true
-            
-            -- Karena tanpa Metatable Hooking, kita generate kode 'Template' 
-            -- atau intercept via OnClientEvent jika itu adalah respon balik
+        if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
             task.spawn(function()
-                if scanActive then
-                    local codeSnippet = GenerateCode(v, {"arg1", "arg2"}) -- Template logika
-                    AddLog(codeSnippet)
+                if adminFlowActive then
+                    local path = GetPath(v)
+                    local method = v:IsA("RemoteEvent") and "FireServer" or "InvokeServer"
+                    
+                    -- Alur Manipulasi ID yang Berfungsi
+                    -- Mencoba 3 alur admin umum: ID saja, String Admin, dan Boolean
+                    local flowCode = string.format('%s:%s(%s, "Admin", true)', path, method, myID)
+                    
+                    AddLog(v, flowCode)
+                    
+                    -- Eksekusi Langsung ke Server
+                    pcall(function()
+                        v[method](v, myID, "Admin", true)
+                        v[method](v, "Admin", myID)
+                        v[method](v, true, myID)
+                    end)
                 end
             end)
         end
     end
 end
 
--- [[ CONTROLS ]] --
-local function CreateBtn(name, x, callback)
+-- [[ BUTTON CONTROLS ]] --
+local function CreateSquareBtn(text, x, callback)
     local btn = Instance.new("TextButton", MainFrame)
-    btn.Size = UDim2.new(0, 135, 0, 40)
+    btn.Size = UDim2.new(0, 135, 0, 45)
     btn.Position = UDim2.new(0, x, 0, 285)
-    btn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    btn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
     btn.BorderSizePixel = 1
-    btn.BorderColor3 = Color3.fromRGB(60, 60, 60)
-    btn.Text = name
-    btn.TextColor3 = Color3.new(1,1,1)
+    btn.BorderColor3 = Color3.fromRGB(255, 0, 0)
+    btn.Text = text
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
     btn.Font = Enum.Font.RobotoMono
     btn.TextSize = 10
 
-    local act = false
+    local st = false
     btn.MouseButton1Click:Connect(function()
-        act = not act
-        btn.BackgroundColor3 = act and Color3.fromRGB(0, 100, 200) or Color3.fromRGB(20, 20, 20)
-        callback(act)
+        st = not st
+        btn.BackgroundColor3 = st and Color3.fromRGB(150, 0, 0) or Color3.fromRGB(30, 30, 30)
+        callback(st)
     end)
 end
 
-CreateBtn("GENERATE CODE", 10, function(v) 
-    scanActive = v 
-    if v then ScanRemoteActivity() end 
+CreateSquareBtn("EXECUTE FLOW", 10, function(v)
+    adminFlowActive = v
+    if v then ExecuteAdminFlow() end
 end)
 
-CreateBtn("CLEAR LOGS", 155, function() 
-    for _, child in pairs(LogBox:GetChildren()) do 
-        if child:IsA("TextButton") then child:Destroy() end 
-    end 
+CreateSquareBtn("CLEAR LOGS", 155, function()
+    for _, c in pairs(LogBox:GetChildren()) do if c:IsA("TextButton") then c:Destroy() end end
     LogBox.CanvasSize = UDim2.new(0,0,0,0)
 end)
 
--- Draggable
+-- Drag System
 local d, s, sp
 MainFrame.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then d = true; s = i.Position; sp = MainFrame.Position end end)
 UserInputService.InputChanged:Connect(function(i) if d and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then local delta = i.Position - s; MainFrame.Position = UDim2.new(sp.X.Scale, sp.X.Offset + delta.X, sp.Y.Scale, sp.Y.Offset + delta.Y) end end)
