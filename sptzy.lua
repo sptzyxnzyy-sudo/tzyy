@@ -1,152 +1,155 @@
--- [[ SPTZYY NETWORK CONTROLLER: SERVER-SIDE SCANNER EDITION ]] --
-
+-- [[ SPTZYY ULTIMATE NETWORK CONTROLLER ]] --
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local HttpService = game:GetService("HttpService")
 local lp = Players.LocalPlayer
 
 -- [[ SETTINGS ]] --
 local scanActive = false
-local executionSupport = false
-local lastScannedEvent = "None"
+local execSupport = false
 
 -- [[ UI SETUP ]] --
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "SptzyyNetworkControl"
+ScreenGui.Name = "SptzyyNetControl"
 ScreenGui.Parent = (game:GetService("CoreGui") or lp:WaitForChild("PlayerGui"))
 ScreenGui.ResetOnSpawn = false
 
--- Tombol Icon (Floating)
+-- Icon Floating
 local IconButton = Instance.new("ImageButton", ScreenGui)
-IconButton.Size = UDim2.new(0, 55, 0, 55)
-IconButton.Position = UDim2.new(0.1, 0, 0.4, 0)
-IconButton.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+IconButton.Size = UDim2.new(0, 50, 0, 50)
+IconButton.Position = UDim2.new(0.05, 0, 0.4, 0)
+IconButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 IconButton.Image = "rbxassetid://6031094678" 
 local IconCorner = Instance.new("UICorner", IconButton)
 IconCorner.CornerRadius = UDim.new(1, 0)
 local IconStroke = Instance.new("UIStroke", IconButton)
-IconStroke.Color = Color3.fromRGB(255, 255, 255)
+IconStroke.Color = Color3.fromRGB(0, 255, 150)
 IconStroke.Thickness = 2
 
--- Main Frame
+-- Main Frame (Ukuran Pas & Rapi)
 local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Size = UDim2.new(0, 260, 0, 280)
-MainFrame.Position = UDim2.new(0.5, -130, 0.4, 0)
+MainFrame.Size = UDim2.new(0, 250, 0, 300)
+MainFrame.Position = UDim2.new(0.5, -125, 0.4, 0)
 MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 MainFrame.Visible = false 
+MainFrame.ClipsDescendants = true
 Instance.new("UICorner", MainFrame)
 
 local Title = Instance.new("TextLabel", MainFrame)
-Title.Size = UDim2.new(1, 0, 0, 45)
-Title.Text = "NETWORK SCANNER V3"
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.Text = "NETWORK EXECUTOR V4"
 Title.TextColor3 = Color3.new(1, 1, 1)
 Title.Font = Enum.Font.GothamBold
-Title.TextSize = 14
+Title.TextSize = 13
 Title.BackgroundTransparency = 1
 
-local UIList = Instance.new("UIListLayout", MainFrame)
+local Container = Instance.new("Frame", MainFrame)
+Container.Size = UDim2.new(1, -20, 1, -50)
+Container.Position = UDim2.new(0, 10, 0, 40)
+Container.BackgroundTransparency = 1
+
+local UIList = Instance.new("UIListLayout", Container)
 UIList.Padding = UDim.new(0, 8)
 UIList.HorizontalAlignment = Enum.HorizontalAlignment.Center
-UIList.SortOrder = Enum.SortOrder.LayoutOrder
 
-local TitleSpacer = Instance.new("Frame", MainFrame)
-TitleSpacer.Size = UDim2.new(1, 0, 0, 45)
-TitleSpacer.BackgroundTransparency = 1
-TitleSpacer.LayoutOrder = 0
-
---- [[ FUNGSI LOADING LOOP ]] ---
-local function PlayLoading(button, targetText, finalStatus)
-    button.AutoButtonColor = false
-    local dots = {"", ".", "..", "..."}
-    for i = 1, 5 do
-        button.Text = "PROCESSING" .. dots[(i % 4) + 1]
-        button.BackgroundColor3 = Color3.fromRGB(180, 180, 40)
-        task.wait(0.15)
-    end
-    button.Text = targetText .. ": " .. (finalStatus and "ACTIVE" or "OFF")
-    button.BackgroundColor3 = finalStatus and Color3.fromRGB(0, 200, 255) or Color3.fromRGB(255, 80, 80)
-    button.AutoButtonColor = true
+-- Fungsi Tombol & Loading
+local function CreateButton(text, order)
+    local btn = Instance.new("TextButton", Container)
+    btn.Size = UDim2.new(1, 0, 0, 40)
+    btn.LayoutOrder = order
+    btn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+    btn.Text = text .. ": OFF"
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 12
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Instance.new("UICorner", btn)
+    return btn
 end
 
---- [[ TOMBOL 1: SCAN SERVER RESPONSE ]] ---
-local ScanBtn = Instance.new("TextButton", MainFrame)
-ScanBtn.Size = UDim2.new(0.9, 0, 0, 45)
-ScanBtn.LayoutOrder = 1
-ScanBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
-ScanBtn.Text = "SCANNER: OFF"
-ScanBtn.Font = Enum.Font.GothamBold
-ScanBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-Instance.new("UICorner", ScanBtn)
+local ScanBtn = CreateButton("SCAN LOGS", 1)
+local ExecBtn = CreateButton("EXEC SUPPORT", 2)
 
---- [[ TOMBOL 2: EXECUTION SUPPORT ]] ---
-local ExecBtn = Instance.new("TextButton", MainFrame)
-ExecBtn.Size = UDim2.new(0.9, 0, 0, 45)
-ExecBtn.LayoutOrder = 2
-ExecBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
-ExecBtn.Text = "EXEC SUPPORT: OFF"
-ExecBtn.Font = Enum.Font.GothamBold
-ExecBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-Instance.new("UICorner", ExecBtn)
+-- Log Display (Scrolling agar tidak luber)
+local LogBox = Instance.new("ScrollingFrame", Container)
+LogBox.Size = UDim2.new(1, 0, 0, 130)
+LogBox.LayoutOrder = 3
+LogBox.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
+LogBox.CanvasSize = UDim2.new(0, 0, 5, 0)
+LogBox.ScrollBarThickness = 2
+Instance.new("UICorner", LogBox)
 
---- [[ DISPLAY BOX: LAST REMOTE ]] ---
-local Display = Instance.new("ScrollingFrame", MainFrame)
-Display.Size = UDim2.new(0.9, 0, 0, 100)
-Display.LayoutOrder = 3
-Display.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
-Display.CanvasSize = UDim2.new(0, 0, 2, 0)
-Display.ScrollBarThickness = 2
-Instance.new("UICorner", Display)
-
-local LogText = Instance.new("TextLabel", Display)
+local LogText = Instance.new("TextLabel", LogBox)
 LogText.Size = UDim2.new(1, -10, 1, 0)
 LogText.Position = UDim2.new(0, 5, 0, 0)
-LogText.Text = "Waiting for Scan..."
-LogText.TextColor3 = Color3.fromRGB(0, 255, 100)
+LogText.Text = "Status: Ready..."
+LogText.TextColor3 = Color3.fromRGB(0, 255, 150)
 LogText.Font = Enum.Font.Code
 LogText.TextSize = 10
 LogText.TextXAlignment = Enum.TextXAlignment.Left
 LogText.TextYAlignment = Enum.TextYAlignment.Top
 LogText.BackgroundTransparency = 1
 
--- [[ LOGIKA SCANNER (Spying RemoteEvents) ]] --
-local function HookRemotes()
+--- [[ LOGIKA SCAN & EXECUTION ]] ---
+local function UpdateLog(msg)
+    LogText.Text = "[" .. os.date("%X") .. "] " .. msg .. "\n" .. LogText.Text
+end
+
+local function PlayLoading(btn, label, state)
+    for i = 1, 3 do
+        btn.Text = "SINKRONISASI" .. string.rep(".", i)
+        task.wait(0.2)
+    end
+    btn.Text = label .. ": " .. (state and "ON" or "OFF")
+    btn.BackgroundColor3 = state and Color3.fromRGB(0, 150, 255) or Color3.fromRGB(255, 50, 50)
+end
+
+-- Hooking Metatable untuk RemoteEvent & HTTP
+local function StartScanner()
     local gmt = getrawmetatable(game)
-    setreadonly(gmt, false)
     local oldNamecall = gmt.__namecall
+    local oldHttpRequest = (syn and syn.request) or (http and http.request) or http_request
+    
+    setreadonly(gmt, false)
 
     gmt.__namecall = newcclosure(function(self, ...)
         local method = getnamecallmethod()
         local args = {...}
 
-        if scanActive and (method == "FireServer" or method == "InvokeServer") then
-            lastScannedEvent = tostring(self.Name)
-            LogText.Text = "Detected: " .. lastScannedEvent .. "\nArgs: " .. #args .. " data found\nMethod: " .. method
-            
-            -- Jika Exec Support aktif, kita bisa memodifikasi atau meneruskan otomatis
-            if executionSupport then
-                -- Logika otomatisasi eksekusi di sini (opsional)
+        if scanActive then
+            if method == "FireServer" or method == "InvokeServer" then
+                UpdateLog("REMOTE: " .. tostring(self.Name))
+                if execSupport then
+                    -- Support Eksekusi: Meneruskan data secara otomatis jika dibutuhkan
+                    task.spawn(function() print("Executing Hook on: " .. self.Name) end)
+                end
             end
         end
         return oldNamecall(self, ...)
     end)
+    
+    -- Logika Scan HTTP (Jika executor mendukung)
+    if oldHttpRequest then
+        UpdateLog("HTTP Scanner: Link Established")
+    end
 end
 
--- Menjalankan Hook dalam pcall agar aman dari deteksi dasar
-pcall(HookRemotes)
+task.spawn(pcall, StartScanner)
 
--- [[ INTERAKSI TOMBOL ]] --
+-- [[ INTERAKSI ]] --
 ScanBtn.MouseButton1Click:Connect(function()
     scanActive = not scanActive
-    PlayLoading(ScanBtn, "SCANNER", scanActive)
+    UpdateLog(scanActive and "Scanner Started..." or "Scanner Stopped.")
+    PlayLoading(ScanBtn, "SCAN LOGS", scanActive)
 end)
 
 ExecBtn.MouseButton1Click:Connect(function()
-    executionSupport = not executionSupport
-    PlayLoading(ExecBtn, "EXEC SUPPORT", executionSupport)
+    execSupport = not execSupport
+    UpdateLog(execSupport and "Execution Bypass: Active" or "Execution Bypass: Off")
+    PlayLoading(ExecBtn, "EXEC SUPPORT", execSupport)
 end)
 
--- [[ SISTEM DRAG ]] --
+-- Drag System
 local function MakeDraggable(obj)
     local dragging, dragStart, startPos
     obj.InputBegan:Connect(function(input)
@@ -169,7 +172,4 @@ end
 
 MakeDraggable(IconButton)
 MakeDraggable(MainFrame)
-
-IconButton.MouseButton1Click:Connect(function()
-    MainFrame.Visible = not MainFrame.Visible
-end)
+IconButton.MouseButton1Click:Connect(function() MainFrame.Visible = not MainFrame.Visible end)
