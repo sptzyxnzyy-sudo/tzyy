@@ -1,4 +1,4 @@
--- [[ SPTZYY NETWORK ANALYZER - OBJECT SPY & COPY ]] --
+-- [[ SPTZYY NETWORK ANALYZER - CODE GENERATOR + COPY ]] --
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
@@ -7,16 +7,15 @@ local lp = Players.LocalPlayer
 -- [[ SETTINGS ]] --
 local scanActive = false
 local execSupport = false
-local monitoredRemotes = {}
+local monitored = {}
 
 -- [[ UI SETUP: SQUARE INDUSTRIAL ]] --
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "SptzyyScanner_V9"
-ScreenGui.Parent = game:GetService("CoreGui") or lp:WaitForChild("PlayerGui")
+local ScreenGui = Instance.new("ScreenGui", game:GetService("CoreGui") or lp:WaitForChild("PlayerGui"))
+ScreenGui.Name = "Sptzyy_ScriptSpy"
 
 local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Size = UDim2.new(0, 280, 0, 320)
-MainFrame.Position = UDim2.new(0.5, -140, 0.4, 0)
+MainFrame.Size = UDim2.new(0, 300, 0, 340)
+MainFrame.Position = UDim2.new(0.5, -150, 0.4, 0)
 MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 MainFrame.BorderSizePixel = 2
 MainFrame.BorderColor3 = Color3.fromRGB(0, 255, 150)
@@ -29,7 +28,7 @@ Header.BorderSizePixel = 0
 local Title = Instance.new("TextLabel", Header)
 Title.Size = UDim2.new(1, -10, 1, 0)
 Title.Position = UDim2.new(0, 10, 0, 0)
-Title.Text = "REMOTE SENDER SPY + COPY"
+Title.Text = "REMOTE CODE SPY (AUTO-GEN)"
 Title.TextColor3 = Color3.fromRGB(0, 0, 0)
 Title.Font = Enum.Font.RobotoMono
 Title.TextSize = 10
@@ -37,108 +36,118 @@ Title.TextXAlignment = Enum.TextXAlignment.Left
 Title.BackgroundTransparency = 1
 
 local LogBox = Instance.new("ScrollingFrame", MainFrame)
-LogBox.Size = UDim2.new(1, -20, 0, 210)
+LogBox.Size = UDim2.new(1, -20, 0, 230)
 LogBox.Position = UDim2.new(0, 10, 0, 40)
 LogBox.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
-LogBox.CanvasSize = UDim2.new(0, 0, 0, 0) -- Akan otomatis bertambah
+LogBox.BorderSizePixel = 1
+LogBox.BorderColor3 = Color3.fromRGB(40, 40, 40)
+LogBox.CanvasSize = UDim2.new(0, 0, 0, 0)
 LogBox.ScrollBarThickness = 2
 
 local UIList = Instance.new("UIListLayout", LogBox)
-UIList.SortOrder = Enum.SortOrder.LayoutOrder
-UIList.Padding = UDim.new(0, 2)
+UIList.Padding = UDim.new(0, 5)
 
--- [[ FUNGSI COPY ]] --
-local function SetClipboard(text)
-    if setclipboard then
-        setclipboard(text)
-        return true
+-- [[ LOGIKA GENERATOR KODE ]] --
+local function GetPath(obj)
+    local path = obj.Name
+    local parent = obj.Parent
+    while parent and parent ~= game do
+        path = parent.Name .. "." .. path
+        parent = parent.Parent
     end
-    return false
+    return "game." .. path
 end
 
--- [[ FUNGSI ADD LOG (DENGAN CLICK TO COPY) ]] --
-local function AddLog(remoteName, className)
+local function GenerateCode(obj, args)
+    local path = GetPath(obj)
+    local method = obj:IsA("RemoteEvent") and "FireServer" or "InvokeServer"
+    -- Membersihkan argumen menjadi string kode
+    local argStr = ""
+    if args then
+        for i, v in pairs(args) do
+            local val = type(v) == "string" and '"'..v..'"' or tostring(v)
+            argStr = argStr .. val .. (i < #args and ", " or "")
+        end
+    end
+    return string.format('%s:%s(%s)', path, method, argStr)
+end
+
+local function AddLog(fullCode)
     local LogEntry = Instance.new("TextButton", LogBox)
-    LogEntry.Size = UDim2.new(1, 0, 0, 25)
-    LogEntry.BackgroundTransparency = 1
-    LogEntry.Text = string.format("[%s] %s", className:sub(1,3), remoteName)
+    LogEntry.Size = UDim2.new(1, 0, 0, 40)
+    LogEntry.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    LogEntry.BorderSizePixel = 0
+    LogEntry.Text = "  " .. fullCode
     LogEntry.TextColor3 = Color3.fromRGB(0, 255, 150)
     LogEntry.Font = Enum.Font.Code
-    LogEntry.TextSize = 10
+    LogEntry.TextSize = 9
     LogEntry.TextXAlignment = Enum.TextXAlignment.Left
-    
+    LogEntry.ClipsDescendants = true
+
     LogEntry.MouseButton1Click:Connect(function()
-        if SetClipboard(remoteName) then
-            LogEntry.TextColor3 = Color3.fromRGB(255, 255, 255)
-            LogEntry.Text = "COPIED!"
-            task.wait(1)
-            LogEntry.Text = string.format("[%s] %s", className:sub(1,3), remoteName)
-            LogEntry.TextColor3 = Color3.fromRGB(0, 255, 150)
+        if setclipboard then
+            setclipboard(fullCode)
+            LogEntry.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+            task.wait(0.2)
+            LogEntry.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
         end
     end)
-    
-    LogBox.CanvasSize = UDim2.new(0, 0, 0, UIList.AbsoluteContentSize.Y)
+    LogBox.CanvasSize = UDim2.new(0, 0, 0, UIList.AbsoluteContentSize.Y + 40)
 end
 
--- [[ ALUR PENGIRIM & SCANNER (NON-HOOK) ]] --
-local function ScanAndMonitor()
-    for _, obj in pairs(game:GetDescendants()) do
-        if (obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction")) and not monitoredRemotes[obj] then
-            monitoredRemotes[obj] = true
+-- [[ MONITORING TANPA METATABLE ]] --
+-- Menggunakan pcall scan untuk mendapatkan struktur pengirimnya
+local function ScanRemoteActivity()
+    for _, v in pairs(game:GetDescendants()) do
+        if (v:IsA("RemoteEvent") or v:IsA("RemoteFunction")) and not monitored[v] then
+            monitored[v] = true
             
-            if scanActive then
-                AddLog(obj.Name, obj.ClassName)
-                
-                -- Support Eksekusi Alur Pengirim
-                if execSupport then
-                    task.spawn(function()
-                        pcall(function()
-                            if obj:IsA("RemoteEvent") then
-                                obj:FireServer("Sptzyy_Test") -- Alur pengiriman test
-                            end
-                        end)
-                    end)
+            -- Karena tanpa Metatable Hooking, kita generate kode 'Template' 
+            -- atau intercept via OnClientEvent jika itu adalah respon balik
+            task.spawn(function()
+                if scanActive then
+                    local codeSnippet = GenerateCode(v, {"arg1", "arg2"}) -- Template logika
+                    AddLog(codeSnippet)
                 end
-            end
+            end)
         end
     end
 end
 
--- Loop Realtime Scan
-task.spawn(function()
-    while task.wait(2) do
-        if scanActive then
-            ScanAndMonitor()
-        end
-    end
-end)
-
--- [[ TOMBOL KOTAK ]] --
+-- [[ CONTROLS ]] --
 local function CreateBtn(name, x, callback)
     local btn = Instance.new("TextButton", MainFrame)
-    btn.Size = UDim2.new(0, 125, 0, 40)
-    btn.Position = UDim2.new(0, x, 0, 265)
+    btn.Size = UDim2.new(0, 135, 0, 40)
+    btn.Position = UDim2.new(0, x, 0, 285)
     btn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-    btn.Text = name .. " [OFF]"
+    btn.BorderSizePixel = 1
+    btn.BorderColor3 = Color3.fromRGB(60, 60, 60)
+    btn.Text = name
     btn.TextColor3 = Color3.new(1,1,1)
     btn.Font = Enum.Font.RobotoMono
     btn.TextSize = 10
-    btn.BorderSizePixel = 1
-    btn.BorderColor3 = Color3.fromRGB(60, 60, 60)
 
-    local active = false
+    local act = false
     btn.MouseButton1Click:Connect(function()
-        active = not active
-        btn.Text = name .. (active and " [ON]" or " [OFF]")
-        btn.BackgroundColor3 = active and Color3.fromRGB(0, 100, 200) or Color3.fromRGB(20, 20, 20)
-        callback(active)
+        act = not act
+        btn.BackgroundColor3 = act and Color3.fromRGB(0, 100, 200) or Color3.fromRGB(20, 20, 20)
+        callback(act)
     end)
 end
 
-CreateBtn("SCAN SPY", 10, function(v) scanActive = v end)
-CreateBtn("AUTO SEND", 145, function(v) execSupport = v end)
+CreateBtn("GENERATE CODE", 10, function(v) 
+    scanActive = v 
+    if v then ScanRemoteActivity() end 
+end)
 
--- Drag System
+CreateBtn("CLEAR LOGS", 155, function() 
+    for _, child in pairs(LogBox:GetChildren()) do 
+        if child:IsA("TextButton") then child:Destroy() end 
+    end 
+    LogBox.CanvasSize = UDim2.new(0,0,0,0)
+end)
+
+-- Draggable
 local d, s, sp
 MainFrame.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then d = true; s = i.Position; sp = MainFrame.Position end end)
 UserInputService.InputChanged:Connect(function(i) if d and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then local delta = i.Position - s; MainFrame.Position = UDim2.new(sp.X.Scale, sp.X.Offset + delta.X, sp.Y.Scale, sp.Y.Offset + delta.Y) end end)
