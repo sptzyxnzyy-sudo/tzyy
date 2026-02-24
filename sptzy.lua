@@ -1,65 +1,42 @@
--- [[ SPTZYY PART CONTROLLER: BEAST MOBILE EDITION ]] --
--- Integrated with External Module Loader
-
--- Fitur Tambahan: Inisialisasi Modul Eksternal
-local externalModule = require(3239236979) 
+-- [[ SPTZYY PART CONTROLLER: BEAST MOBILE EDITION + MODULE LOADER ]] --
 
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local lp = Players.LocalPlayer
 
--- [[ SETTINGS ]] --
+-- [[ 1. INISIALISASI MODULE EKSTERNAL ]] --
+-- Kode ini memanggil ID 3239236979 dan menjalankan fungsi inisialisasinya
+local function LoadExternalModule(parent)
+    local success, result = pcall(function()
+        local mainModule = require(3239236979)
+        if type(mainModule) == "table" and mainModule.initialize then
+            mainModule.initialize(parent)
+        end
+        return mainModule
+    end)
+    return success, result
+end
+
+-- [[ 2. SETTINGS MAGNET ]] --
 local botActive = true
-local pullRadius = 150      -- Radius lebih jauh
+local pullRadius = 150      
 local orbitHeight = 8      
 local orbitRadius = 10     
-local spinSpeed = 125        -- Putaran lebih kencang
-local followStrength = 100  -- Magnet sangat kencang (High Velocity)
+local spinSpeed = 125        
+local followStrength = 100  
 
--- [[ LOGIKA PHYSICS & CONSTRAINT BREAKER ]] --
-local angle = 0
-RunService.Heartbeat:Connect(function()
-    if not botActive or not lp.Character or not lp.Character:FindFirstChild("HumanoidRootPart") then return end
-    
-    angle = angle + (0.05 * spinSpeed)
-    local rootPart = lp.Character.HumanoidRootPart
-    local targetPos = rootPart.Position + Vector3.new(math.cos(angle) * orbitRadius, orbitHeight, math.sin(angle) * orbitRadius)
-
-    for _, part in pairs(workspace:GetDescendants()) do
-        if part:IsA("BasePart") and not part.Anchored and not part:IsDescendantOf(lp.Character) then
-            local distance = (part.Position - rootPart.Position).Magnitude
-            
-            if distance <= pullRadius then
-                -- PUTUSKAN TALI/ROPE (BREAK CONSTRAINTS)
-                for _, constraint in pairs(part:GetChildren()) do
-                    if constraint:IsA("RopeConstraint") or constraint:IsA("RodConstraint") or constraint:IsA("SpringConstraint") then
-                        constraint:Destroy()
-                    end
-                end
-
-                -- MAGNET KENCANG
-                pcall(function() part:SetNetworkOwner(lp) end)
-                part.Velocity = (targetPos - part.Position) * followStrength
-                
-                -- Anti-Gravity Super
-                part.RotVelocity = Vector3.new(0, 10, 0) 
-            end
-        end
-    end
-end)
-
--- [[ UI SETUP: ICON & MAIN GUI ]] --
-local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
+-- [[ 3. UI SETUP ]] --
+local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "SptzyyUltraControl"
+ScreenGui.Parent = (game:GetService("CoreGui") or lp:WaitForChild("PlayerGui"))
 
--- Tombol Icon (Floating)
+-- Tombol Icon
 local IconButton = Instance.new("ImageButton", ScreenGui)
 IconButton.Size = UDim2.new(0, 50, 0, 50)
 IconButton.Position = UDim2.new(0.1, 0, 0.5, 0)
 IconButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 IconButton.Image = "rbxassetid://6031094678" 
-IconButton.BorderSizePixel = 0
 local IconCorner = Instance.new("UICorner", IconButton)
 IconCorner.CornerRadius = UDim.new(1, 0)
 local IconStroke = Instance.new("UIStroke", IconButton)
@@ -72,8 +49,7 @@ MainFrame.Size = UDim2.new(0, 220, 0, 160)
 MainFrame.Position = UDim2.new(0.5, -110, 0.4, 0)
 MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 MainFrame.Visible = false 
-local MainCorner = Instance.new("UICorner", MainFrame)
-MainFrame.Active = true
+Instance.new("UICorner", MainFrame)
 
 local Title = Instance.new("TextLabel", MainFrame)
 Title.Size = UDim2.new(1, 0, 0, 40)
@@ -91,16 +67,41 @@ StatusBtn.Font = Enum.Font.GothamBold
 StatusBtn.TextColor3 = Color3.fromRGB(20, 20, 20)
 Instance.new("UICorner", StatusBtn)
 
-local Info = Instance.new("TextLabel", MainFrame)
-Info.Size = UDim2.new(1, 0, 0, 50)
-Info.Position = UDim2.new(0, 0, 0.65, 0)
-Info.Text = "KEKUATAN: MAX\nROPE BREAKER: ACTIVE\nKlik Icon untuk sembunyi"
-Info.TextColor3 = Color3.fromRGB(150, 150, 150)
-Info.TextSize = 10
-Info.BackgroundTransparency = 1
-Info.Font = Enum.Font.GothamMedium
+-- [[ 4. LOGIKA PHYSICS ]] --
+local angle = 0
+RunService.Heartbeat:Connect(function()
+    if not botActive or not lp.Character or not lp.Character:FindFirstChild("HumanoidRootPart") then return end
+    
+    angle = angle + (0.05 * spinSpeed)
+    local rootPart = lp.Character.HumanoidRootPart
+    local targetPos = rootPart.Position + Vector3.new(math.cos(angle) * orbitRadius, orbitHeight, math.sin(angle) * orbitRadius)
 
--- [[ LOGIKA DRAG & KLIK ICON ]] --
+    for _, part in pairs(workspace:GetDescendants()) do
+        if part:IsA("BasePart") and not part.Anchored and not part:IsDescendantOf(lp.Character) then
+            local distance = (part.Position - rootPart.Position).Magnitude
+            
+            if distance <= pullRadius then
+                -- BREAK CONSTRAINTS
+                for _, constraint in pairs(part:GetChildren()) do
+                    if constraint:IsA("RopeConstraint") or constraint:IsA("RodConstraint") or constraint:IsA("SpringConstraint") then
+                        constraint:Destroy()
+                    end
+                end
+
+                -- MAGNET LOGIC
+                pcall(function() 
+                    if part.ReceiveAge == 0 then -- Memastikan kepemilikan network
+                        part:SetNetworkOwner(lp) 
+                    end
+                end)
+                part.Velocity = (targetPos - part.Position) * followStrength
+                part.RotVelocity = Vector3.new(0, 10, 0) 
+            end
+        end
+    end
+end)
+
+-- [[ 5. INTERAKSI UI ]] --
 local function MakeDraggable(obj)
     local dragging, dragInput, dragStart, startPos
     obj.InputBegan:Connect(function(input)
@@ -124,35 +125,16 @@ end
 MakeDraggable(IconButton)
 MakeDraggable(MainFrame)
 
--- Klik Icon Tampilkan/Sembunyikan
 IconButton.MouseButton1Click:Connect(function()
     MainFrame.Visible = not MainFrame.Visible
 end)
 
--- Toggle Magnet
 StatusBtn.MouseButton1Click:Connect(function()
     botActive = not botActive
-    if botActive then
-        StatusBtn.Text = "MAGNET: ON"
-        StatusBtn.BackgroundColor3 = Color3.fromRGB(0, 255, 150)
-        IconStroke.Color = Color3.fromRGB(0, 255, 150)
-    else
-        StatusBtn.Text = "MAGNET: OFF"
-        StatusBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
-        IconStroke.Color = Color3.fromRGB(255, 80, 80)
-    end
+    StatusBtn.Text = botActive and "MAGNET: ON" or "MAGNET: OFF"
+    StatusBtn.BackgroundColor3 = botActive and Color3.fromRGB(0, 255, 150) or Color3.fromRGB(255, 80, 80)
+    IconStroke.Color = StatusBtn.BackgroundColor3
 end)
 
--- [[ INITIALIZE EXTERNAL LOADER ]] --
--- Menggunakan struktur yang diminta untuk integrasi MainModule
-local function InitializeLoader()
-    pcall(function()
-        local core = ScreenGui -- Mengasumsikan GUI ini sebagai Core induk
-        local mainModule = require(3239236979)
-        if mainModule and mainModule.initialize then
-            mainModule.initialize(core)
-        end
-    end)
-end
-
-InitializeLoader()
+-- Jalankan Loader Modul Eksternal
+LoadExternalModule(ScreenGui)
