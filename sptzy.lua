@@ -1,160 +1,170 @@
--- Beckdeer Mobile Executor - Square Rainbow Edition (RE-FIXED)
-local player = game:GetService("Players").LocalPlayer
-local pgui = player:WaitForChild("PlayerGui")
-local UIS = game:GetService("UserInputService")
+-- [[ PHANTOM SQUARE: V11 HYBRID SCANNER - SQUARE EDITION ]] --
+local UserInputService = game:GetService("UserInputService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local CoreGui = game:GetService("CoreGui")
 
--- Pastikan GUI lama dihapus
-local oldGui = pgui:FindFirstChild("BeckMobileRainbow") or game:GetService("CoreGui"):FindFirstChild("BeckMobileRainbow")
-if oldGui then oldGui:Destroy() end
+-- [[ STATE ]] --
+local remoteButtons = {}
 
--- Container dengan DisplayOrder Tinggi
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "BeckMobileRainbow"
-screenGui.ResetOnSpawn = false
-screenGui.IgnoreGuiInset = true
-screenGui.DisplayOrder = 999999 -- Memastikan di atas GUI game
+-- [[ UI CONSTRUCTION ]] --
+local ScreenGui = Instance.new("ScreenGui", CoreGui)
+ScreenGui.Name = "SptzyyHybridV11"
+ScreenGui.ResetOnSpawn = false
 
--- Coba taruh di CoreGui jika bisa, kalau tidak ke PlayerGui
-local success_parent, _ = pcall(function()
-    screenGui.Parent = game:GetService("CoreGui")
-end)
-if not success_parent then
-    screenGui.Parent = pgui
-end
+-- TOGGLE ICON (SQUARE)
+local OpenBtn = Instance.new("TextButton", ScreenGui)
+OpenBtn.Size = UDim2.new(0, 50, 0, 50)
+OpenBtn.Position = UDim2.new(0, 20, 0.5, -25)
+OpenBtn.Text = "V11"
+OpenBtn.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+OpenBtn.TextColor3 = Color3.fromRGB(0, 255, 255)
+OpenBtn.Font = Enum.Font.Code
+OpenBtn.BorderSizePixel = 2
+OpenBtn.BorderColor3 = Color3.fromRGB(0, 255, 255)
 
--- 1. Main Square Frame
-local main = Instance.new("Frame")
-main.Name = "Main"
-main.Size = UDim2.new(0, 220, 0, 220)
-main.Position = UDim2.new(0.5, -110, 0.5, -110)
-main.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-main.BorderSizePixel = 0
-main.Active = true
-main.Visible = true -- Langsung muncul
-main.Parent = screenGui
+-- MAIN PANEL (SQUARE)
+local Main = Instance.new("Frame", ScreenGui)
+Main.Size = UDim2.new(0, 480, 0, 480) -- Lebih luas sedikit
+Main.Position = UDim2.new(0.5, -240, 0.5, -240)
+Main.BackgroundColor3 = Color3.fromRGB(10, 10, 12)
+Main.BorderSizePixel = 2
+Main.BorderColor3 = Color3.fromRGB(0, 255, 255)
+Main.Visible = false
 
-Instance.new("UICorner", main).CornerRadius = UDim.new(0, 8)
+local Title = Instance.new("TextLabel", Main)
+Title.Size = UDim2.new(1, 0, 0, 45)
+Title.Text = "HYBRID REMOTE EXECUTOR V11"
+Title.TextColor3 = Color3.fromRGB(0, 255, 255)
+Title.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+Title.BorderSizePixel = 0
+Title.Font = Enum.Font.Code
+Title.TextSize = 16
 
--- Rainbow Stroke
-local uiStroke = Instance.new("UIStroke", main)
-uiStroke.Thickness = 3
-uiStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+-- SCROLLING LIST
+local ListFrame = Instance.new("ScrollingFrame", Main)
+ListFrame.Size = UDim2.new(0.94, 0, 0, 310)
+ListFrame.Position = UDim2.new(0.03, 0, 0.22, 0)
+ListFrame.BackgroundColor3 = Color3.fromRGB(5, 5, 8)
+ListFrame.BorderSizePixel = 1
+ListFrame.BorderColor3 = Color3.fromRGB(40, 40, 45)
+ListFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+ListFrame.ScrollBarThickness = 6
 
--- 2. Title Bar
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 0, 30)
-title.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-title.Text = "BECKDEER ADMIN EXEC"
-title.TextColor3 = Color3.fromRGB(255, 255, 255)
-title.Font = Enum.Font.GothamBold
-title.TextSize = 11
-title.Parent = main
-Instance.new("UICorner", title)
+local ListLayout = Instance.new("UIListLayout", ListFrame)
+ListLayout.Padding = UDim.new(0, 2)
+ListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
--- 3. Status Display
-local status = Instance.new("TextLabel")
-status.Size = UDim2.new(0.88, 0, 0.5, 0)
-status.Position = UDim2.new(0.06, 0, 0.2, 0)
-status.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-status.Text = "USER: " .. player.Name .. "\nID: " .. player.UserId .. "\n\nREADY TO ADMIN"
-status.TextColor3 = Color3.fromRGB(200, 200, 200)
-status.TextSize = 10
-status.Font = Enum.Font.Code
-status.Parent = main
-Instance.new("UICorner", status)
+-- SCAN BUTTON
+local ScanBtn = Instance.new("TextButton", Main)
+ScanBtn.Size = UDim2.new(0.94, 0, 0, 40)
+ScanBtn.Position = UDim2.new(0.03, 0, 0.11, 0)
+ScanBtn.Text = "SCAN ALL REMOTES (RE/RF)"
+ScanBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+ScanBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ScanBtn.BorderSizePixel = 1
+ScanBtn.BorderColor3 = Color3.fromRGB(0, 255, 255)
+ScanBtn.Font = Enum.Font.Code
 
--- 4. Execute Button (Tanpa Ketik)
-local exec = Instance.new("TextButton")
-exec.Size = UDim2.new(0.88, 0, 0, 40)
-exec.Position = UDim2.new(0.06, 0, 0.75, 0)
-exec.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-exec.Text = "EKSEKUSI ADMIN"
-exec.TextColor3 = Color3.white
-exec.Font = Enum.Font.GothamBold
-exec.TextSize = 14
-exec.Parent = main
-Instance.new("UICorner", exec)
+-- STATUS BAR
+local Status = Instance.new("TextLabel", Main)
+Status.Size = UDim2.new(1, 0, 0, 35)
+Status.Position = UDim2.new(0, 0, 0.9, 0)
+Status.Text = "[WAITING FOR SCAN]"
+Status.TextColor3 = Color3.fromRGB(150, 150, 150)
+Status.BackgroundTransparency = 1
+Status.Font = Enum.Font.Code
+Status.TextSize = 11
 
--- 5. Floating Icon B
-local toggle = Instance.new("TextButton")
-toggle.Name = "Toggle"
-toggle.Size = UDim2.new(0, 55, 0, 55)
-toggle.Position = UDim2.new(0, 20, 0.5, -27)
-toggle.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-toggle.Text = "B"
-toggle.TextColor3 = Color3.white
-toggle.Font = Enum.Font.GothamBold
-toggle.TextSize = 28
-toggle.Parent = screenGui
-Instance.new("UICorner", toggle).CornerRadius = UDim.new(1, 0)
+---
 
-local toggleStroke = Instance.new("UIStroke", toggle)
-toggleStroke.Thickness = 3
-
---- LOGIC SISTEM ---
-
--- Rainbow Effect
-RunService.RenderStepped:Connect(function()
-    local hue = tick() % 5 / 5
-    local color = Color3.fromHSV(hue, 0.8, 1)
-    uiStroke.Color = color
-    toggleStroke.Color = color
-    exec.TextColor3 = color
-end)
-
--- Dragging System (Manual agar lebih stabil di Mobile)
-local function makeDraggable(obj)
+-- [[ DRAGGING SYSTEM ]] --
+local function ApplyDrag(gui)
     local dragging, dragInput, dragStart, startPos
-    obj.InputBegan:Connect(function(input)
+    gui.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            dragStart = input.Position
-            startPos = obj.Position
+            dragging = true; dragStart = input.Position; startPos = gui.Position
+            input.Changed:Connect(function() if input.UserInputState == Enum.UserInputState.End then dragging = false end end)
         end
     end)
-    obj.InputChanged:Connect(function(input)
-        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-            local delta = input.Position - dragStart
-            obj.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-        end
+    gui.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end
     end)
-    UIS.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = false
+    RunService.RenderStepped:Connect(function()
+        if dragging and dragInput then
+            local delta = dragInput.Position - dragStart
+            gui.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
         end
     end)
 end
 
-makeDraggable(main)
-makeDraggable(toggle)
+ApplyDrag(Main)
+ApplyDrag(OpenBtn)
 
--- Eksekusi & Admin Logic
-exec.MouseButton1Click:Connect(function()
-    status.Text = "Executing Asset..."
-    local success, result = pcall(function()
-        return require(3239236979)
+---
+
+-- [[ CORE LOGIC ]] --
+local function clearList()
+    for _, btn in pairs(remoteButtons) do btn:Destroy() end
+    remoteButtons = {}
+end
+
+local function executeObject(obj)
+    local success, _ = pcall(function()
+        if obj:IsA("RemoteEvent") then
+            obj:FireServer()
+        elseif obj:IsA("RemoteFunction") then
+            -- Note: InvokeServer bisa membuat script "hang" jika server tidak merespon. 
+            -- Di sini kita batasi agar tidak merusak UI.
+            task.spawn(function() obj:InvokeServer() end)
+        end
     end)
-
+    
     if success then
-        status.Text = "SUCCESS!\nAdmin Applied."
-        -- Mencoba memasukkan Admin
-        pcall(function()
-            if type(result) == "table" then
-                if result.AddAdmin then result.AddAdmin(player.UserId)
-                elseif result.Admin then result.Admin(player.UserId) end
-            elseif type(result) == "function" then
-                result(player.UserId)
-            end
-        end)
+        Status.Text = "[SUCCESS] TRIGGERED: " .. obj.Name
+        Status.TextColor3 = Color3.fromRGB(0, 255, 0)
     else
-        status.Text = "FAILED\nModule Error or Blocked"
+        Status.Text = "[FAILED] BLOCKED: " .. obj.Name
+        Status.TextColor3 = Color3.fromRGB(255, 50, 50)
     end
+end
+
+ScanBtn.MouseButton1Click:Connect(function()
+    clearList()
+    local count = 0
+    for _, obj in pairs(ReplicatedStorage:GetDescendants()) do
+        if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
+            count = count + 1
+            local Btn = Instance.new("TextButton", ListFrame)
+            Btn.Size = UDim2.new(1, -10, 0, 30)
+            Btn.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+            Btn.BorderSizePixel = 1
+            Btn.BorderColor3 = Color3.fromRGB(45, 45, 50)
+            
+            -- Pembeda Visual
+            local prefix = obj:IsA("RemoteEvent") and "[RE]" or "[RF]"
+            local textColor = obj:IsA("RemoteEvent") and Color3.fromRGB(0, 255, 255) or Color3.fromRGB(255, 0, 255)
+            
+            Btn.Text = "  " .. prefix .. " " .. obj.Name
+            Btn.TextColor3 = textColor
+            Btn.TextXAlignment = Enum.TextXAlignment.Left
+            Btn.Font = Enum.Font.Code
+            Btn.TextSize = 12
+            
+            Btn.MouseButton1Click:Connect(function()
+                Btn.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+                executeObject(obj)
+                task.wait(0.2)
+                Btn.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+            end)
+            table.insert(remoteButtons, Btn)
+        end
+    end
+    ListFrame.CanvasSize = UDim2.new(0, 0, 0, count * 32)
+    Status.Text = "[SCAN COMPLETE: " .. count .. " OBJECTS]"
+    Status.TextColor3 = Color3.fromRGB(255, 255, 255)
 end)
 
--- Open/Close
-toggle.MouseButton1Click:Connect(function()
-    main.Visible = not main.Visible
+OpenBtn.MouseButton1Click:Connect(function()
+    Main.Visible = not Main.Visible
 end)
-
-print("Beckdeer Executor Loaded.")
