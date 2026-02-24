@@ -1,22 +1,19 @@
--- [[ SPTZYY PART CONTROLLER: BEAST MOBILE EDITION + MODULE LOADER ]] --
+-- [[ SPTZYY NETWORK CONTROLLER: SERVER-SIDE SCANNER EDITION ]] --
 
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local lp = Players.LocalPlayer
 
 -- [[ SETTINGS ]] --
-local magnetActive = false
-local moduleActive = false
-local pullRadius = 150      
-local orbitHeight = 8      
-local orbitRadius = 10     
-local spinSpeed = 125        
-local followStrength = 100  
+local scanActive = false
+local executionSupport = false
+local lastScannedEvent = "None"
 
 -- [[ UI SETUP ]] --
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "SptzyyUltraControl"
+ScreenGui.Name = "SptzyyNetworkControl"
 ScreenGui.Parent = (game:GetService("CoreGui") or lp:WaitForChild("PlayerGui"))
 ScreenGui.ResetOnSpawn = false
 
@@ -34,26 +31,25 @@ IconStroke.Thickness = 2
 
 -- Main Frame
 local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Size = UDim2.new(0, 240, 0, 220)
-MainFrame.Position = UDim2.new(0.5, -120, 0.4, 0)
+MainFrame.Size = UDim2.new(0, 260, 0, 280)
+MainFrame.Position = UDim2.new(0.5, -130, 0.4, 0)
 MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 MainFrame.Visible = false 
 Instance.new("UICorner", MainFrame)
 
 local Title = Instance.new("TextLabel", MainFrame)
 Title.Size = UDim2.new(1, 0, 0, 45)
-Title.Text = "BEAST CONTROLLER V2"
+Title.Text = "NETWORK SCANNER V3"
 Title.TextColor3 = Color3.new(1, 1, 1)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 14
 Title.BackgroundTransparency = 1
 
 local UIList = Instance.new("UIListLayout", MainFrame)
-UIList.Padding = UDim.new(0, 10)
+UIList.Padding = UDim.new(0, 8)
 UIList.HorizontalAlignment = Enum.HorizontalAlignment.Center
 UIList.SortOrder = Enum.SortOrder.LayoutOrder
 
--- Spacer untuk Title
 local TitleSpacer = Instance.new("Frame", MainFrame)
 TitleSpacer.Size = UDim2.new(1, 0, 0, 45)
 TitleSpacer.BackgroundTransparency = 1
@@ -63,86 +59,94 @@ TitleSpacer.LayoutOrder = 0
 local function PlayLoading(button, targetText, finalStatus)
     button.AutoButtonColor = false
     local dots = {"", ".", "..", "..."}
-    for i = 1, 6 do -- Loop animasi 6 kali
-        button.Text = "LOADING" .. dots[(i % 4) + 1]
-        button.BackgroundColor3 = Color3.fromRGB(200, 200, 50)
-        task.wait(0.2)
+    for i = 1, 5 do
+        button.Text = "PROCESSING" .. dots[(i % 4) + 1]
+        button.BackgroundColor3 = Color3.fromRGB(180, 180, 40)
+        task.wait(0.15)
     end
-    button.Text = targetText .. ": " .. (finalStatus and "ON" or "OFF")
-    button.BackgroundColor3 = finalStatus and Color3.fromRGB(0, 255, 150) or Color3.fromRGB(255, 80, 80)
+    button.Text = targetText .. ": " .. (finalStatus and "ACTIVE" or "OFF")
+    button.BackgroundColor3 = finalStatus and Color3.fromRGB(0, 200, 255) or Color3.fromRGB(255, 80, 80)
     button.AutoButtonColor = true
 end
 
---- [[ TOMBOL 1: MAGNET ]] ---
-local MagnetBtn = Instance.new("TextButton", MainFrame)
-MagnetBtn.Size = UDim2.new(0.9, 0, 0, 50)
-MagnetBtn.LayoutOrder = 1
-MagnetBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
-MagnetBtn.Text = "MAGNET: OFF"
-MagnetBtn.Font = Enum.Font.GothamBold
-MagnetBtn.TextColor3 = Color3.fromRGB(20, 20, 20)
-Instance.new("UICorner", MagnetBtn)
+--- [[ TOMBOL 1: SCAN SERVER RESPONSE ]] ---
+local ScanBtn = Instance.new("TextButton", MainFrame)
+ScanBtn.Size = UDim2.new(0.9, 0, 0, 45)
+ScanBtn.LayoutOrder = 1
+ScanBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+ScanBtn.Text = "SCANNER: OFF"
+ScanBtn.Font = Enum.Font.GothamBold
+ScanBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+Instance.new("UICorner", ScanBtn)
 
-MagnetBtn.MouseButton1Click:Connect(function()
-    magnetActive = not magnetActive
-    PlayLoading(MagnetBtn, "MAGNET", magnetActive)
-end)
+--- [[ TOMBOL 2: EXECUTION SUPPORT ]] ---
+local ExecBtn = Instance.new("TextButton", MainFrame)
+ExecBtn.Size = UDim2.new(0.9, 0, 0, 45)
+ExecBtn.LayoutOrder = 2
+ExecBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+ExecBtn.Text = "EXEC SUPPORT: OFF"
+ExecBtn.Font = Enum.Font.GothamBold
+ExecBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+Instance.new("UICorner", ExecBtn)
 
---- [[ TOMBOL 2: MODULE LOADER ]] ---
-local ModuleBtn = Instance.new("TextButton", MainFrame)
-ModuleBtn.Size = UDim2.new(0.9, 0, 0, 50)
-ModuleBtn.LayoutOrder = 2
-ModuleBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
-ModuleBtn.Text = "MODULE: OFF"
-ModuleBtn.Font = Enum.Font.GothamBold
-ModuleBtn.TextColor3 = Color3.fromRGB(20, 20, 20)
-Instance.new("UICorner", ModuleBtn)
+--- [[ DISPLAY BOX: LAST REMOTE ]] ---
+local Display = Instance.new("ScrollingFrame", MainFrame)
+Display.Size = UDim2.new(0.9, 0, 0, 100)
+Display.LayoutOrder = 3
+Display.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+Display.CanvasSize = UDim2.new(0, 0, 2, 0)
+Display.ScrollBarThickness = 2
+Instance.new("UICorner", Display)
 
-ModuleBtn.MouseButton1Click:Connect(function()
-    moduleActive = not moduleActive
-    
-    if moduleActive then
-        task.spawn(function()
-            PlayLoading(ModuleBtn, "MODULE", true)
-            local success, result = pcall(function()
-                return require(3239236979)
-            end)
-            if success and result and result.initialize then
-                result.initialize(MainFrame)
-            end
-        end)
-    else
-        PlayLoading(ModuleBtn, "MODULE", false)
-    end
-end)
+local LogText = Instance.new("TextLabel", Display)
+LogText.Size = UDim2.new(1, -10, 1, 0)
+LogText.Position = UDim2.new(0, 5, 0, 0)
+LogText.Text = "Waiting for Scan..."
+LogText.TextColor3 = Color3.fromRGB(0, 255, 100)
+LogText.Font = Enum.Font.Code
+LogText.TextSize = 10
+LogText.TextXAlignment = Enum.TextXAlignment.Left
+LogText.TextYAlignment = Enum.TextYAlignment.Top
+LogText.BackgroundTransparency = 1
 
--- [[ LOGIKA MAGNET PHYSICS ]] --
-local angle = 0
-RunService.Heartbeat:Connect(function()
-    if not magnetActive or not lp.Character or not lp.Character:FindFirstChild("HumanoidRootPart") then return end
-    
-    angle = angle + (0.05 * spinSpeed)
-    local rootPart = lp.Character.HumanoidRootPart
-    local targetPos = rootPart.Position + Vector3.new(math.cos(angle) * orbitRadius, orbitHeight, math.sin(angle) * orbitRadius)
+-- [[ LOGIKA SCANNER (Spying RemoteEvents) ]] --
+local function HookRemotes()
+    local gmt = getrawmetatable(game)
+    setreadonly(gmt, false)
+    local oldNamecall = gmt.__namecall
 
-    for _, part in pairs(workspace:GetDescendants()) do
-        if part:IsA("BasePart") and not part.Anchored and not part:IsDescendantOf(lp.Character) then
-            local distance = (part.Position - rootPart.Position).Magnitude
-            if distance <= pullRadius then
-                -- Break Constraints
-                for _, c in pairs(part:GetChildren()) do
-                    if c:IsA("Constraint") then c:Destroy() end
-                end
-                -- Physics
-                pcall(function() part:SetNetworkOwner(lp) end)
-                part.Velocity = (targetPos - part.Position) * followStrength
-                part.RotVelocity = Vector3.new(0, 10, 0) 
+    gmt.__namecall = newcclosure(function(self, ...)
+        local method = getnamecallmethod()
+        local args = {...}
+
+        if scanActive and (method == "FireServer" or method == "InvokeServer") then
+            lastScannedEvent = tostring(self.Name)
+            LogText.Text = "Detected: " .. lastScannedEvent .. "\nArgs: " .. #args .. " data found\nMethod: " .. method
+            
+            -- Jika Exec Support aktif, kita bisa memodifikasi atau meneruskan otomatis
+            if executionSupport then
+                -- Logika otomatisasi eksekusi di sini (opsional)
             end
         end
-    end
+        return oldNamecall(self, ...)
+    end)
+end
+
+-- Menjalankan Hook dalam pcall agar aman dari deteksi dasar
+pcall(HookRemotes)
+
+-- [[ INTERAKSI TOMBOL ]] --
+ScanBtn.MouseButton1Click:Connect(function()
+    scanActive = not scanActive
+    PlayLoading(ScanBtn, "SCANNER", scanActive)
 end)
 
--- [[ SISTEM DRAG & TOGGLE ]] --
+ExecBtn.MouseButton1Click:Connect(function()
+    executionSupport = not executionSupport
+    PlayLoading(ExecBtn, "EXEC SUPPORT", executionSupport)
+end)
+
+-- [[ SISTEM DRAG ]] --
 local function MakeDraggable(obj)
     local dragging, dragStart, startPos
     obj.InputBegan:Connect(function(input)
