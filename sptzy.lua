@@ -1,163 +1,173 @@
--- [[ SPTZYY ULTRA ADMIN SYSTEM + SAFE-SCAN PROTECTION ]] --
+-- [[ SPTZYY STEALTH ADMIN SYSTEM - ANTI-DETECTION ]] --
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local lp = Players.LocalPlayer
 
 -- [[ SETTINGS ]] --
-local adminFlowActive = false
-local antiKickActive = true -- Default ON untuk keamanan
-local lastTargetRemote = nil
+local manipulationActive = false
+local antiKickActive = true
 local myID = lp.UserId
+local monitoredRemotes = {}
 
--- [[ UI SETUP ]] --
-local ScreenGui = Instance.new("ScreenGui", game:GetService("CoreGui") or lp:WaitForChild("PlayerGui"))
-ScreenGui.Name = "Sptzyy_SecuritySystem"
+-- [[ STEALTH UI INITIALIZATION ]] --
+local ScreenGui = Instance.new("ScreenGui")
+-- Menggunakan nama acak agar tidak bisa di-find oleh script Anti-Cheat
+ScreenGui.Name = "System_" .. math.random(1000, 9999)
+ScreenGui.Parent = game:GetService("CoreGui") or lp:WaitForChild("PlayerGui")
 
--- MAIN SCANNER FRAME
 local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Size = UDim2.new(0, 280, 0, 320)
-MainFrame.Position = UDim2.new(0.3, 0, 0.4, 0)
-MainFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
+MainFrame.Size = UDim2.new(0, 300, 0, 340)
+MainFrame.Position = UDim2.new(0.5, -150, 0.4, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 MainFrame.BorderSizePixel = 2
-MainFrame.BorderColor3 = Color3.fromRGB(0, 255, 150) -- Hijau Neon Aman
+MainFrame.BorderColor3 = Color3.fromRGB(0, 255, 150) -- Stealth Green
 
+-- Header Stealth
 local Header = Instance.new("Frame", MainFrame)
 Header.Size = UDim2.new(1, 0, 0, 30)
 Header.BackgroundColor3 = Color3.fromRGB(0, 255, 150)
 Header.BorderSizePixel = 0
 
 local Title = Instance.new("TextLabel", Header)
-Title.Size = UDim2.new(1, 0, 1, 0)
-Title.Text = "SAFE SCANNER & ADMIN INJECTOR"
-Title.TextColor3 = Color3.new(0, 0, 0)
+Title.Size = UDim2.new(1, -10, 1, 0)
+Title.Position = UDim2.new(0, 10, 0, 0)
+Title.Text = "STEALTH NETWORK MANIPULATOR"
+Title.TextColor3 = Color3.fromRGB(0, 0, 0)
 Title.Font = Enum.Font.RobotoMono
 Title.TextSize = 10
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.BackgroundTransparency = 1
 
--- COMMAND PANEL
-local CmdFrame = Instance.new("Frame", ScreenGui)
-CmdFrame.Size = UDim2.new(0, 220, 0, 220)
-CmdFrame.Position = UDim2.new(0.6, 0, 0.4, 0)
-CmdFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
-CmdFrame.BorderSizePixel = 2
-CmdFrame.BorderColor3 = Color3.fromRGB(255, 200, 0)
-CmdFrame.Visible = false
-
--- [[ LOGIKA ANTI-KICK CORE ]] --
-local function EnableSafeMode()
-    -- Hook fungsi Kick dasar
-    local oldKick
-    oldKick = hookfunction(lp.Kick, function(self, reason)
-        if antiKickActive then
-            warn("SAFE-SCAN: Memblokir upaya Kick. Alasan: " .. tostring(reason))
-            return nil
-        end
-        return oldKick(self, reason)
-    end)
-    
-    -- Hook Namecall untuk memblokir Remote Kick Server-Side
-    local gmt = getrawmetatable(game)
-    local oldNamecall = gmt.__namecall
-    setreadonly(gmt, false)
-    
-    gmt.__namecall = newcclosure(function(self, ...)
-        local method = getnamecallmethod()
-        if antiKickActive and (tostring(self):lower():find("kick") or tostring(self):lower():find("ban")) then
-            return nil -- Abaikan Remote yang mengandung kata kick/ban
-        end
-        return oldNamecall(self, ...)
-    end)
-end
-
-pcall(EnableSafeMode)
-
--- [[ SCANNER LOGIC DENGAN PROTEKSI ]] --
+-- Terminal Box
 local LogBox = Instance.new("ScrollingFrame", MainFrame)
-LogBox.Size = UDim2.new(1, -20, 0, 160)
+LogBox.Size = UDim2.new(1, -20, 0, 220)
 LogBox.Position = UDim2.new(0, 10, 0, 40)
 LogBox.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
 LogBox.BorderSizePixel = 1
-LogBox.BorderColor3 = Color3.fromRGB(40, 40, 40)
+LogBox.BorderColor3 = Color3.fromRGB(30, 30, 30)
 LogBox.CanvasSize = UDim2.new(0, 0, 0, 0)
 LogBox.ScrollBarThickness = 2
 
 local UIList = Instance.new("UIListLayout", LogBox)
-UIList.Padding = UDim.new(0, 2)
+UIList.Padding = UDim.new(0, 3)
 
-local function ScanRemotes()
-    for _, v in pairs(game:GetDescendants()) do
-        pcall(function()
-            if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
-                local l = Instance.new("TextButton", LogBox)
-                l.Size = UDim2.new(1, 0, 0, 30)
-                l.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-                l.Text = " [SAFE] " .. v.Name
-                l.TextColor3 = Color3.fromRGB(0, 255, 150)
-                l.Font = Enum.Font.Code
-                l.TextSize = 9
-                l.BorderSizePixel = 0
-                
-                l.MouseButton1Click:Connect(function()
-                    lastTargetRemote = v
-                    CmdFrame.Visible = true
-                end)
-                LogBox.CanvasSize = UDim2.new(0, 0, 0, UIList.AbsoluteContentSize.Y)
+-- [[ STEALTH CORE: BYPASS & ANTI-KICK ]] --
+local function SecureHook()
+    local gmt = getrawmetatable(game)
+    local oldNamecall = gmt.__namecall
+    local oldIndex = gmt.__index
+    setreadonly(gmt, false)
+
+    -- Mencegah Script Admin menemukan UI ini melalui Namecall
+    gmt.__namecall = newcclosure(function(self, ...)
+        local method = getnamecallmethod()
+        if not checkcaller() then
+            if method == "FindFirstChild" or method == "GetChildren" then
+                if tostring(self) == "CoreGui" or tostring(self) == "PlayerGui" then
+                    local res = oldNamecall(self, ...)
+                    if res == ScreenGui then return nil end
+                end
             end
-        end)
+        end
+        
+        -- Anti-Kick Stealth
+        if antiKickActive and (method == "Kick" or method == "kick") then
+            return nil 
+        end
+        
+        return oldNamecall(self, ...)
+    end)
+    
+    setreadonly(gmt, true)
+end
+pcall(SecureHook)
+
+-- [[ LOGIKA MANIPULASI STEALTH ]] --
+local function GetCleanPath(obj)
+    local path = obj.Name
+    local parent = obj.Parent
+    while parent and parent ~= game do
+        path = parent.Name .. "." .. path
+        parent = parent.Parent
+    end
+    return "game." .. path
+end
+
+local function AddLog(remote, injectedCode)
+    local LogBtn = Instance.new("TextButton", LogBox)
+    LogBtn.Size = UDim2.new(1, 0, 0, 40)
+    LogBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    LogBtn.Text = "  [SAFE] " .. remote.Name
+    LogBtn.TextColor3 = Color3.fromRGB(0, 255, 150)
+    LogBtn.Font = Enum.Font.Code
+    LogBtn.TextSize = 9
+    LogBtn.TextXAlignment = Enum.TextXAlignment.Left
+    LogBtn.BorderSizePixel = 0
+
+    LogBtn.MouseButton1Click:Connect(function()
+        if setclipboard then setclipboard(injectedCode) end
+    end)
+    LogBox.CanvasSize = UDim2.new(0, 0, 0, UIList.AbsoluteContentSize.Y)
+end
+
+local function StealthScan()
+    local descendants = game:GetDescendants()
+    for i, v in pairs(descendants) do
+        -- Delay kecil setiap 20 objek untuk menghindari deteksi lag/freeze
+        if i % 20 == 0 then task.wait() end
+        
+        if (v:IsA("RemoteEvent") or v:IsA("RemoteFunction")) and not monitoredRemotes[v] then
+            monitoredRemotes[v] = true
+            if manipulationActive then
+                local path = GetCleanPath(v)
+                local method = v:IsA("RemoteEvent") and "FireServer" or "InvokeServer"
+                local flow = string.format('%s:%s(%s, "Admin", true)', path, method, myID)
+                
+                AddLog(v, flow)
+                
+                -- Eksekusi dengan proteksi pcall
+                task.spawn(function()
+                    pcall(function() v[method](v, myID, "Admin", true) end)
+                end)
+            end
+        end
     end
 end
 
--- [[ UI BUTTONS ]] --
-local function CreateBtn(text, x, y, parent, color, callback)
-    local btn = Instance.new("TextButton", parent)
-    btn.Size = UDim2.new(0, 125, 0, 40)
-    btn.Position = UDim2.new(0, x, 0, y)
-    btn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+-- [[ BUTTON CONTROLS ]] --
+local function CreateSquareBtn(text, x, callback)
+    local btn = Instance.new("TextButton", MainFrame)
+    btn.Size = UDim2.new(0, 135, 0, 45)
+    btn.Position = UDim2.new(0, x, 0, 275)
+    btn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    btn.BorderSizePixel = 1
+    btn.BorderColor3 = Color3.fromRGB(0, 255, 150)
     btn.Text = text
-    btn.TextColor3 = Color3.new(1, 1, 1)
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
     btn.Font = Enum.Font.RobotoMono
     btn.TextSize = 10
-    btn.BorderSizePixel = 1
-    btn.BorderColor3 = color
-    btn.MouseButton1Click:Connect(callback)
-end
 
-CreateBtn("SAFE SCAN", 10, 215, MainFrame, Color3.fromRGB(0, 255, 150), function()
-    ScanRemotes()
-end)
-
-CreateBtn("STOP PROTECTION", 145, 215, MainFrame, Color3.fromRGB(255, 50, 50), function()
-    antiKickActive = false
-    Title.Text = "SECURITY DISABLED!"
-end)
-
--- Command Buttons
-local cmds = {"Kill", "Kick", "Ban", "Fly", "GodMode"}
-for i, c in pairs(cmds) do
-    local b = Instance.new("TextButton", CmdFrame)
-    b.Size = UDim2.new(0.9, 0, 0, 28)
-    b.Position = UDim2.new(0.05, 0, 0, 35 + (i*32))
-    b.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-    b.Text = c:upper()
-    b.TextColor3 = Color3.fromRGB(255, 200, 0)
-    b.Font = Enum.Font.Code
-    b.BorderSizePixel = 0
-    b.MouseButton1Click:Connect(function()
-        if lastTargetRemote then
-            pcall(function()
-                local m = lastTargetRemote:IsA("RemoteEvent") and "FireServer" or "InvokeServer"
-                lastTargetRemote[m](lastTargetRemote, myID, c, "All")
-            end)
-        end
+    local state = false
+    btn.MouseButton1Click:Connect(function()
+        state = not state
+        btn.BackgroundColor3 = state and Color3.fromRGB(0, 100, 50) or Color3.fromRGB(25, 25, 25)
+        callback(state)
     end)
 end
 
--- Drag System
-local function MakeDrag(obj)
-    local d, s, sp
-    obj.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then d = true; s = i.Position; sp = obj.Position end end)
-    UserInputService.InputChanged:Connect(function(i) if d and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then local delta = i.Position - s; obj.Position = UDim2.new(sp.X.Scale, sp.X.Offset + delta.X, sp.Y.Scale, sp.Y.Offset + delta.Y) end end)
-    UserInputService.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then d = false end end)
-end
-MakeDrag(MainFrame)
-MakeDrag(CmdFrame)
+CreateSquareBtn("STEALTH ADMIN", 10, function(v)
+    manipulationActive = v
+    if v then task.spawn(StealthScan) end
+end)
+
+CreateSquareBtn("CLEAR LOGS", 155, function()
+    for _, c in pairs(LogBox:GetChildren()) do if c:IsA("TextButton") then c:Destroy() end end
+    LogBox.CanvasSize = UDim2.new(0,0,0,0)
+end)
+
+-- Standard Drag System
+local d, s, sp
+MainFrame.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then d = true; s = i.Position; sp = MainFrame.Position end end)
+UserInputService.InputChanged:Connect(function(i) if d and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then local delta = i.Position - s; MainFrame.Position = UDim2.new(sp.X.Scale, sp.X.Offset + delta.X, sp.Y.Scale, sp.Y.Offset + delta.Y) end end)
+UserInputService.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then d = false end end)
