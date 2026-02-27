@@ -1,173 +1,174 @@
--- [[ SPTZYY STEALTH ADMIN SYSTEM - ANTI-DETECTION ]] --
-local RunService = game:GetService("RunService")
+-- [[ SPTZYY REQABLE X-SCANNER - PRO EDITION ]] --
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
+local CoreGui = game:GetService("CoreGui")
 local lp = Players.LocalPlayer
 
--- [[ SETTINGS ]] --
-local manipulationActive = false
-local antiKickActive = true
-local myID = lp.UserId
-local monitoredRemotes = {}
+local snifferActive = false
 
--- [[ STEALTH UI INITIALIZATION ]] --
+-- [[ UI ENGINE ]] --
 local ScreenGui = Instance.new("ScreenGui")
--- Menggunakan nama acak agar tidak bisa di-find oleh script Anti-Cheat
-ScreenGui.Name = "System_" .. math.random(1000, 9999)
-ScreenGui.Parent = game:GetService("CoreGui") or lp:WaitForChild("PlayerGui")
+ScreenGui.Name = "Reqable_" .. math.random(100, 999)
+ScreenGui.Parent = gethui and gethui() or CoreGui or lp:WaitForChild("PlayerGui")
 
 local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Size = UDim2.new(0, 300, 0, 340)
-MainFrame.Position = UDim2.new(0.5, -150, 0.4, 0)
-MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-MainFrame.BorderSizePixel = 2
-MainFrame.BorderColor3 = Color3.fromRGB(0, 255, 150) -- Stealth Green
+MainFrame.Size = UDim2.new(0, 450, 0, 400)
+MainFrame.Position = UDim2.new(0.5, -225, 0.3, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
+MainFrame.BorderSizePixel = 0
 
--- Header Stealth
+-- Shadow & Border
+local UIStroke = Instance.new("UIStroke", MainFrame)
+UIStroke.Color = Color3.fromRGB(0, 255, 150)
+UIStroke.Thickness = 1.5
+
+-- Header
 local Header = Instance.new("Frame", MainFrame)
-Header.Size = UDim2.new(1, 0, 0, 30)
+Header.Size = UDim2.new(1, 0, 0, 35)
 Header.BackgroundColor3 = Color3.fromRGB(0, 255, 150)
-Header.BorderSizePixel = 0
 
 local Title = Instance.new("TextLabel", Header)
-Title.Size = UDim2.new(1, -10, 1, 0)
-Title.Position = UDim2.new(0, 10, 0, 0)
-Title.Text = "STEALTH NETWORK MANIPULATOR"
+Title.Size = UDim2.new(1, -15, 1, 0)
+Title.Position = UDim2.new(0, 15, 0, 0)
+Title.Text = "REQABLE NETWORK | STEALTH SNIFFER"
 Title.TextColor3 = Color3.fromRGB(0, 0, 0)
-Title.Font = Enum.Font.RobotoMono
-Title.TextSize = 10
+Title.Font = Enum.Font.Code
+Title.TextSize = 13
 Title.TextXAlignment = Enum.TextXAlignment.Left
 Title.BackgroundTransparency = 1
 
--- Terminal Box
-local LogBox = Instance.new("ScrollingFrame", MainFrame)
-LogBox.Size = UDim2.new(1, -20, 0, 220)
-LogBox.Position = UDim2.new(0, 10, 0, 40)
-LogBox.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
-LogBox.BorderSizePixel = 1
-LogBox.BorderColor3 = Color3.fromRGB(30, 30, 30)
-LogBox.CanvasSize = UDim2.new(0, 0, 0, 0)
-LogBox.ScrollBarThickness = 2
+-- Container Log (Scroll Luas)
+local LogContainer = Instance.new("ScrollingFrame", MainFrame)
+LogContainer.Size = UDim2.new(1, -20, 0, 280)
+LogContainer.Position = UDim2.new(0, 10, 0, 45)
+LogContainer.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
+LogContainer.CanvasSize = UDim2.new(2, 0, 0, 0) -- Lebar 2x agar data panjang tidak terpotong
+LogContainer.ScrollBarThickness = 4
+LogContainer.ScrollBarImageColor3 = Color3.fromRGB(0, 255, 150)
+LogContainer.BorderSizePixel = 0
 
-local UIList = Instance.new("UIListLayout", LogBox)
-UIList.Padding = UDim.new(0, 3)
+local UIList = Instance.new("UIListLayout", LogContainer)
+UIList.Padding = UDim.new(0, 4)
 
--- [[ STEALTH CORE: BYPASS & ANTI-KICK ]] --
-local function SecureHook()
-    local gmt = getrawmetatable(game)
-    local oldNamecall = gmt.__namecall
-    local oldIndex = gmt.__index
-    setreadonly(gmt, false)
-
-    -- Mencegah Script Admin menemukan UI ini melalui Namecall
-    gmt.__namecall = newcclosure(function(self, ...)
-        local method = getnamecallmethod()
-        if not checkcaller() then
-            if method == "FindFirstChild" or method == "GetChildren" then
-                if tostring(self) == "CoreGui" or tostring(self) == "PlayerGui" then
-                    local res = oldNamecall(self, ...)
-                    if res == ScreenGui then return nil end
-                end
-            end
-        end
-        
-        -- Anti-Kick Stealth
-        if antiKickActive and (method == "Kick" or method == "kick") then
-            return nil 
-        end
-        
-        return oldNamecall(self, ...)
-    end)
-    
-    setreadonly(gmt, true)
+-- [[ LOGIC: SCANNER & COPY ]] --
+local function GetPath(obj)
+    local p = obj:GetFullName()
+    return p
 end
-pcall(SecureHook)
 
--- [[ LOGIKA MANIPULASI STEALTH ]] --
-local function GetCleanPath(obj)
-    local path = obj.Name
-    local parent = obj.Parent
-    while parent and parent ~= game do
-        path = parent.Name .. "." .. path
-        parent = parent.Parent
+local function FormatTable(t)
+    local s = "{"
+    for i, v in pairs(t) do
+        s = s .. tostring(i) .. ":" .. tostring(v) .. ", "
     end
-    return "game." .. path
+    return s:sub(1, #s-2) .. "}"
 end
 
-local function AddLog(remote, injectedCode)
-    local LogBtn = Instance.new("TextButton", LogBox)
-    LogBtn.Size = UDim2.new(1, 0, 0, 40)
+local function CreateLog(type, remote, args, result)
+    local argStr = FormatTable(args)
+    local resStr = result and tostring(result) or "nil"
+    local fullPath = GetPath(remote)
+
+    local LogBtn = Instance.new("TextButton", LogContainer)
+    LogBtn.Size = UDim2.new(1, 0, 0, 65)
     LogBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-    LogBtn.Text = "  [SAFE] " .. remote.Name
-    LogBtn.TextColor3 = Color3.fromRGB(0, 255, 150)
-    LogBtn.Font = Enum.Font.Code
-    LogBtn.TextSize = 9
-    LogBtn.TextXAlignment = Enum.TextXAlignment.Left
+    LogBtn.AutoButtonColor = true
+    LogBtn.Text = ""
     LogBtn.BorderSizePixel = 0
 
+    local TypeTag = Instance.new("TextLabel", LogBtn)
+    TypeTag.Size = UDim2.new(0, 70, 0, 15)
+    TypeTag.Position = UDim2.new(0, 5, 0, 5)
+    TypeTag.BackgroundColor3 = type == "FIRE" and Color3.fromRGB(0, 150, 255) or Color3.fromRGB(255, 150, 0)
+    TypeTag.Text = type
+    TypeTag.TextColor3 = Color3.fromRGB(255, 255, 255)
+    TypeTag.Font = Enum.Font.CodeBold
+    TypeTag.TextSize = 10
+
+    local PathLbl = Instance.new("TextLabel", LogBtn)
+    PathLbl.Size = UDim2.new(1, -85, 0, 15)
+    PathLbl.Position = UDim2.new(0, 80, 0, 5)
+    PathLbl.Text = fullPath
+    PathLbl.TextColor3 = Color3.fromRGB(200, 200, 200)
+    PathLbl.BackgroundTransparency = 1
+    PathLbl.TextXAlignment = Enum.TextXAlignment.Left
+    PathLbl.Font = Enum.Font.Code
+    PathLbl.TextSize = 10
+
+    local Content = Instance.new("TextLabel", LogBtn)
+    Content.Size = UDim2.new(1, -10, 0, 40)
+    Content.Position = UDim2.new(0, 5, 0, 22)
+    Content.Text = "Data: " .. argStr .. "\nRet: " .. resStr
+    Content.TextColor3 = Color3.fromRGB(0, 255, 150)
+    Content.TextWrapped = true
+    Content.TextXAlignment = Enum.TextXAlignment.Left
+    Content.TextYAlignment = Enum.TextYAlignment.Top
+    Content.BackgroundTransparency = 1
+    Content.Font = Enum.Font.Code
+    Content.TextSize = 9
+
+    -- Fitur Copy Klik
     LogBtn.MouseButton1Click:Connect(function()
-        if setclipboard then setclipboard(injectedCode) end
+        local copyData = string.format("-- REQABLE LOG --\nPath: %s\nArgs: %s\nResult: %s", fullPath, argStr, resStr)
+        if setclipboard then
+            setclipboard(copyData)
+            PathLbl.Text = "COPIED TO CLIPBOARD!"
+            task.wait(1)
+            PathLbl.Text = fullPath
+        end
     end)
-    LogBox.CanvasSize = UDim2.new(0, 0, 0, UIList.AbsoluteContentSize.Y)
+
+    LogContainer.CanvasSize = UDim2.new(2, 0, 0, UIList.AbsoluteContentSize.Y + 10)
 end
 
-local function StealthScan()
-    local descendants = game:GetDescendants()
-    for i, v in pairs(descendants) do
-        -- Delay kecil setiap 20 objek untuk menghindari deteksi lag/freeze
-        if i % 20 == 0 then task.wait() end
-        
-        if (v:IsA("RemoteEvent") or v:IsA("RemoteFunction")) and not monitoredRemotes[v] then
-            monitoredRemotes[v] = true
-            if manipulationActive then
-                local path = GetCleanPath(v)
-                local method = v:IsA("RemoteEvent") and "FireServer" or "InvokeServer"
-                local flow = string.format('%s:%s(%s, "Admin", true)', path, method, myID)
-                
-                AddLog(v, flow)
-                
-                -- Eksekusi dengan proteksi pcall
-                task.spawn(function()
-                    pcall(function() v[method](v, myID, "Admin", true) end)
-                end)
-            end
+-- [[ HOOKING ENGINE ]] --
+local oldNC
+oldNC = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
+    local method = getnamecallmethod()
+    local args = {...}
+
+    if snifferActive then
+        if method == "FireServer" then
+            task.spawn(CreateLog, "FIRE", self, args)
+        elseif method == "InvokeServer" then
+            local res = {oldNC(self, ...)}
+            task.spawn(CreateLog, "INVOKE", self, args, res[1])
+            return unpack(res)
         end
     end
+
+    return oldNC(self, ...)
+end))
+
+-- [[ CONTROLS ]] --
+local function CreateActionBtn(text, pos, color, callback)
+    local b = Instance.new("TextButton", MainFrame)
+    b.Size = UDim2.new(0, 210, 0, 50)
+    b.Position = pos
+    b.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    b.BorderSizePixel = 1
+    b.BorderColor3 = color
+    b.Text = text
+    b.TextColor3 = Color3.fromRGB(255, 255, 255)
+    b.Font = Enum.Font.Code
+    b.TextSize = 11
+
+    b.MouseButton1Click:Connect(function() callback(b) end)
 end
 
--- [[ BUTTON CONTROLS ]] --
-local function CreateSquareBtn(text, x, callback)
-    local btn = Instance.new("TextButton", MainFrame)
-    btn.Size = UDim2.new(0, 135, 0, 45)
-    btn.Position = UDim2.new(0, x, 0, 275)
-    btn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-    btn.BorderSizePixel = 1
-    btn.BorderColor3 = Color3.fromRGB(0, 255, 150)
-    btn.Text = text
-    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    btn.Font = Enum.Font.RobotoMono
-    btn.TextSize = 10
-
-    local state = false
-    btn.MouseButton1Click:Connect(function()
-        state = not state
-        btn.BackgroundColor3 = state and Color3.fromRGB(0, 100, 50) or Color3.fromRGB(25, 25, 25)
-        callback(state)
-    end)
-end
-
-CreateSquareBtn("STEALTH ADMIN", 10, function(v)
-    manipulationActive = v
-    if v then task.spawn(StealthScan) end
+CreateActionBtn("START SCANNER", UDim2.new(0, 10, 0, 340), Color3.fromRGB(0, 255, 150), function(b)
+    snifferActive = not snifferActive
+    b.Text = snifferActive and "STOP SCANNER" or "START SCANNER"
+    b.BackgroundColor3 = snifferActive and Color3.fromRGB(0, 80, 50) or Color3.fromRGB(20, 20, 20)
 end)
 
-CreateSquareBtn("CLEAR LOGS", 155, function()
-    for _, c in pairs(LogBox:GetChildren()) do if c:IsA("TextButton") then c:Destroy() end end
-    LogBox.CanvasSize = UDim2.new(0,0,0,0)
+CreateActionBtn("CLEAR LOGS", UDim2.new(0, 230, 0, 340), Color3.fromRGB(255, 50, 50), function()
+    for _, v in pairs(LogContainer:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end
+    LogContainer.CanvasSize = UDim2.new(2, 0, 0, 0)
 end)
 
--- Standard Drag System
+-- Draggable UI
 local d, s, sp
-MainFrame.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then d = true; s = i.Position; sp = MainFrame.Position end end)
-UserInputService.InputChanged:Connect(function(i) if d and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then local delta = i.Position - s; MainFrame.Position = UDim2.new(sp.X.Scale, sp.X.Offset + delta.X, sp.Y.Scale, sp.Y.Offset + delta.Y) end end)
-UserInputService.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then d = false end end)
+MainFrame.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then d = true; s = i.Position; sp = MainFrame.Position end end)
+UserInputService.InputChanged:Connect(function(i) if d and i.UserInputType == Enum.UserInputType.MouseMovement then local delta = i.Position - s; MainFrame.Position = UDim2.new(sp.X.Scale, sp.X.Offset + delta.X, sp.Y.Scale, sp.Y.Offset + delta.Y) end end)
+UserInputService.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then d = false end end)
