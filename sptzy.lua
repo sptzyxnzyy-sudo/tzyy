@@ -17,7 +17,7 @@ local deletedStorage = {}
 
 -- 1. PEMBUATAN TOOL DI SERVER (Sinkron untuk semua pemain)
 local tool = Instance.new("Tool")
-tool.Name = "SS_DELETER_AUTO"
+tool.Name = "SpTzyV1"
 tool.RequiresHandle = false
 tool.Parent = owner.Backpack
 
