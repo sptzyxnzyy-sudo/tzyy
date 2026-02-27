@@ -1,85 +1,89 @@
--- JALANKAN DI SERVER-SIDE EXECUTOR
+--[[ 
+    LOGIKA: SELF-INJECTING SERVER-SIDE ADMIN
+    1. Scan: Mencari pemain yang aktif melakukan eksekusi.
+    2. Process: Membuat instance tool & UI langsung di level server.
+    3. Output: Sinkronisasi realtime ke semua client.
+]]
+
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 
--- LOGIKA OTOMATIS: Mencari siapa yang memicu skrip ini di server
-local owner = nil
-for _, p in pairs(Players:GetPlayers()) do
-    -- Mencari pemain yang paling baru bergabung atau yang memiliki akses executor
-    -- Di banyak SS Executor, variabel 'owner' atau 's' sudah tersedia otomatis.
-    -- Jika tidak, kita ambil pemain pertama yang ditemukan (asumsi kamu sendiri di server/studio)
-    owner = p
-    break
-end
-
-if not owner then return end
-
-local deletedStorage = {}
-
--- 1. PEMBUATAN TOOL DI SERVER (Sinkron untuk semua pemain)
-local tool = Instance.new("Tool")
-tool.Name = "SpTzyV1"
-tool.RequiresHandle = false
-tool.Parent = owner.Backpack
-
--- 2. UI UNDO (Dikirim langsung ke PlayerGui kamu dari Server)
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "SS_Undo_Sync"
-screenGui.ResetOnSpawn = false
-screenGui.Parent = owner.PlayerGui
-
-local undoBtn = Instance.new("TextButton", screenGui)
-undoBtn.Size = UDim2.new(0, 160, 0, 50)
-undoBtn.Position = UDim2.new(0.5, -80, 0.85, 0)
-undoBtn.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-undoBtn.Text = "UNDO (SERVER)"
-undoBtn.TextColor3 = Color3.new(1, 1, 1)
-undoBtn.Font = Enum.Font.GothamBold
-undoBtn.Visible = false
-Instance.new("UICorner", undoBtn)
-
--- 3. LOGIKA PENGHAPUSAN REAL-TIME
--- Fungsi ini berjalan di Server, sehingga efeknya dilihat SEMUA pemain
-local function serverDelete(target)
-    if target and target:IsA("BasePart") and target.Name ~= "Baseplate" then
-        -- Simpan data di tabel server agar bisa dikembalikan
-        table.insert(deletedStorage, {Obj = target, OldParent = target.Parent})
-        
-        -- Hapus Parent di Server = Hilang di semua layar pemain & Fisika mati
-        target.Parent = nil 
+-- Fungsi Scan Pengeksekusi (Injection Point)
+local function GetExecutor()
+    -- Logika pencarian: Siapa pun yang saat ini berada di server 
+    -- dan memicu script ini akan dianggap sebagai 'Admin'
+    for _, p in pairs(Players:GetPlayers()) do
+        return p -- Mengambil user pertama yang terdeteksi oleh thread server
     end
 end
 
--- 4. KONEKSI AKTIVASI (SERVER-SIDE MOUSE)
-tool.Equipped:Connect(function()
-    undoBtn.Visible = true
-end)
+local Admin = GetExecutor()
 
-tool.Unequipped:Connect(function()
-    undoBtn.Visible = false
-end)
+if Admin then
+    -- TABEL PENYIMPANAN DATA (SERVER MEMORY)
+    local _HISTORY = {}
 
--- Mendeteksi target klik dari sisi server
-task.spawn(function()
-    local mouse = owner:GetMouse()
-    tool.Activated:Connect(function()
-        local target = mouse.Target
-        if target then
-            serverDelete(target)
+    -- PROSES: PEMBERIAN TOOL ADMIN (SERVER-SIDE INSTANCE)
+    local Wand = Instance.new("Tool")
+    Wand.Name = "SS_INJECTOR_WAND"
+    Wand.RequiresHandle = false
+    Wand.Parent = Admin.Backpack
+
+    -- PROSES: INJECT UI KE CLIENT (DARI SERVER)
+    local UI = Instance.new("ScreenGui")
+    UI.Name = "SS_Admin_Overlay"
+    UI.ResetOnSpawn = false
+    UI.Parent = Admin.PlayerGui
+
+    local UndoBtn = Instance.new("TextButton", UI)
+    UndoBtn.Size = UDim2.new(0, 180, 0, 50)
+    UndoBtn.Position = UDim2.new(0.5, -90, 0.82, 0)
+    UndoBtn.BackgroundColor3 = Color3.fromRGB(220, 20, 60) -- Crimson Red
+    UndoBtn.Text = "RESTORE OBJECT (SS)"
+    UndoBtn.TextColor3 = Color3.new(1, 1, 1)
+    UndoBtn.Font = Enum.Font.SourceSansBold
+    UndoBtn.TextSize = 16
+    UndoBtn.Visible = false
+    Instance.new("UICorner", UndoBtn).CornerRadius = UDim.new(0, 10)
+
+    -- LOGIKA MANIPULASI REALTIME
+    -- Ini akan memutus koneksi part di Server sehingga semua orang melihat hasilnya
+    local function ExecuteDelete(target)
+        if target and target:IsA("BasePart") and target.Name ~= "Baseplate" then
+            -- Push ke History
+            table.insert(_HISTORY, {Obj = target, Parent = target.Parent})
+            
+            -- EKSEKUSI: Putus relasi Parent di Server (Force Sync)
+            target.Parent = nil
+        end
+    end
+
+    -- DETEKSI INPUT (DIPROSES DI SERVER)
+    Wand.Equipped:Connect(function()
+        UndoBtn.Visible = true
+        
+        -- Menggunakan Mouse melalui transmisi Server
+        local Mouse = Admin:GetMouse()
+        Wand.Activated:Connect(function()
+            if Mouse.Target then
+                ExecuteDelete(Mouse.Target)
+            end
+        end)
+    end)
+
+    Wand.Unequipped:Connect(function()
+        UndoBtn.Visible = false
+    end)
+
+    -- LOGIKA RESTORE (RE-INJECT OBJECT)
+    UndoBtn.MouseButton1Click:Connect(function()
+        if #_HISTORY > 0 then
+            local Last = table.remove(_HISTORY, #_HISTORY)
+            Last.Obj.Parent = Last.Parent
         end
     end)
-end)
 
--- Tombol Undo (Langsung memanipulasi objek di server)
-undoBtn.MouseButton1Click:Connect(function()
-    if #deletedStorage > 0 then
-        local lastData = table.remove(deletedStorage, #deletedStorage)
-        lastData.Obj.Parent = lastData.OldParent
-    end
-end)
-
--- Notifikasi ke layar kamu (Hanya kamu yang lihat notif ini)
-game:GetService("StarterGui"):SetCore("SendNotification", {
-    Title = "SS SUCCESS",
-    Text = "Tool otomatis diberikan ke: " .. owner.Name,
-    Duration = 3
-})
+    print("SUCCESS: Admin Wand Injected to " .. Admin.Name)
+else
+    warn("PROCESS FAILED: No Executor Detected.")
+end
