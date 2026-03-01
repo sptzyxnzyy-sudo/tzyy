@@ -1,10 +1,11 @@
 local Players = game:GetService("Players")
 local CoreGui = game:GetService("CoreGui")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
--- Mengambil modul kontrol internal Roblox untuk Analog Mobile
+-- Mengambil modul kontrol internal Roblox
 local PlayerScripts = LocalPlayer:WaitForChild("PlayerScripts")
 local PlayerModule = require(PlayerScripts:WaitForChild("PlayerModule"))
 local Controls = PlayerModule:GetControls()
@@ -28,7 +29,6 @@ local UICorner_M = Instance.new("UICorner")
 UICorner_M.CornerRadius = UDim.new(0, 8)
 UICorner_M.Parent = MainFrame
 
--- Rainbow Border
 local Border = Instance.new("Frame")
 Border.Name = "RainbowBorder"
 Border.Parent = MainFrame
@@ -41,7 +41,6 @@ local UICorner_B = Instance.new("UICorner")
 UICorner_B.CornerRadius = UDim.new(0, 8)
 UICorner_B.Parent = Border
 
--- Buttons Container
 local Container = Instance.new("Frame")
 Container.Position = UDim2.new(0, 0, 0, 70)
 Container.Size = UDim2.new(1, 0, 1, -70)
@@ -66,9 +65,22 @@ end)
 -- Freecam Variables
 local isFreecam = false
 local camSpeed = 1.2
-local freecamCF = CFrame.new()
+local lookSensitivity = 0.5
+local cameraRot = Vector2.new(0, 0)
+local freecamPos = Vector3.new(0, 0, 0)
+local charLockPos = nil
+local bv = nil
 
--- Button Function
+-- Touch Input Handler
+UserInputService.InputChanged:Connect(function(input)
+    if isFreecam and input.UserInputType == Enum.UserInputType.Touch then
+        local delta = input.Delta
+        cameraRot = cameraRot + Vector2.new(-delta.X * lookSensitivity, -delta.Y * lookSensitivity)
+        cameraRot = Vector2.new(cameraRot.X, math.clamp(cameraRot.Y, -85, 85))
+    end
+end)
+
+-- Button Creator
 local function CreateStyledButton(name, icon, color, func)
     local Btn = Instance.new("TextButton")
     Btn.Size = UDim2.new(0.9, 0, 0, 40)
@@ -99,68 +111,74 @@ local function CreateStyledButton(name, icon, color, func)
     end)
 end
 
--- ICONS
-local CART_ICON = "rbxassetid://6031764630"
-local SELL_ICON = "rbxassetid://6031154871"
-local CAM_ICON = "rbxassetid://6034289542"
-
--- ADD BUTTONS
-CreateStyledButton("AUTO BUY", CART_ICON, Color3.fromRGB(0, 102, 204), function(state)
+-- Buttons
+CreateStyledButton("AUTO BUY", "rbxassetid://6031764630", Color3.fromRGB(0, 102, 204), function(state)
     _G.AutoBuy = state
     while _G.AutoBuy do
-        pcall(function()
-            game:GetService("ReplicatedStorage").Remotes.TutorialRemotes.RequestShop:InvokeServer("BUY", "Bibit Padi", 1)
-        end)
+        pcall(function() game:GetService("ReplicatedStorage").Remotes.TutorialRemotes.RequestShop:InvokeServer("BUY", "Bibit Padi", 1) end)
         task.wait(0.5)
     end
 end)
 
-CreateStyledButton("AUTO SELL", SELL_ICON, Color3.fromRGB(153, 0, 0), function(state)
+CreateStyledButton("AUTO SELL", "rbxassetid://6031154871", Color3.fromRGB(153, 0, 0), function(state)
     _G.AutoSell = state
     while _G.AutoSell do
-        pcall(function()
-            game:GetService("ReplicatedStorage").Remotes.TutorialRemotes.RequestSell:InvokeServer("SELL", "Padi", 45)
-        end)
+        pcall(function() game:GetService("ReplicatedStorage").Remotes.TutorialRemotes.RequestSell:InvokeServer("SELL", "Padi", 45) end)
         task.wait(0.5)
     end
 end)
 
--- FREECAM LOGIC (MOBILE OPTIMIZED)
-CreateStyledButton("FREECAM 360", CAM_ICON, Color3.fromRGB(0, 153, 76), function(state)
+-- ANTI BUG FREECAM
+CreateStyledButton("FREECAM ANTI-BUG", "rbxassetid://6034289542", Color3.fromRGB(0, 153, 76), function(state)
     isFreecam = state
+    local char = LocalPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    
     if state then
-        freecamCF = Camera.CFrame
-        Camera.CameraType = Enum.CameraType.Scriptable
-        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            LocalPlayer.Character.HumanoidRootPart.Anchored = true -- Kunci karakter agar tidak jatuh
+        if hrp then
+            charLockPos = hrp.Position
+            freecamPos = Camera.CFrame.Position
+            
+            -- Buat Force agar tidak jatuh
+            bv = Instance.new("BodyVelocity")
+            bv.Velocity = Vector3.new(0, 0, 0)
+            bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+            bv.Parent = hrp
+            
+            local y, x, z = Camera.CFrame:ToEulerAnglesYXZ()
+            cameraRot = Vector2.new(math.deg(x), math.deg(y))
         end
+        Camera.CameraType = Enum.CameraType.Scriptable
     else
+        if bv then bv:Destroy() end
         Camera.CameraType = Enum.CameraType.Custom
-        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            LocalPlayer.Character.HumanoidRootPart.Anchored = false
+        -- Kembalikan posisi karakter ke titik aman terakhir agar tidak tembus
+        if hrp and charLockPos then
+            hrp.CFrame = CFrame.new(charLockPos + Vector3.new(0, 2, 0))
         end
     end
 end)
 
--- Main Loop untuk Pergerakan Kamera
+-- Render Loop
 RunService.RenderStepped:Connect(function()
     if isFreecam then
-        -- 1. Ambil Input Analog (Move Vector)
+        -- 1. Lock Character Position (Anti-Bug Tembus)
+        local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if hrp and charLockPos then
+            hrp.CFrame = CFrame.new(charLockPos) -- Karakter dipaksa diam di posisi awal
+            hrp.Velocity = Vector3.new(0, 0, 0)
+        end
+
+        -- 2. Camera Rotation & Movement
+        local rotationCF = CFrame.Angles(0, math.rad(cameraRot.X), 0) * CFrame.Angles(math.rad(cameraRot.Y), 0, 0)
         local moveVector = Controls:GetMoveVector()
         
-        -- 2. Ambil Rotasi dari Mouse/Geser Layar (Camera Bawaan)
-        -- Kita menggunakan CameraType Scriptable tapi tetap mengambil arah hadap dari input user
-        local lookCF = Camera.CFrame - Camera.CFrame.Position
-        
-        -- 3. Hitung Posisi Baru
         if moveVector.Magnitude > 0 then
-            local moveDir = (lookCF * Vector3.new(moveVector.X, 0, -moveVector.Z))
-            freecamCF = freecamCF + (moveDir * camSpeed)
+            local moveDir = (rotationCF * Vector3.new(moveVector.X, 0, -moveVector.Z))
+            freecamPos = freecamPos + (moveDir * camSpeed)
         end
         
-        -- 4. Terapkan Posisi baru + Rotasi dari geseran layar
-        -- Kita tetap mengizinkan user menggeser layar untuk mengubah 'lookCF' secara internal
-        Camera.CFrame = CFrame.new(freecamCF.Position) * lookCF
+        Camera.CFrame = CFrame.new(freecamPos) * rotationCF
     end
 end)
 
