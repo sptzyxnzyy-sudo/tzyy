@@ -12,7 +12,7 @@ local Controls = PlayerModule:GetControls()
 
 -- UI Root
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "Ikyy_Director_V4_ManualFixed"
+ScreenGui.Name = "Ikyy_Director_V5_Pro"
 ScreenGui.Parent = CoreGui
 ScreenGui.ResetOnSpawn = false
 
@@ -69,7 +69,7 @@ Av.BorderSizePixel = 0
 Av.Parent = Profile
 
 local Title = Instance.new("TextLabel")
-Title.Text = "DIRECTOR MODE"
+Title.Text = "DIRECTOR PRO v5"
 Title.Position = UDim2.new(0, 58, 0, 15)
 Title.Size = UDim2.new(0, 130, 0, 15)
 Title.TextColor3 = Color3.new(1, 1, 1)
@@ -171,7 +171,7 @@ AddBtn("FREECAM MANUAL", "rbxassetid://6034289542", Color3.fromRGB(0, 150, 80), 
     end
 end)
 
-AddBtn("PRODUCER CINEMA", "rbxassetid://6034289542", Color3.fromRGB(150, 150, 0), function(s)
+AddBtn("DIRECTOR AI (ESTETIK)", "rbxassetid://6034289542", Color3.fromRGB(150, 0, 150), function(s)
     producerMode = s
     freecamOn = false
     FC_Overlay.Visible = false
@@ -199,7 +199,7 @@ SFrame.InputBegan:Connect(function(i)
     end
 end)
 
--- [ CAMERA ENGINE ]
+-- [ CAMERA ENGINE - PRO DIRECTOR LOGIC ]
 RunService.RenderStepped:Connect(function(dt)
     local char = LocalPlayer.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
@@ -207,16 +207,46 @@ RunService.RenderStepped:Connect(function(dt)
     if producerMode and hrp then
         timeCount = timeCount + dt
         orbitAngle = orbitAngle + (dt * (camSpeed/100))
-        local radius = 22 + (math.sin(timeCount * 0.4) * 6)
-        local targetPos = hrp.Position + Vector3.new(math.sin(orbitAngle) * radius, 6, math.cos(orbitAngle) * radius)
-        Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(targetPos, hrp.Position + Vector3.new(0, 1.5, 0)), 0.05)
+        
+        -- LOGIKA BARU: Gerakan Kamera Produser (Tidak hanya muter)
+        local wave1 = math.sin(timeCount * 0.5)
+        local wave2 = math.cos(timeCount * 0.3)
+        
+        -- 1. Dolly Effect (Maju Mundur)
+        local radius = 18 + (wave1 * 8)
+        
+        -- 2. Vertical Pan (Atas Bawah perlahan)
+        local height = 5 + (wave2 * 4)
+        
+        -- 3. Side Panning (Geser Horizontal halus)
+        local sideSweep = math.sin(timeCount * 0.2) * 5
+        
+        local basePos = hrp.Position + Vector3.new(
+            math.sin(orbitAngle) * radius,
+            height,
+            math.cos(orbitAngle) * radius
+        )
+        
+        -- Tambahkan Handheld Shake (Getaran kamera estetik)
+        local shake = Vector3.new(
+            math.noise(timeCount * 2, 0) * 0.2,
+            math.noise(0, timeCount * 2) * 0.2,
+            math.noise(timeCount * 2, timeCount * 2) * 0.2
+        )
+        
+        local finalPos = basePos + (Camera.CFrame.RightVector * sideSweep) + shake
+        
+        -- LookAt Target (Fokus ke badan karakter)
+        local targetLook = hrp.Position + Vector3.new(0, 1.5, 0)
+        local lookCF = CFrame.new(finalPos, targetLook)
+        
+        -- Lerp sangat smooth agar terasa berat/premium
+        Camera.CFrame = Camera.CFrame:Lerp(lookCF, 0.04)
         
     elseif freecamOn then
-        -- LOGIKA MANUAL FREECAM (Sesuai kode awal kamu)
         local moveVector = Controls:GetMoveVector()
         local rot = CFrame.Angles(0, math.rad(yaw), 0) * CFrame.Angles(math.rad(pitch), 0, 0)
         local vert = (upHeld and 1 or 0) - (downHeld and 1 or 0)
-        
         local move = (rot.RightVector * moveVector.X) + (rot.LookVector * -moveVector.Z) + (Vector3.yAxis * vert)
         camPos = camPos + move * camSpeed * dt
         Camera.CFrame = CFrame.new(camPos) * rot
@@ -231,7 +261,7 @@ RunService.RenderStepped:Connect(function(dt)
     end
 end)
 
--- Manual Touch Rotation (Sesuai logika awal)
+-- Manual Touch Rotation
 UserInputService.TouchStarted:Connect(function(input, gp)
     if freecamOn and not gp then
         if input.Position.X > Camera.ViewportSize.X * 0.3 then
@@ -262,7 +292,7 @@ task.spawn(function()
 end)
 
 local WM = Instance.new("TextLabel")
-WM.Text = "DIRECTOR EDITION v4.1"
+WM.Text = "DIRECTOR PRO V5"
 WM.Position = UDim2.new(0, 0, 1, -18)
 WM.Size = UDim2.new(1, 0, 0, 15)
 WM.BackgroundTransparency = 1
