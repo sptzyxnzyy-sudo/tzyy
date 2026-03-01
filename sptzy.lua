@@ -37,19 +37,6 @@ Border.Position = UDim2.new(0, -1, 0, -1)
 Border.Size = UDim2.new(1, 2, 1, 2)
 Border.ZIndex = 0
 
--- [JUDUL GUI - SPTZYY GUI]
-local GuiTitle = Instance.new("TextLabel")
-GuiTitle.Name = "GuiTitle"
-GuiTitle.Parent = MainFrame
-GuiTitle.Text = "SPTZYY GUI"
-GuiTitle.Size = UDim2.new(0, 150, 0, 25)
-GuiTitle.Position = UDim2.new(0, 10, 0, 2)
-GuiTitle.BackgroundTransparency = 1
-GuiTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-GuiTitle.TextSize = 16
-GuiTitle.Font = Enum.Font.SourceSansBold
-GuiTitle.TextXAlignment = Enum.TextXAlignment.Left
-
 -- Minimize Button
 local MiniBtn = Instance.new("TextButton")
 MiniBtn.Size = UDim2.new(0, 20, 0, 20)
@@ -63,7 +50,6 @@ MiniBtn.Parent = MainFrame
 -- [PROFILE SECTION]
 local Profile = Instance.new("Frame")
 Profile.Size = UDim2.new(1, 0, 0, 50)
-Profile.Position = UDim2.new(0, 0, 0, 25) -- Disesuaikan agar tidak menabrak judul
 Profile.BackgroundTransparency = 1
 Profile.Parent = MainFrame
 
@@ -87,8 +73,8 @@ NameLabel.Parent = Profile
 
 -- [CONTAINER]
 local Container = Instance.new("Frame")
-Container.Position = UDim2.new(0, 0, 0, 75) -- Turun sedikit untuk judul & profil
-Container.Size = UDim2.new(1, 0, 1, -75)
+Container.Position = UDim2.new(0, 0, 0, 55)
+Container.Size = UDim2.new(1, 0, 1, -55)
 Container.BackgroundTransparency = 1
 Container.Parent = MainFrame
 
