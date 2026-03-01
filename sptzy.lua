@@ -12,7 +12,7 @@ local Controls = PlayerModule:GetControls()
 
 -- UI Root
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "Ikyy_Director_V4"
+ScreenGui.Name = "Ikyy_Director_V4_ManualFixed"
 ScreenGui.Parent = CoreGui
 ScreenGui.ResetOnSpawn = false
 
@@ -69,12 +69,12 @@ Av.BorderSizePixel = 0
 Av.Parent = Profile
 
 local Title = Instance.new("TextLabel")
-Title.Text = "PRODUCER MODE"
+Title.Text = "DIRECTOR MODE"
 Title.Position = UDim2.new(0, 58, 0, 15)
 Title.Size = UDim2.new(0, 130, 0, 15)
 Title.TextColor3 = Color3.new(1, 1, 1)
 Title.Font = Enum.Font.RobotoMono
-Title.TextSize = 13
+Title.TextSize = 12
 Title.TextXAlignment = Enum.TextXAlignment.Left
 Title.BackgroundTransparency = 1
 Title.Parent = Profile
@@ -90,10 +90,43 @@ UIList.Parent = Container
 UIList.HorizontalAlignment = Enum.HorizontalAlignment.Center
 UIList.Padding = UDim.new(0, 6)
 
--- Variable Kamera & Fitur
+-- Freecam Manual & Producer Variables
 local freecamOn, producerMode = false, false
-local camSpeed = 30
+local camSpeed = 50
 local yaw, pitch, orbitAngle, timeCount = 0, 0, 0, 0
+local camPos = Vector3.zero
+local upHeld, downHeld = false, false
+local lookTouch, lastLookPos = nil, nil
+
+-- [ FREECAM MANUAL OVERLAY (UP/DOWN) ]
+local FC_Overlay = Instance.new("Frame")
+FC_Overlay.Size = UDim2.new(1, 0, 1, 0)
+FC_Overlay.BackgroundTransparency = 1
+FC_Overlay.Visible = false
+FC_Overlay.Parent = ScreenGui
+
+local function makeFCBtn(t, p)
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(0, 55, 0, 55)
+    b.Position = p
+    b.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    b.BackgroundTransparency = 0.5
+    b.Text = t
+    b.TextColor3 = Color3.new(1, 1, 1)
+    b.Font = Enum.Font.SourceSansBold
+    b.TextSize = 24
+    b.BorderSizePixel = 0
+    b.Parent = FC_Overlay
+    return b
+end
+
+local UBtn = makeFCBtn("▲", UDim2.new(1, -70, 0.5, -60))
+local DBtn = makeFCBtn("▼", UDim2.new(1, -70, 0.5, 5))
+
+UBtn.InputBegan:Connect(function() upHeld = true end)
+UBtn.InputEnded:Connect(function() upHeld = false end)
+DBtn.InputBegan:Connect(function() downHeld = true end)
+DBtn.InputEnded:Connect(function() downHeld = false end)
 
 local function AddBtn(text, icon, color, callback)
     local b = Instance.new("TextButton")
@@ -126,13 +159,23 @@ AddBtn("AUTO SELL PADI", "rbxassetid://6031154871", Color3.fromRGB(150, 0, 0), f
 end)
 
 AddBtn("FREECAM MANUAL", "rbxassetid://6034289542", Color3.fromRGB(0, 150, 80), function(s)
-    freecamOn = s producerMode = false
-    Camera.CameraType = s and "Scriptable" or "Custom"
+    freecamOn = s
+    producerMode = false
+    FC_Overlay.Visible = s
+    Camera.CameraType = s and Enum.CameraType.Scriptable or Enum.CameraType.Custom
+    if s then
+        camPos = Camera.CFrame.Position
+        local lv = Camera.CFrame.LookVector
+        yaw = math.deg(math.atan2(-lv.X, -lv.Z))
+        pitch = math.deg(math.asin(math.clamp(lv.Y, -1, 1)))
+    end
 end)
 
 AddBtn("PRODUCER CINEMA", "rbxassetid://6034289542", Color3.fromRGB(150, 150, 0), function(s)
-    producerMode = s freecamOn = false
-    Camera.CameraType = s and "Scriptable" or "Custom"
+    producerMode = s
+    freecamOn = false
+    FC_Overlay.Visible = false
+    Camera.CameraType = s and Enum.CameraType.Scriptable or Enum.CameraType.Custom
     orbitAngle = 0 timeCount = 0
 end)
 
@@ -144,49 +187,42 @@ SFrame.BorderSizePixel = 0
 SFrame.Parent = Container
 local SLbl = Instance.new("TextLabel")
 SLbl.Size = UDim2.new(1, 0, 1, 0)
-SLbl.Text = "DIRECTOR INTENSITY: "..camSpeed
+SLbl.Text = "CAM SPEED: "..camSpeed
 SLbl.TextColor3 = Color3.new(1, 1, 1)
 SLbl.BackgroundTransparency = 1
 SLbl.Font = Enum.Font.SourceSansBold
 SLbl.Parent = SFrame
 SFrame.InputBegan:Connect(function(i)
     if i.UserInputType == Enum.UserInputType.Touch then
-        camSpeed = camSpeed >= 120 and 20 or camSpeed + 20
-        SLbl.Text = "DIRECTOR INTENSITY: "..camSpeed
+        camSpeed = camSpeed >= 150 and 25 or camSpeed + 25
+        SLbl.Text = "CAM SPEED: "..camSpeed
     end
 end)
 
--- [ DIRECTOR CAMERA ENGINE ]
+-- [ CAMERA ENGINE ]
 RunService.RenderStepped:Connect(function(dt)
     local char = LocalPlayer.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     
     if producerMode and hrp then
         timeCount = timeCount + dt
-        orbitAngle = orbitAngle + (dt * (camSpeed/80))
-        
-        -- Logika Produser: Dynamic Zoom & Sweep
-        local breathe = math.sin(timeCount * 0.4) * 6 -- Maju mundur lembut
-        local radius = 20 + breathe
-        local height = 5 + (math.cos(timeCount * 0.5) * 3) -- Ketinggian bervariasi
-        
-        local targetPos = hrp.Position + Vector3.new(
-            math.sin(orbitAngle) * radius,
-            height,
-            math.cos(orbitAngle) * radius
-        )
-        
-        -- Logika Mengarah ke Karakter (Smooth Gimbal)
-        local rawCF = CFrame.new(targetPos, hrp.Position + Vector3.new(0, 1.5, 0))
-        Camera.CFrame = Camera.CFrame:Lerp(rawCF, 0.04) -- Efek kamera berat (Mahal)
+        orbitAngle = orbitAngle + (dt * (camSpeed/100))
+        local radius = 22 + (math.sin(timeCount * 0.4) * 6)
+        local targetPos = hrp.Position + Vector3.new(math.sin(orbitAngle) * radius, 6, math.cos(orbitAngle) * radius)
+        Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(targetPos, hrp.Position + Vector3.new(0, 1.5, 0)), 0.05)
         
     elseif freecamOn then
-        local mv = Controls:GetMoveVector()
+        -- LOGIKA MANUAL FREECAM (Sesuai kode awal kamu)
+        local moveVector = Controls:GetMoveVector()
         local rot = CFrame.Angles(0, math.rad(yaw), 0) * CFrame.Angles(math.rad(pitch), 0, 0)
-        Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(Camera.CFrame.Position + (rot * mv * (camSpeed/10))), 0.1)
+        local vert = (upHeld and 1 or 0) - (downHeld and 1 or 0)
+        
+        local move = (rot.RightVector * moveVector.X) + (rot.LookVector * -moveVector.Z) + (Vector3.yAxis * vert)
+        camPos = camPos + move * camSpeed * dt
+        Camera.CFrame = CFrame.new(camPos) * rot
     end
     
-    -- Anti-Bug Lock
+    -- Character Lock
     if (freecamOn or producerMode) and hrp then
         hrp.Anchored = true
         hrp.Velocity = Vector3.zero
@@ -195,23 +231,38 @@ RunService.RenderStepped:Connect(function(dt)
     end
 end)
 
--- Rainbow Border Task
+-- Manual Touch Rotation (Sesuai logika awal)
+UserInputService.TouchStarted:Connect(function(input, gp)
+    if freecamOn and not gp then
+        if input.Position.X > Camera.ViewportSize.X * 0.3 then
+            lookTouch = input
+            lastLookPos = input.Position
+        end
+    end
+end)
+
+UserInputService.TouchMoved:Connect(function(input)
+    if freecamOn and input == lookTouch then
+        local delta = input.Position - lastLookPos
+        yaw = yaw - delta.X * 0.25
+        pitch = math.clamp(pitch - delta.Y * 0.25, -88, 88)
+        lastLookPos = input.Position
+    end
+end)
+
+UserInputService.TouchEnded:Connect(function(input)
+    if input == lookTouch then lookTouch = nil end
+end)
+
+-- Rainbow Border
 task.spawn(function()
     while true do
         for i=0,1,0.01 do Border.BackgroundColor3 = Color3.fromHSV(i,0.7,1) task.wait(0.04) end
     end
 end)
 
--- Manual Rotation Input
-UserInputService.InputChanged:Connect(function(input)
-    if freecamOn and input.UserInputType == Enum.UserInputType.Touch then
-        yaw = yaw - input.Delta.X * 0.3
-        pitch = math.clamp(pitch - input.Delta.Y * 0.3, -80, 80)
-    end
-end)
-
 local WM = Instance.new("TextLabel")
-WM.Text = "DIRECTOR EDITION v4"
+WM.Text = "DIRECTOR EDITION v4.1"
 WM.Position = UDim2.new(0, 0, 1, -18)
 WM.Size = UDim2.new(1, 0, 0, 15)
 WM.BackgroundTransparency = 1
