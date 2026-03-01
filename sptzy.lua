@@ -3,6 +3,7 @@ local CoreGui = game:GetService("CoreGui")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local VirtualUser = game:GetService("VirtualUser") -- Untuk simulasi klik
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
@@ -75,10 +76,10 @@ NameLabel.Parent = Profile
 -- [CONTAINER - SCROLLING]
 local Container = Instance.new("ScrollingFrame")
 Container.Position = UDim2.new(0, 0, 0, 55)
-Container.Size = UDim2.new(1, 0, 1, -75) -- Beri ruang untuk WM di bawah
+Container.Size = UDim2.new(1, 0, 1, -75)
 Container.BackgroundTransparency = 1
 Container.BorderSizePixel = 0
-Container.CanvasSize = UDim2.new(0, 0, 0, 0) -- Auto resize via UIList
+Container.CanvasSize = UDim2.new(0, 0, 0, 0)
 Container.ScrollBarThickness = 2
 Container.Parent = MainFrame
 
@@ -121,27 +122,26 @@ end
 
 -- [Fitur Auto]
 
--- NEW: Auto Punch (Dengan Delay 0.1s)
-AddSquareButton("AUTO PUNCH", "rbxassetid://6034289542", Color3.fromRGB(0, 150, 150), function(s)
-    _G.AutoPunch = s
-    while _G.AutoPunch do
-        pcall(function() 
-            local args = {}
-            ReplicatedStorage.CombatSystemVilk.Punching:FireServer(unpack(args)) 
-        end)
-        task.wait(0.1)
+-- FITUR: AUTO CLICK SCREEN (Simulasi Klik Layar)
+AddSquareButton("AUTO CLICK SCREEN", "rbxassetid://6034289542", Color3.fromRGB(0, 150, 150), function(s)
+    _G.AutoClick = s
+    while _G.AutoClick do
+        -- Simulasi Klik di tengah layar (Viewport Center)
+        local center = Camera.ViewportSize / 2
+        VirtualUser:CaptureController()
+        VirtualUser:ClickButton1(Vector2.new(center.X, center.Y))
+        task.wait(0.05) -- Kecepatan klik
     end
 end)
 
--- NEW: Spam Punch (Tanpa Delay - Fast)
-AddSquareButton("SPAM PUNCH (NO DELAY)", "rbxassetid://6034289542", Color3.fromRGB(200, 0, 0), function(s)
+-- FITUR: SPAM REMOTE (Punching Remote)
+AddSquareButton("SPAM PUNCH REMOTE", "rbxassetid://6034289542", Color3.fromRGB(200, 0, 0), function(s)
     _G.SpamPunch = s
     while _G.SpamPunch do
         pcall(function() 
-            local args = {}
-            ReplicatedStorage.CombatSystemVilk.Punching:FireServer(unpack(args)) 
+            ReplicatedStorage.CombatSystemVilk.Punching:FireServer(unpack({})) 
         end)
-        task.wait() -- Minimal delay to prevent crash
+        task.wait(0.01)
     end
 end)
 
@@ -161,7 +161,9 @@ AddSquareButton("AUTO SELL PADI", "rbxassetid://6031154871", Color3.fromRGB(150,
     end
 end)
 
--- [Speed Control UI]
+-- [Speed Control & Freecam Tetap Sama]
+-- (Bagian Speed UI dan Freecam menyatu di bawah)
+
 local SpeedFrame = Instance.new("Frame")
 SpeedFrame.Size = UDim2.new(0.95, 0, 0, 35)
 SpeedFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
@@ -193,80 +195,9 @@ Minus.TextColor3 = Color3.new(1,1,1)
 Minus.Parent = SpeedFrame
 Minus.MouseButton1Click:Connect(function() camSpeed = math.max(10, camSpeed - 10) SpeedLabel.Text = "SPEED: "..camSpeed end)
 
--- [Freecam & Controls Logic]
-local freecamOn, upHeld, downHeld = false, false, false
-local yaw, pitch = 0, 0
-local camPos, frozenPos = Vector3.zero, nil
-
-local FC_Overlay = Instance.new("Frame")
-FC_Overlay.Size = UDim2.new(1, 0, 1, 0)
-FC_Overlay.BackgroundTransparency = 1
-FC_Overlay.Visible = false
-FC_Overlay.Parent = ScreenGui
-
-local UBtn = Instance.new("TextButton")
-UBtn.Size = UDim2.new(0, 50, 0, 50)
-UBtn.Position = UDim2.new(1, -60, 0.5, -55)
-UBtn.Text = "UP" UBtn.BackgroundColor3 = Color3.fromRGB(0,0,0)
-UBtn.BackgroundTransparency = 0.5
-UBtn.TextColor3 = Color3.new(1,1,1)
-UBtn.Parent = FC_Overlay
-
-local DBtn = Instance.new("TextButton")
-DBtn.Size = UDim2.new(0, 50, 0, 50)
-DBtn.Position = UDim2.new(1, -60, 0.5, 5)
-DBtn.Text = "DOWN" DBtn.BackgroundColor3 = Color3.fromRGB(0,0,0)
-DBtn.BackgroundTransparency = 0.5
-DBtn.TextColor3 = Color3.new(1,1,1)
-DBtn.Parent = FC_Overlay
-
-UBtn.InputBegan:Connect(function() upHeld = true end)
-UBtn.InputEnded:Connect(function() upHeld = false end)
-DBtn.InputBegan:Connect(function() downHeld = true end)
-DBtn.InputEnded:Connect(function() downHeld = false end)
-
-AddSquareButton("MOBILE FREECAM", "rbxassetid://6034289542", Color3.fromRGB(0, 120, 0), function(s)
-    freecamOn = s
-    FC_Overlay.Visible = s
-    local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-    if s then
-        camPos = Camera.CFrame.Position
-        local lv = Camera.CFrame.LookVector
-        yaw, pitch = math.deg(math.atan2(-lv.X, -lv.Z)), math.deg(math.asin(math.clamp(lv.Y, -1, 1)))
-        Camera.CameraType = Enum.CameraType.Scriptable
-        if hrp then frozenPos = hrp.CFrame hrp.Anchored = true end
-    else
-        Camera.CameraType = Enum.CameraType.Custom
-        if hrp then hrp.Anchored = false end
-    end
-end)
-
--- Global Loops
+-- Global Loops & Logic
 task.spawn(function()
     while true do for i = 0, 1, 0.01 do Border.BackgroundColor3 = Color3.fromHSV(i, 0.8, 1) task.wait(0.03) end end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-    if freecamOn and input.UserInputType == Enum.UserInputType.Touch then
-        if input.Position.X > Camera.ViewportSize.X * 0.3 then
-            yaw = yaw - input.Delta.X * 0.3
-            pitch = math.clamp(pitch - input.Delta.Y * 0.3, -88, 88)
-        end
-    end
-end)
-
-RunService.RenderStepped:Connect(function(dt)
-    if freecamOn then
-        local mv = Controls:GetMoveVector()
-        local rot = CFrame.Angles(0, math.rad(yaw), 0) * CFrame.Angles(math.rad(pitch), 0, 0)
-        local move = (rot.RightVector * mv.X) + (rot.LookVector * -mv.Z) + (Vector3.yAxis * ((upHeld and 1 or 0) - (downHeld and 1 or 0)))
-        camPos = camPos + move * camSpeed * dt
-        Camera.CFrame = CFrame.new(camPos) * rot
-        if frozenPos and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            LocalPlayer.Character.HumanoidRootPart.CFrame = frozenPos
-            LocalPlayer.Character.HumanoidRootPart.Velocity = Vector3.zero
-        end
-    end
 end)
 
 -- Minimize Logic
