@@ -4,12 +4,12 @@ local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
--- Mengambil modul kontrol internal Roblox
+-- Mengambil modul kontrol internal Roblox untuk Analog Mobile
 local PlayerScripts = LocalPlayer:WaitForChild("PlayerScripts")
 local PlayerModule = require(PlayerScripts:WaitForChild("PlayerModule"))
 local Controls = PlayerModule:GetControls()
 
--- UI Setup (Sama seperti sebelumnya dengan sedikit penyesuaian ukuran)
+-- UI Setup
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "IkyyPremium_V3"
 ScreenGui.Parent = CoreGui
@@ -41,21 +41,6 @@ local UICorner_B = Instance.new("UICorner")
 UICorner_B.CornerRadius = UDim.new(0, 8)
 UICorner_B.Parent = Border
 
--- Profile Section (Singkat)
-local ProfileFrame = Instance.new("Frame")
-ProfileFrame.Size = UDim2.new(1, 0, 0, 60)
-ProfileFrame.BackgroundTransparency = 1
-ProfileFrame.Parent = MainFrame
-
-local AvatarImg = Instance.new("ImageLabel")
-AvatarImg.Size = UDim2.new(0, 45, 0, 45)
-AvatarImg.Position = UDim2.new(0, 10, 0, 10)
-AvatarImg.Image = "https://www.roblox.com/headshot-thumbnail/image?userId=" .. LocalPlayer.UserId .. "&width=420&height=420&format=png"
-AvatarImg.Parent = ProfileFrame
-local UICorner_A = Instance.new("UICorner")
-UICorner_A.CornerRadius = UDim.new(1, 0)
-UICorner_A.Parent = AvatarImg
-
 -- Buttons Container
 local Container = Instance.new("Frame")
 Container.Position = UDim2.new(0, 0, 0, 70)
@@ -66,9 +51,9 @@ Container.Parent = MainFrame
 local UIList = Instance.new("UIListLayout")
 UIList.Parent = Container
 UIList.HorizontalAlignment = Enum.HorizontalAlignment.Center
-UIList.Padding = UDim.new(0, 10)
+UIList.Padding = UDim.new(0, 8)
 
--- Rainbow Anim
+-- Rainbow Logic
 task.spawn(function()
     while true do
         for i = 0, 1, 0.01 do
@@ -78,9 +63,10 @@ task.spawn(function()
     end
 end)
 
--- Variabel Freecam
+-- Freecam Variables
 local isFreecam = false
-local camSpeed = 1.0
+local camSpeed = 1.2
+local freecamCF = CFrame.new()
 
 -- Button Function
 local function CreateStyledButton(name, icon, color, func)
@@ -139,32 +125,42 @@ CreateStyledButton("AUTO SELL", SELL_ICON, Color3.fromRGB(153, 0, 0), function(s
     end
 end)
 
-CreateStyledButton("FREECAM MOBILE", CAM_ICON, Color3.fromRGB(0, 153, 76), function(state)
+-- FREECAM LOGIC (MOBILE OPTIMIZED)
+CreateStyledButton("FREECAM 360", CAM_ICON, Color3.fromRGB(0, 153, 76), function(state)
     isFreecam = state
     if state then
+        freecamCF = Camera.CFrame
         Camera.CameraType = Enum.CameraType.Scriptable
-        -- Disable pergerakan karakter agar tidak jalan saat freecam
-        LocalPlayer.Character.Humanoid.PlatformStand = true
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            LocalPlayer.Character.HumanoidRootPart.Anchored = true -- Kunci karakter agar tidak jatuh
+        end
     else
         Camera.CameraType = Enum.CameraType.Custom
-        LocalPlayer.Character.Humanoid.PlatformStand = false
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            LocalPlayer.Character.HumanoidRootPart.Anchored = false
+        end
     end
 end)
 
--- FREECAM ENGINE (Menggunakan Input Analog/Control)
+-- Main Loop untuk Pergerakan Kamera
 RunService.RenderStepped:Connect(function()
     if isFreecam then
-        -- Ambil arah dari Analog/Tombol Gerak Roblox
+        -- 1. Ambil Input Analog (Move Vector)
         local moveVector = Controls:GetMoveVector()
         
+        -- 2. Ambil Rotasi dari Mouse/Geser Layar (Camera Bawaan)
+        -- Kita menggunakan CameraType Scriptable tapi tetap mengambil arah hadap dari input user
+        local lookCF = Camera.CFrame - Camera.CFrame.Position
+        
+        -- 3. Hitung Posisi Baru
         if moveVector.Magnitude > 0 then
-            -- Hitung pergerakan berdasarkan pandangan kamera
-            local cframe = Camera.CFrame
-            local direction = (cframe.RightVector * moveVector.X) + (cframe.LookVector * -moveVector.Z)
-            
-            -- Update posisi kamera
-            Camera.CFrame = cframe + (direction * camSpeed)
+            local moveDir = (lookCF * Vector3.new(moveVector.X, 0, -moveVector.Z))
+            freecamCF = freecamCF + (moveDir * camSpeed)
         end
+        
+        -- 4. Terapkan Posisi baru + Rotasi dari geseran layar
+        -- Kita tetap mengizinkan user menggeser layar untuk mengubah 'lookCF' secara internal
+        Camera.CFrame = CFrame.new(freecamCF.Position) * lookCF
     end
 end)
 
