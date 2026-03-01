@@ -2,8 +2,6 @@ local Players = game:GetService("Players")
 local CoreGui = game:GetService("CoreGui")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local VirtualUser = game:GetService("VirtualUser") -- Untuk simulasi klik
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
@@ -18,18 +16,18 @@ ScreenGui.Name = "IkyySquare_V3"
 ScreenGui.Parent = CoreGui
 ScreenGui.ResetOnSpawn = false
 
--- Main Frame
+-- Main Frame (PERSEGI EMPAT)
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Parent = ScreenGui
 MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
 MainFrame.Position = UDim2.new(0.5, -100, 0.4, -100)
-MainFrame.Size = UDim2.new(0, 200, 0, 310)
+MainFrame.Size = UDim2.new(0, 200, 0, 310) -- Ukuran pas
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
 MainFrame.Draggable = true
 
--- Rainbow Border
+-- Rainbow Border (Persegi)
 local Border = Instance.new("Frame")
 Border.Name = "Border"
 Border.Parent = MainFrame
@@ -73,22 +71,38 @@ NameLabel.TextXAlignment = Enum.TextXAlignment.Left
 NameLabel.BackgroundTransparency = 1
 NameLabel.Parent = Profile
 
--- [CONTAINER - SCROLLING]
-local Container = Instance.new("ScrollingFrame")
+-- [CONTAINER]
+local Container = Instance.new("Frame")
 Container.Position = UDim2.new(0, 0, 0, 55)
-Container.Size = UDim2.new(1, 0, 1, -75)
+Container.Size = UDim2.new(1, 0, 1, -55)
 Container.BackgroundTransparency = 1
-Container.BorderSizePixel = 0
-Container.CanvasSize = UDim2.new(0, 0, 0, 0)
-Container.ScrollBarThickness = 2
 Container.Parent = MainFrame
 
 local UIList = Instance.new("UIListLayout")
 UIList.Parent = Container
 UIList.HorizontalAlignment = Enum.HorizontalAlignment.Center
 UIList.Padding = UDim.new(0, 5)
-UIList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-    Container.CanvasSize = UDim2.new(0, 0, 0, UIList.AbsoluteContentSize.Y + 10)
+
+-- Freecam Logic Variables
+local freecamOn, upHeld, downHeld = false, false, false
+local camSpeed, yaw, pitch = 50, 0, 0
+local camPos, frozenPos = Vector3.zero, nil
+local lookTouch, lastLookPos = nil, nil
+
+-- [MINIMIZE LOGIC]
+local isMinimized = false
+MiniBtn.MouseButton1Click:Connect(function()
+    isMinimized = not isMinimized
+    if isMinimized then
+        MainFrame:TweenSize(UDim2.new(0, 40, 0, 40), "Out", "Quad", 0.2, true)
+        for _, v in pairs(MainFrame:GetChildren()) do if v ~= MiniBtn and v ~= Border then v.Visible = false end end
+        MiniBtn.Text = "+" MiniBtn.Position = UDim2.new(0, 10, 0, 10)
+    else
+        MainFrame:TweenSize(UDim2.new(0, 200, 0, 310), "Out", "Quad", 0.2, true)
+        task.wait(0.1)
+        for _, v in pairs(MainFrame:GetChildren()) do v.Visible = true end
+        MiniBtn.Text = "_" MiniBtn.Position = UDim2.new(1, -25, 0, 5)
+    end
 end)
 
 -- Styled Square Button
@@ -100,7 +114,7 @@ local function AddSquareButton(name, icon, color, func)
     Btn.Text = "          " .. name
     Btn.TextColor3 = Color3.new(1, 1, 1)
     Btn.Font = Enum.Font.SourceSansBold
-    Btn.TextSize = 12
+    Btn.TextSize = 13
     Btn.TextXAlignment = Enum.TextXAlignment.Left
     Btn.Parent = Container
     
@@ -121,49 +135,23 @@ local function AddSquareButton(name, icon, color, func)
 end
 
 -- [Fitur Auto]
-
--- FITUR: AUTO CLICK SCREEN (Simulasi Klik Layar)
-AddSquareButton("AUTO CLICK SCREEN", "rbxassetid://6034289542", Color3.fromRGB(0, 150, 150), function(s)
-    _G.AutoClick = s
-    while _G.AutoClick do
-        -- Simulasi Klik di tengah layar (Viewport Center)
-        local center = Camera.ViewportSize / 2
-        VirtualUser:CaptureController()
-        VirtualUser:ClickButton1(Vector2.new(center.X, center.Y))
-        task.wait(0.05) -- Kecepatan klik
-    end
-end)
-
--- FITUR: SPAM REMOTE (Punching Remote)
-AddSquareButton("SPAM PUNCH REMOTE", "rbxassetid://6034289542", Color3.fromRGB(200, 0, 0), function(s)
-    _G.SpamPunch = s
-    while _G.SpamPunch do
-        pcall(function() 
-            ReplicatedStorage.CombatSystemVilk.Punching:FireServer(unpack({})) 
-        end)
-        task.wait(0.01)
-    end
-end)
-
 AddSquareButton("AUTO BUY PADI", "rbxassetid://6031764630", Color3.fromRGB(0, 85, 150), function(s)
     _G.AutoBuy = s
     while _G.AutoBuy do
-        pcall(function() ReplicatedStorage.Remotes.TutorialRemotes.RequestShop:InvokeServer("BUY", "Bibit Padi", 1) end)
+        pcall(function() game:GetService("ReplicatedStorage").Remotes.TutorialRemotes.RequestShop:InvokeServer("BUY", "Bibit Padi", 1) end)
         task.wait(0.5)
     end
 end)
 
-AddSquareButton("AUTO SELL PADI", "rbxassetid://6031154871", Color3.fromRGB(150, 80, 0), function(s)
+AddSquareButton("AUTO SELL PADI", "rbxassetid://6031154871", Color3.fromRGB(150, 0, 0), function(s)
     _G.AutoSell = s
     while _G.AutoSell do
-        pcall(function() ReplicatedStorage.Remotes.TutorialRemotes.RequestSell:InvokeServer("SELL", "Padi", 45) end)
+        pcall(function() game:GetService("ReplicatedStorage").Remotes.TutorialRemotes.RequestSell:InvokeServer("SELL", "Padi", 45) end)
         task.wait(0.5)
     end
 end)
 
--- [Speed Control & Freecam Tetap Sama]
--- (Bagian Speed UI dan Freecam menyatu di bawah)
-
+-- [Speed Control UI]
 local SpeedFrame = Instance.new("Frame")
 SpeedFrame.Size = UDim2.new(0.95, 0, 0, 35)
 SpeedFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
@@ -172,13 +160,12 @@ SpeedFrame.Parent = Container
 
 local SpeedLabel = Instance.new("TextLabel")
 SpeedLabel.Size = UDim2.new(0.6, 0, 1, 0)
-SpeedLabel.Text = "SPEED: 50"
+SpeedLabel.Text = "SPEED: " .. camSpeed
 SpeedLabel.TextColor3 = Color3.new(1,1,1)
 SpeedLabel.BackgroundTransparency = 1
 SpeedLabel.Font = Enum.Font.SourceSansBold
 SpeedLabel.Parent = SpeedFrame
 
-local camSpeed = 50
 local Plus = Instance.new("TextButton")
 Plus.Size = UDim2.new(0.2, 0, 1, 0)
 Plus.Position = UDim2.new(0.6, 0, 0, 0)
@@ -195,23 +182,75 @@ Minus.TextColor3 = Color3.new(1,1,1)
 Minus.Parent = SpeedFrame
 Minus.MouseButton1Click:Connect(function() camSpeed = math.max(10, camSpeed - 10) SpeedLabel.Text = "SPEED: "..camSpeed end)
 
--- Global Loops & Logic
+-- [Freecam & Controls]
+local FC_Overlay = Instance.new("Frame")
+FC_Overlay.Size = UDim2.new(1, 0, 1, 0)
+FC_Overlay.BackgroundTransparency = 1
+FC_Overlay.Visible = false
+FC_Overlay.Parent = ScreenGui
+
+local UBtn = Instance.new("TextButton")
+UBtn.Size = UDim2.new(0, 50, 0, 50)
+UBtn.Position = UDim2.new(1, -60, 0.5, -55)
+UBtn.Text = "UP" UBtn.BackgroundColor3 = Color3.fromRGB(0,0,0)
+UBtn.BackgroundTransparency = 0.5
+UBtn.TextColor3 = Color3.new(1,1,1)
+UBtn.Parent = FC_Overlay
+
+local DBtn = Instance.new("TextButton")
+DBtn.Size = UDim2.new(0, 50, 0, 50)
+DBtn.Position = UDim2.new(1, -60, 0.5, 5)
+DBtn.Text = "DOWN" DBtn.BackgroundColor3 = Color3.fromRGB(0,0,0)
+DBtn.BackgroundTransparency = 0.5
+DBtn.TextColor3 = Color3.new(1,1,1)
+DBtn.Parent = FC_Overlay
+
+UBtn.InputBegan:Connect(function() upHeld = true end)
+UBtn.InputEnded:Connect(function() upHeld = false end)
+DBtn.InputBegan:Connect(function() downHeld = true end)
+DBtn.InputEnded:Connect(function() downHeld = false end)
+
+AddSquareButton("MOBILE FREECAM", "rbxassetid://6034289542", Color3.fromRGB(0, 120, 0), function(s)
+    freecamOn = s
+    FC_Overlay.Visible = s
+    local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if s then
+        camPos = Camera.CFrame.Position
+        local lv = Camera.CFrame.LookVector
+        yaw, pitch = math.deg(math.atan2(-lv.X, -lv.Z)), math.deg(math.asin(math.clamp(lv.Y, -1, 1)))
+        Camera.CameraType = Enum.CameraType.Scriptable
+        if hrp then frozenPos = hrp.CFrame hrp.Anchored = true end
+    else
+        Camera.CameraType = Enum.CameraType.Custom
+        if hrp then hrp.Anchored = false end
+    end
+end)
+
+-- Global Systems
 task.spawn(function()
     while true do for i = 0, 1, 0.01 do Border.BackgroundColor3 = Color3.fromHSV(i, 0.8, 1) task.wait(0.03) end end
 end)
 
--- Minimize Logic
-MiniBtn.MouseButton1Click:Connect(function()
-    isMinimized = not isMinimized
-    if isMinimized then
-        MainFrame:TweenSize(UDim2.new(0, 40, 0, 40), "Out", "Quad", 0.2, true)
-        for _, v in pairs(MainFrame:GetChildren()) do if v ~= MiniBtn and v ~= Border then v.Visible = false end end
-        MiniBtn.Text = "+" MiniBtn.Position = UDim2.new(0, 10, 0, 10)
-    else
-        MainFrame:TweenSize(UDim2.new(0, 200, 0, 310), "Out", "Quad", 0.2, true)
-        task.wait(0.1)
-        for _, v in pairs(MainFrame:GetChildren()) do v.Visible = true end
-        MiniBtn.Text = "_" MiniBtn.Position = UDim2.new(1, -25, 0, 5)
+UserInputService.InputChanged:Connect(function(input)
+    if freecamOn and input.UserInputType == Enum.UserInputType.Touch then
+        if input.Position.X > Camera.ViewportSize.X * 0.3 then
+            yaw = yaw - input.Delta.X * 0.3
+            pitch = math.clamp(pitch - input.Delta.Y * 0.3, -88, 88)
+        end
+    end
+end)
+
+RunService.RenderStepped:Connect(function(dt)
+    if freecamOn then
+        local mv = Controls:GetMoveVector()
+        local rot = CFrame.Angles(0, math.rad(yaw), 0) * CFrame.Angles(math.rad(pitch), 0, 0)
+        local move = (rot.RightVector * mv.X) + (rot.LookVector * -mv.Z) + (Vector3.yAxis * ((upHeld and 1 or 0) - (downHeld and 1 or 0)))
+        camPos = camPos + move * camSpeed * dt
+        Camera.CFrame = CFrame.new(camPos) * rot
+        if frozenPos and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = frozenPos
+            LocalPlayer.Character.HumanoidRootPart.Velocity = Vector3.zero
+        end
     end
 end)
 
