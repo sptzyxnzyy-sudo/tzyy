@@ -1,9 +1,19 @@
 local Players = game:GetService("Players")
 local CoreGui = game:GetService("CoreGui")
 local RunService = game:GetService("RunService")
+local StarterGui = game:GetService("StarterGui")
 local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
+
+-- Fungsi Notifikasi
+local function Notify(title, text, duration)
+    StarterGui:SetCore("SendNotification", {
+        Title = title;
+        Text = text;
+        Duration = duration or 3;
+    })
+end
 
 -- Mobile Controls
 local PlayerScripts = LocalPlayer:WaitForChild("PlayerScripts")
@@ -12,7 +22,7 @@ local Controls = PlayerModule:GetControls()
 
 -- UI Setup
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "IkyySquare_V3_Ultra"
+ScreenGui.Name = "IkyySquare_V3_Notif"
 ScreenGui.Parent = CoreGui
 ScreenGui.ResetOnSpawn = false
 
@@ -85,23 +95,20 @@ local freecamOn = false
 local camSpeed, yaw, pitch = 50, 0, 0
 local camPos = Vector3.zero
 
--- [MINIMIZE LOGIC]
+-- [MINIMIZE]
 local isMinimized = false
 MiniBtn.MouseButton1Click:Connect(function()
     isMinimized = not isMinimized
     if isMinimized then
         MainFrame:TweenSize(UDim2.new(0, 40, 0, 40), "Out", "Quad", 0.2, true)
         for _, v in pairs(MainFrame:GetChildren()) do if v ~= MiniBtn and v ~= Border then v.Visible = false end end
-        MiniBtn.Text = "+" 
     else
         MainFrame:TweenSize(UDim2.new(0, 200, 0, 310), "Out", "Quad", 0.2, true)
         task.wait(0.1)
         for _, v in pairs(MainFrame:GetChildren()) do v.Visible = true end
-        MiniBtn.Text = "_"
     end
 end)
 
--- Styled Button Function
 local function AddSquareButton(name, icon, color, func)
     local Btn = Instance.new("TextButton")
     Btn.Size = UDim2.new(0.9, 0, 0, 35)
@@ -133,67 +140,75 @@ end
 -- [FITUR: AUTO FARM]
 AddSquareButton("AUTO BUY PADI", "rbxassetid://6031764630", Color3.fromRGB(0, 85, 150), function(s)
     _G.AutoBuy = s
+    if s then Notify("Sistem", "Auto Buy Dimulai...", 2) end
     while _G.AutoBuy do
         pcall(function() game:GetService("ReplicatedStorage").Remotes.TutorialRemotes.RequestShop:InvokeServer("BUY", "Bibit Padi", 1) end)
         task.wait(0.5)
     end
 end)
 
-AddSquareButton("AUTO SELL PADI", "rbxassetid://6031154871", Color3.fromRGB(150, 0, 0), function(s)
-    _G.AutoSell = s
-    while _G.AutoSell do
-        pcall(function() game:GetService("ReplicatedStorage").Remotes.TutorialRemotes.RequestSell:InvokeServer("SELL", "Padi", 45) end)
-        task.wait(0.5)
-    end
-end)
-
--- [FITUR: FE JACKET GLITCH - ULTRA AGGRESSIVE]
+-- [FITUR: FE JACKET GLITCH - WITH STATUS NOTIF]
 AddSquareButton("FE JACKET GLITCH", "rbxassetid://6034287525", Color3.fromRGB(130, 0, 255), function(s)
     _G.JacketGlitch = s
-    task.spawn(function()
-        while _G.JacketGlitch do
-            local char = LocalPlayer.Character
-            if char then
-                for _, v in pairs(char:GetDescendants()) do
-                    if v:IsA("WrapLayer") then
-                        pcall(function()
-                            -- Memaksa engine render untuk "meledakkan" ukuran baju
-                            v.Puffiness = 10 
-                            v.ReferenceBoundsMin = Vector3.new(-1000, -1000, -1000)
-                            v.ReferenceBoundsMax = Vector3.new(1000, 1000, 1000)
-                            -- Flicker Enabled untuk bypass beberapa anti-reset
-                            v.Enabled = false
-                            v.Enabled = true
-                        end)
+    if s then
+        Notify("Sistem", "Mencari Layered Clothing...", 2)
+        task.spawn(function()
+            local foundLayer = false
+            while _G.JacketGlitch do
+                local char = LocalPlayer.Character
+                if char then
+                    for _, v in pairs(char:GetDescendants()) do
+                        if v:IsA("WrapLayer") then
+                            foundLayer = true
+                            pcall(function()
+                                v.Puffiness = 10
+                                v.ReferenceBoundsMin = Vector3.new(-1000, -1000, -1000)
+                                v.ReferenceBoundsMax = Vector3.new(1000, 1000, 1000)
+                                local handle = v.Parent
+                                if handle and handle:IsA("BasePart") then
+                                    handle.CFrame = handle.CFrame * CFrame.new(0, 0.05, 0)
+                                    task.wait()
+                                    handle.CFrame = handle.CFrame * CFrame.new(0, -0.05, 0)
+                                end
+                            end)
+                        end
                     end
                 end
-            end
-            task.wait(0.03) 
-        end
-        -- Reset total jika OFF
-        local char = LocalPlayer.Character
-        if char then
-            for _, v in pairs(char:GetDescendants()) do
-                if v:IsA("WrapLayer") then
-                    pcall(function() v.Puffiness = 1 v.ReferenceBoundsMin = Vector3.zero v.ReferenceBoundsMax = Vector3.zero end)
+                
+                -- Notifikasi Status Sukses/Gagal
+                if not foundLayer then
+                    Notify("Gagal", "Tidak ada Baju 3D terdeteksi!", 3)
+                    _G.JacketGlitch = false
+                    break
+                else
+                    -- Hanya kirim notif berhasil sekali
+                    if foundLayer then
+                         Notify("Berhasil", "Jacket Glitch Aktif!", 2)
+                         foundLayer = "done" -- stop repeat notif
+                    end
                 end
+                task.wait(0.01)
             end
-        end
-    end)
+        end)
+    else
+        Notify("Sistem", "Jacket Glitch Dimatikan", 2)
+    end
 end)
 
 -- [FITUR: MOBILE FREECAM]
 AddSquareButton("MOBILE FREECAM", "rbxassetid://6034289542", Color3.fromRGB(0, 120, 0), function(s)
     freecamOn = s
     if s then
+        Notify("Freecam", "Mode Kamera Bebas Aktif", 2)
         camPos = Camera.CFrame.Position
         Camera.CameraType = Enum.CameraType.Scriptable
     else
+        Notify("Freecam", "Kembali ke Kamera Normal", 2)
         Camera.CameraType = Enum.CameraType.Custom
     end
 end)
 
--- [SPEED CONTROL UI]
+-- [SPEED CONTROL]
 local SpeedFrame = Instance.new("Frame")
 SpeedFrame.Size = UDim2.new(0.9, 0, 0, 35)
 SpeedFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
@@ -222,7 +237,7 @@ Minus.Text = "-"
 Minus.Parent = SpeedFrame
 Minus.MouseButton1Click:Connect(function() camSpeed = math.max(10, camSpeed - 10) SpeedLabel.Text = "CAM SPEED: "..camSpeed end)
 
--- [SYSTEMS & RENDERING]
+-- [RAINBOW BORDER]
 task.spawn(function()
     while true do 
         for i = 0, 1, 0.01 do 
@@ -250,3 +265,6 @@ WM.BackgroundTransparency = 1
 WM.TextColor3 = Color3.fromRGB(100, 100, 100)
 WM.TextSize = 8
 WM.Parent = MainFrame
+
+-- Notif Awal
+Notify("IkyySquare V3", "Script berhasil dijalankan!", 4)
