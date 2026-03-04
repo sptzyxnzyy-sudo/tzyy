@@ -12,7 +12,7 @@ local Controls = PlayerModule:GetControls()
 
 -- UI Setup
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "IkyySquare_V3"
+ScreenGui.Name = "IkyySquare_V3_Updated"
 ScreenGui.Parent = CoreGui
 ScreenGui.ResetOnSpawn = false
 
@@ -22,12 +22,12 @@ MainFrame.Name = "MainFrame"
 MainFrame.Parent = ScreenGui
 MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
 MainFrame.Position = UDim2.new(0.5, -100, 0.4, -100)
-MainFrame.Size = UDim2.new(0, 200, 0, 310) -- Ukuran pas
+MainFrame.Size = UDim2.new(0, 200, 0, 380) -- Ukuran ditambah sedikit agar muat semua tombol
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
 MainFrame.Draggable = true
 
--- Rainbow Border (Persegi)
+-- Rainbow Border
 local Border = Instance.new("Frame")
 Border.Name = "Border"
 Border.Parent = MainFrame
@@ -72,10 +72,12 @@ NameLabel.BackgroundTransparency = 1
 NameLabel.Parent = Profile
 
 -- [CONTAINER]
-local Container = Instance.new("Frame")
+local Container = Instance.new("ScrollingFrame") -- Diubah ke scrolling agar jika tombol banyak tidak keluar frame
 Container.Position = UDim2.new(0, 0, 0, 55)
-Container.Size = UDim2.new(1, 0, 1, -55)
+Container.Size = UDim2.new(1, 0, 1, -70)
 Container.BackgroundTransparency = 1
+Container.BorderSizePixel = 0
+Container.ScrollBarThickness = 2
 Container.Parent = MainFrame
 
 local UIList = Instance.new("UIListLayout")
@@ -87,7 +89,6 @@ UIList.Padding = UDim.new(0, 5)
 local freecamOn, upHeld, downHeld = false, false, false
 local camSpeed, yaw, pitch = 50, 0, 0
 local camPos, frozenPos = Vector3.zero, nil
-local lookTouch, lastLookPos = nil, nil
 
 -- [MINIMIZE LOGIC]
 local isMinimized = false
@@ -98,23 +99,23 @@ MiniBtn.MouseButton1Click:Connect(function()
         for _, v in pairs(MainFrame:GetChildren()) do if v ~= MiniBtn and v ~= Border then v.Visible = false end end
         MiniBtn.Text = "+" MiniBtn.Position = UDim2.new(0, 10, 0, 10)
     else
-        MainFrame:TweenSize(UDim2.new(0, 200, 0, 310), "Out", "Quad", 0.2, true)
+        MainFrame:TweenSize(UDim2.new(0, 200, 0, 380), "Out", "Quad", 0.2, true)
         task.wait(0.1)
         for _, v in pairs(MainFrame:GetChildren()) do v.Visible = true end
         MiniBtn.Text = "_" MiniBtn.Position = UDim2.new(1, -25, 0, 5)
     end
 end)
 
--- Styled Square Button
+-- Styled Square Button Function
 local function AddSquareButton(name, icon, color, func)
     local Btn = Instance.new("TextButton")
-    Btn.Size = UDim2.new(0.95, 0, 0, 35)
+    Btn.Size = UDim2.new(0.9, 0, 0, 35)
     Btn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
     Btn.BorderSizePixel = 0
     Btn.Text = "          " .. name
     Btn.TextColor3 = Color3.new(1, 1, 1)
     Btn.Font = Enum.Font.SourceSansBold
-    Btn.TextSize = 13
+    Btn.TextSize = 12
     Btn.TextXAlignment = Enum.TextXAlignment.Left
     Btn.Parent = Container
     
@@ -134,7 +135,7 @@ local function AddSquareButton(name, icon, color, func)
     return Btn
 end
 
--- [Fitur Auto]
+-- [Fitur: Auto Buy/Sell]
 AddSquareButton("AUTO BUY PADI", "rbxassetid://6031764630", Color3.fromRGB(0, 85, 150), function(s)
     _G.AutoBuy = s
     while _G.AutoBuy do
@@ -151,9 +152,72 @@ AddSquareButton("AUTO SELL PADI", "rbxassetid://6031154871", Color3.fromRGB(150,
     end
 end)
 
+-- [Fitur: FE Jacket Glitch]
+AddSquareButton("FE JACKET GLITCH", "rbxassetid://6034287525", Color3.fromRGB(130, 0, 255), function(s)
+    _G.JacketGlitch = s
+    local char = LocalPlayer.Character
+    if not char then return end
+
+    task.spawn(function()
+        while _G.JacketGlitch do
+            for _, v in pairs(char:GetDescendants()) do
+                if v:IsA("WrapLayer") then
+                    pcall(function()
+                        v.Puffiness = 10 
+                        v.ReferenceBoundsMin = Vector3.new(-100, -100, -100)
+                        v.ReferenceBoundsMax = Vector3.new(100, 100, 100)
+                    end)
+                end
+            end
+            task.wait(0.3)
+        end
+        -- Reset if OFF
+        if not _G.JacketGlitch then
+            for _, v in pairs(char:GetDescendants()) do
+                if v:IsA("WrapLayer") then
+                    pcall(function() v.Puffiness = 1 v.ReferenceBoundsMin = Vector3.zero v.ReferenceBoundsMax = Vector3.zero end)
+                end
+            end
+        end
+    end)
+end)
+
+-- [Fitur: Mobile Freecam]
+AddSquareButton("MOBILE FREECAM", "rbxassetid://6034289542", Color3.fromRGB(0, 120, 0), function(s)
+    freecamOn = s
+    if s then
+        camPos = Camera.CFrame.Position
+        local lv = Camera.CFrame.LookVector
+        yaw, pitch = math.deg(math.atan2(-lv.X, -lv.Z)), math.deg(math.asin(math.clamp(lv.Y, -1, 1)))
+        Camera.CameraType = Enum.CameraType.Scriptable
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            frozenPos = LocalPlayer.Character.HumanoidRootPart.CFrame
+            LocalPlayer.Character.HumanoidRootPart.Anchored = true
+        end
+    else
+        Camera.CameraType = Enum.CameraType.Custom
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            LocalPlayer.Character.HumanoidRootPart.Anchored = false
+        end
+    end
+end)
+
+-- [Fitur: Anti-AFK]
+AddSquareButton("ANTI-AFK", "rbxassetid://6031068433", Color3.fromRGB(200, 150, 0), function(s)
+    _G.AntiAFK = s
+    if s then
+        LocalPlayer.Idled:Connect(function()
+            if _G.AntiAFK then
+                game:GetService("VirtualUser"):CaptureController()
+                game:GetService("VirtualUser"):ClickButton2(Vector2.new())
+            end
+        end)
+    end
+end)
+
 -- [Speed Control UI]
 local SpeedFrame = Instance.new("Frame")
-SpeedFrame.Size = UDim2.new(0.95, 0, 0, 35)
+SpeedFrame.Size = UDim2.new(0.9, 0, 0, 35)
 SpeedFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 SpeedFrame.BorderSizePixel = 0
 SpeedFrame.Parent = Container
@@ -164,6 +228,7 @@ SpeedLabel.Text = "SPEED: " .. camSpeed
 SpeedLabel.TextColor3 = Color3.new(1,1,1)
 SpeedLabel.BackgroundTransparency = 1
 SpeedLabel.Font = Enum.Font.SourceSansBold
+SpeedLabel.TextSize = 12
 SpeedLabel.Parent = SpeedFrame
 
 local Plus = Instance.new("TextButton")
@@ -182,53 +247,14 @@ Minus.TextColor3 = Color3.new(1,1,1)
 Minus.Parent = SpeedFrame
 Minus.MouseButton1Click:Connect(function() camSpeed = math.max(10, camSpeed - 10) SpeedLabel.Text = "SPEED: "..camSpeed end)
 
--- [Freecam & Controls]
-local FC_Overlay = Instance.new("Frame")
-FC_Overlay.Size = UDim2.new(1, 0, 1, 0)
-FC_Overlay.BackgroundTransparency = 1
-FC_Overlay.Visible = false
-FC_Overlay.Parent = ScreenGui
-
-local UBtn = Instance.new("TextButton")
-UBtn.Size = UDim2.new(0, 50, 0, 50)
-UBtn.Position = UDim2.new(1, -60, 0.5, -55)
-UBtn.Text = "UP" UBtn.BackgroundColor3 = Color3.fromRGB(0,0,0)
-UBtn.BackgroundTransparency = 0.5
-UBtn.TextColor3 = Color3.new(1,1,1)
-UBtn.Parent = FC_Overlay
-
-local DBtn = Instance.new("TextButton")
-DBtn.Size = UDim2.new(0, 50, 0, 50)
-DBtn.Position = UDim2.new(1, -60, 0.5, 5)
-DBtn.Text = "DOWN" DBtn.BackgroundColor3 = Color3.fromRGB(0,0,0)
-DBtn.BackgroundTransparency = 0.5
-DBtn.TextColor3 = Color3.new(1,1,1)
-DBtn.Parent = FC_Overlay
-
-UBtn.InputBegan:Connect(function() upHeld = true end)
-UBtn.InputEnded:Connect(function() upHeld = false end)
-DBtn.InputBegan:Connect(function() downHeld = true end)
-DBtn.InputEnded:Connect(function() downHeld = false end)
-
-AddSquareButton("MOBILE FREECAM", "rbxassetid://6034289542", Color3.fromRGB(0, 120, 0), function(s)
-    freecamOn = s
-    FC_Overlay.Visible = s
-    local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-    if s then
-        camPos = Camera.CFrame.Position
-        local lv = Camera.CFrame.LookVector
-        yaw, pitch = math.deg(math.atan2(-lv.X, -lv.Z)), math.deg(math.asin(math.clamp(lv.Y, -1, 1)))
-        Camera.CameraType = Enum.CameraType.Scriptable
-        if hrp then frozenPos = hrp.CFrame hrp.Anchored = true end
-    else
-        Camera.CameraType = Enum.CameraType.Custom
-        if hrp then hrp.Anchored = false end
-    end
-end)
-
--- Global Systems
+-- [Global Systems & Rendering]
 task.spawn(function()
-    while true do for i = 0, 1, 0.01 do Border.BackgroundColor3 = Color3.fromHSV(i, 0.8, 1) task.wait(0.03) end end
+    while true do 
+        for i = 0, 1, 0.01 do 
+            Border.BackgroundColor3 = Color3.fromHSV(i, 0.8, 1) 
+            task.wait(0.03) 
+        end 
+    end
 end)
 
 UserInputService.InputChanged:Connect(function(input)
