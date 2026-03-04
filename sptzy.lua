@@ -12,22 +12,21 @@ local Controls = PlayerModule:GetControls()
 
 -- UI Setup
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "IkyySquare_V3_Updated"
+ScreenGui.Name = "IkyySquare_V3_Fix"
 ScreenGui.Parent = CoreGui
 ScreenGui.ResetOnSpawn = false
 
--- Main Frame (PERSEGI EMPAT)
+-- Main Frame
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Parent = ScreenGui
 MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
 MainFrame.Position = UDim2.new(0.5, -100, 0.4, -100)
-MainFrame.Size = UDim2.new(0, 200, 0, 380) -- Ukuran ditambah sedikit agar muat semua tombol
+MainFrame.Size = UDim2.new(0, 200, 0, 310)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
 MainFrame.Draggable = true
 
--- Rainbow Border
 local Border = Instance.new("Frame")
 Border.Name = "Border"
 Border.Parent = MainFrame
@@ -37,7 +36,6 @@ Border.Position = UDim2.new(0, -1, 0, -1)
 Border.Size = UDim2.new(1, 2, 1, 2)
 Border.ZIndex = 0
 
--- Minimize Button
 local MiniBtn = Instance.new("TextButton")
 MiniBtn.Size = UDim2.new(0, 20, 0, 20)
 MiniBtn.Position = UDim2.new(1, -25, 0, 5)
@@ -47,7 +45,7 @@ MiniBtn.TextColor3 = Color3.new(1, 1, 1)
 MiniBtn.BorderSizePixel = 0
 MiniBtn.Parent = MainFrame
 
--- [PROFILE SECTION]
+-- [PROFILE]
 local Profile = Instance.new("Frame")
 Profile.Size = UDim2.new(1, 0, 0, 50)
 Profile.BackgroundTransparency = 1
@@ -57,7 +55,6 @@ local Avatar = Instance.new("ImageLabel")
 Avatar.Size = UDim2.new(0, 35, 0, 35)
 Avatar.Position = UDim2.new(0, 8, 0, 8)
 Avatar.Image = "https://www.roblox.com/headshot-thumbnail/image?userId=" .. LocalPlayer.UserId .. "&width=420&height=420&format=png"
-Avatar.BorderSizePixel = 0
 Avatar.Parent = Profile
 
 local NameLabel = Instance.new("TextLabel")
@@ -66,13 +63,11 @@ NameLabel.Position = UDim2.new(0, 50, 0, 10)
 NameLabel.Size = UDim2.new(0, 120, 0, 15)
 NameLabel.TextColor3 = Color3.new(1, 1, 1)
 NameLabel.Font = Enum.Font.SourceSansBold
-NameLabel.TextSize = 14
-NameLabel.TextXAlignment = Enum.TextXAlignment.Left
 NameLabel.BackgroundTransparency = 1
 NameLabel.Parent = Profile
 
 -- [CONTAINER]
-local Container = Instance.new("ScrollingFrame") -- Diubah ke scrolling agar jika tombol banyak tidak keluar frame
+local Container = Instance.new("ScrollingFrame")
 Container.Position = UDim2.new(0, 0, 0, 55)
 Container.Size = UDim2.new(1, 0, 1, -70)
 Container.BackgroundTransparency = 1
@@ -85,28 +80,28 @@ UIList.Parent = Container
 UIList.HorizontalAlignment = Enum.HorizontalAlignment.Center
 UIList.Padding = UDim.new(0, 5)
 
--- Freecam Logic Variables
+-- Logic Variables
 local freecamOn, upHeld, downHeld = false, false, false
 local camSpeed, yaw, pitch = 50, 0, 0
 local camPos, frozenPos = Vector3.zero, nil
 
--- [MINIMIZE LOGIC]
+-- [MINIMIZE]
 local isMinimized = false
 MiniBtn.MouseButton1Click:Connect(function()
     isMinimized = not isMinimized
     if isMinimized then
         MainFrame:TweenSize(UDim2.new(0, 40, 0, 40), "Out", "Quad", 0.2, true)
         for _, v in pairs(MainFrame:GetChildren()) do if v ~= MiniBtn and v ~= Border then v.Visible = false end end
-        MiniBtn.Text = "+" MiniBtn.Position = UDim2.new(0, 10, 0, 10)
+        MiniBtn.Text = "+" 
     else
-        MainFrame:TweenSize(UDim2.new(0, 200, 0, 380), "Out", "Quad", 0.2, true)
+        MainFrame:TweenSize(UDim2.new(0, 200, 0, 310), "Out", "Quad", 0.2, true)
         task.wait(0.1)
         for _, v in pairs(MainFrame:GetChildren()) do v.Visible = true end
-        MiniBtn.Text = "_" MiniBtn.Position = UDim2.new(1, -25, 0, 5)
+        MiniBtn.Text = "_"
     end
 end)
 
--- Styled Square Button Function
+-- Styled Button Function
 local function AddSquareButton(name, icon, color, func)
     local Btn = Instance.new("TextButton")
     Btn.Size = UDim2.new(0.9, 0, 0, 35)
@@ -135,7 +130,7 @@ local function AddSquareButton(name, icon, color, func)
     return Btn
 end
 
--- [Fitur: Auto Buy/Sell]
+-- [FITUR: AUTO]
 AddSquareButton("AUTO BUY PADI", "rbxassetid://6031764630", Color3.fromRGB(0, 85, 150), function(s)
     _G.AutoBuy = s
     while _G.AutoBuy do
@@ -152,7 +147,7 @@ AddSquareButton("AUTO SELL PADI", "rbxassetid://6031154871", Color3.fromRGB(150,
     end
 end)
 
--- [Fitur: FE Jacket Glitch]
+-- [FITUR: FE JACKET GLITCH UPDATED]
 AddSquareButton("FE JACKET GLITCH", "rbxassetid://6034287525", Color3.fromRGB(130, 0, 255), function(s)
     _G.JacketGlitch = s
     local char = LocalPlayer.Character
@@ -160,29 +155,39 @@ AddSquareButton("FE JACKET GLITCH", "rbxassetid://6034287525", Color3.fromRGB(13
 
     task.spawn(function()
         while _G.JacketGlitch do
-            for _, v in pairs(char:GetDescendants()) do
-                if v:IsA("WrapLayer") then
-                    pcall(function()
-                        v.Puffiness = 10 
-                        v.ReferenceBoundsMin = Vector3.new(-100, -100, -100)
-                        v.ReferenceBoundsMax = Vector3.new(100, 100, 100)
-                    end)
+            pcall(function()
+                for _, v in pairs(char:GetDescendants()) do
+                    if v:IsA("WrapLayer") then
+                        -- Update intensif untuk memicu glitch visual
+                        v.Puffiness = 10 -- Nilai maksimum
+                        v.ReferenceBoundsMin = Vector3.new(-math.huge, -math.huge, -math.huge)
+                        v.ReferenceBoundsMax = Vector3.new(math.huge, math.huge, math.huge)
+                        -- Memaksa update mesh melalui CFrame kecil
+                        local part = v.Parent
+                        if part and part:IsA("BasePart") then
+                            part.CFrame = part.CFrame * CFrame.new(0, 0.001, 0)
+                        end
+                    end
                 end
-            end
-            task.wait(0.3)
+            end)
+            task.wait(0.05) -- Kecepatan refresh lebih tinggi
         end
-        -- Reset if OFF
+        -- Reset jika dimatikan
         if not _G.JacketGlitch then
             for _, v in pairs(char:GetDescendants()) do
                 if v:IsA("WrapLayer") then
-                    pcall(function() v.Puffiness = 1 v.ReferenceBoundsMin = Vector3.zero v.ReferenceBoundsMax = Vector3.zero end)
+                    pcall(function()
+                        v.Puffiness = 1
+                        v.ReferenceBoundsMin = Vector3.zero
+                        v.ReferenceBoundsMax = Vector3.zero
+                    end)
                 end
             end
         end
     end)
 end)
 
--- [Fitur: Mobile Freecam]
+-- [FITUR: MOBILE FREECAM]
 AddSquareButton("MOBILE FREECAM", "rbxassetid://6034289542", Color3.fromRGB(0, 120, 0), function(s)
     freecamOn = s
     if s then
@@ -202,20 +207,7 @@ AddSquareButton("MOBILE FREECAM", "rbxassetid://6034289542", Color3.fromRGB(0, 1
     end
 end)
 
--- [Fitur: Anti-AFK]
-AddSquareButton("ANTI-AFK", "rbxassetid://6031068433", Color3.fromRGB(200, 150, 0), function(s)
-    _G.AntiAFK = s
-    if s then
-        LocalPlayer.Idled:Connect(function()
-            if _G.AntiAFK then
-                game:GetService("VirtualUser"):CaptureController()
-                game:GetService("VirtualUser"):ClickButton2(Vector2.new())
-            end
-        end)
-    end
-end)
-
--- [Speed Control UI]
+-- [SPEED CONTROL UI]
 local SpeedFrame = Instance.new("Frame")
 SpeedFrame.Size = UDim2.new(0.9, 0, 0, 35)
 SpeedFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
@@ -227,27 +219,23 @@ SpeedLabel.Size = UDim2.new(0.6, 0, 1, 0)
 SpeedLabel.Text = "SPEED: " .. camSpeed
 SpeedLabel.TextColor3 = Color3.new(1,1,1)
 SpeedLabel.BackgroundTransparency = 1
-SpeedLabel.Font = Enum.Font.SourceSansBold
-SpeedLabel.TextSize = 12
 SpeedLabel.Parent = SpeedFrame
 
 local Plus = Instance.new("TextButton")
 Plus.Size = UDim2.new(0.2, 0, 1, 0)
 Plus.Position = UDim2.new(0.6, 0, 0, 0)
-Plus.Text = "+" Plus.BackgroundColor3 = Color3.fromRGB(40,40,40)
-Plus.TextColor3 = Color3.new(1,1,1)
+Plus.Text = "+" 
 Plus.Parent = SpeedFrame
 Plus.MouseButton1Click:Connect(function() camSpeed = camSpeed + 10 SpeedLabel.Text = "SPEED: "..camSpeed end)
 
 local Minus = Instance.new("TextButton")
 Minus.Size = UDim2.new(0.2, 0, 1, 0)
 Minus.Position = UDim2.new(0.8, 0, 0, 0)
-Minus.Text = "-" Minus.BackgroundColor3 = Color3.fromRGB(40,40,40)
-Minus.TextColor3 = Color3.new(1,1,1)
+Minus.Text = "-" 
 Minus.Parent = SpeedFrame
 Minus.MouseButton1Click:Connect(function() camSpeed = math.max(10, camSpeed - 10) SpeedLabel.Text = "SPEED: "..camSpeed end)
 
--- [Global Systems & Rendering]
+-- [SYSTEMS]
 task.spawn(function()
     while true do 
         for i = 0, 1, 0.01 do 
@@ -273,10 +261,6 @@ RunService.RenderStepped:Connect(function(dt)
         local move = (rot.RightVector * mv.X) + (rot.LookVector * -mv.Z) + (Vector3.yAxis * ((upHeld and 1 or 0) - (downHeld and 1 or 0)))
         camPos = camPos + move * camSpeed * dt
         Camera.CFrame = CFrame.new(camPos) * rot
-        if frozenPos and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            LocalPlayer.Character.HumanoidRootPart.CFrame = frozenPos
-            LocalPlayer.Character.HumanoidRootPart.Velocity = Vector3.zero
-        end
     end
 end)
 
