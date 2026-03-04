@@ -6,171 +6,178 @@ local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
--- [[ SISTEM NOTIFIKASI ]]
-local function SendStatus(title, msg, type)
-    local color = type == "error" and Color3.fromRGB(255, 0, 0) or Color3.fromRGB(0, 255, 0)
+-- [[ SISTEM NOTIFIKASI MODERN ]]
+local function SendNotify(title, msg, mode)
     StarterGui:SetCore("SendNotification", {
         Title = title,
         Text = msg,
-        Duration = 4,
-        Button1 = "OK"
+        Duration = 5,
+        Button1 = "Paham"
     })
 end
 
--- Mobile Controls
+-- Mobile Control Module
 local PlayerScripts = LocalPlayer:WaitForChild("PlayerScripts")
 local PlayerModule = require(PlayerScripts:WaitForChild("PlayerModule"))
 local Controls = PlayerModule:GetControls()
 
--- UI Setup
+-- [[ UI CONSTRUCT ]]
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "IkyySquare_V4_Final"
+ScreenGui.Name = "IkyySquare_V5_Final"
 ScreenGui.Parent = CoreGui
 ScreenGui.ResetOnSpawn = false
 
--- Main Frame
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Parent = ScreenGui
-MainFrame.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 MainFrame.Position = UDim2.new(0.5, -100, 0.4, -100)
-MainFrame.Size = UDim2.new(0, 210, 0, 320)
+MainFrame.Size = UDim2.new(0, 200, 0, 310)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
 MainFrame.Draggable = true
 
 local Border = Instance.new("Frame")
-Border.Name = "Border"
-Border.Parent = MainFrame
-Border.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-Border.BorderSizePixel = 0
-Border.Position = UDim2.new(0, -1, 0, -1)
 Border.Size = UDim2.new(1, 2, 1, 2)
+Border.Position = UDim2.new(0, -1, 0, -1)
+Border.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 Border.ZIndex = 0
+Border.Parent = MainFrame
 
--- Header Profile
-local Profile = Instance.new("Frame")
-Profile.Size = UDim2.new(1, 0, 0, 50)
-Profile.BackgroundTransparency = 1
-Profile.Parent = MainFrame
+-- Profile Header
+local Header = Instance.new("Frame")
+Header.Size = UDim2.new(1, 0, 0, 50)
+Header.BackgroundTransparency = 1
+Header.Parent = MainFrame
 
-local Avatar = Instance.new("ImageLabel")
-Avatar.Size = UDim2.new(0, 35, 0, 35)
-Avatar.Position = UDim2.new(0, 10, 0, 10)
-Avatar.Image = "https://www.roblox.com/headshot-thumbnail/image?userId=" .. LocalPlayer.UserId .. "&width=420&height=420&format=png"
-Avatar.Parent = Profile
+local pfp = Instance.new("ImageLabel")
+pfp.Size = UDim2.new(0, 35, 0, 35)
+pfp.Position = UDim2.new(0, 10, 0, 8)
+pfp.Image = "https://www.roblox.com/headshot-thumbnail/image?userId=" .. LocalPlayer.UserId .. "&width=420&height=420&format=png"
+pfp.Parent = Header
 
-local NameLabel = Instance.new("TextLabel")
-NameLabel.Text = LocalPlayer.DisplayName .. " (@" .. LocalPlayer.Name .. ")"
-NameLabel.Position = UDim2.new(0, 55, 0, 15)
-NameLabel.Size = UDim2.new(0, 140, 0, 15)
-NameLabel.TextColor3 = Color3.new(1, 1, 1)
-NameLabel.Font = Enum.Font.GothamBold
-NameLabel.TextSize = 10
-NameLabel.TextXAlignment = Enum.TextXAlignment.Left
-NameLabel.BackgroundTransparency = 1
-NameLabel.Parent = Profile
+local userTxt = Instance.new("TextLabel")
+userTxt.Text = LocalPlayer.DisplayName
+userTxt.Position = UDim2.new(0, 52, 0, 10)
+userTxt.Size = UDim2.new(0, 140, 0, 15)
+userTxt.TextColor3 = Color3.new(1, 1, 1)
+userTxt.Font = Enum.Font.GothamBold
+userTxt.TextXAlignment = Enum.TextXAlignment.Left
+userTxt.BackgroundTransparency = 1
+userTxt.Parent = Header
 
--- Container
-local Container = Instance.new("ScrollingFrame")
-Container.Position = UDim2.new(0, 5, 0, 60)
-Container.Size = UDim2.new(1, -10, 1, -80)
-Container.BackgroundTransparency = 1
-Container.BorderSizePixel = 0
-Container.ScrollBarThickness = 1
-Container.Parent = MainFrame
+-- Scroll Container
+local Scroll = Instance.new("ScrollingFrame")
+Scroll.Size = UDim2.new(1, -10, 1, -70)
+Scroll.Position = UDim2.new(0, 5, 0, 60)
+Scroll.BackgroundTransparency = 1
+Scroll.ScrollBarThickness = 2
+Scroll.Parent = MainFrame
 
-local UIList = Instance.new("UIListLayout")
-UIList.Parent = Container
-UIList.Padding = UDim.new(0, 6)
+local List = Instance.new("UIListLayout")
+List.Parent = Scroll
+List.Padding = UDim.new(0, 5)
 
--- Function Create Button
-local function MakeButton(name, color, func)
-    local Btn = Instance.new("TextButton")
-    Btn.Size = UDim2.new(1, 0, 0, 40)
-    Btn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-    Btn.Text = name
-    Btn.TextColor3 = Color3.new(1, 1, 1)
-    Btn.Font = Enum.Font.GothamBold
-    Btn.TextSize = 12
-    Btn.BorderSizePixel = 0
-    Btn.Parent = Container
+-- Button Creator
+local function NewButton(text, color, callback)
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(1, 0, 0, 38)
+    b.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    b.Text = text
+    b.TextColor3 = Color3.new(1, 1, 1)
+    b.Font = Enum.Font.GothamBold
+    b.TextSize = 12
+    b.BorderSizePixel = 0
+    b.Parent = Scroll
     
-    local act = false
-    Btn.MouseButton1Click:Connect(function()
-        act = not act
-        Btn.BackgroundColor3 = act and color or Color3.fromRGB(20, 20, 20)
-        func(act)
+    local state = false
+    b.MouseButton1Click:Connect(function()
+        state = not state
+        b.BackgroundColor3 = state and color or Color3.fromRGB(30, 30, 30)
+        callback(state)
     end)
 end
 
--- [[ FITUR: FE JACKET GLITCH V4 ]]
-MakeButton("FE JACKET GLITCH (V4)", Color3.fromRGB(170, 0, 255), function(s)
-    _G.JacketGlitchV4 = s
+-- [[ 1. FITUR: FE GLITCH V5 (ULTRA) ]]
+NewButton("FE JACKET GLITCH V5", Color3.fromRGB(150, 0, 255), function(s)
+    _G.GlitchV5 = s
     if s then
-        local found = false
         task.spawn(function()
-            while _G.JacketGlitchV4 do
+            local checkCount = 0
+            while _G.GlitchV5 do
                 local char = LocalPlayer.Character
+                local has3D = false
                 if char then
                     for _, v in pairs(char:GetDescendants()) do
                         if v:IsA("WrapLayer") then
-                            found = true
+                            has3D = true
                             pcall(function()
-                                -- Force stretching
+                                -- Super Stretch
                                 v.Puffiness = 10
-                                v.ReferenceBoundsMin = Vector3.new(-math.huge, -math.huge, -math.huge)
-                                v.ReferenceBoundsMax = Vector3.new(math.huge, math.huge, math.huge)
-                                -- Engine Jitter
-                                v.Enabled = not v.Enabled
+                                v.ReferenceBoundsMin = Vector3.new(-10000, -10000, -10000)
+                                v.ReferenceBoundsMax = Vector3.new(10000, 10000, 10000)
+                                -- Force Replication to Server
+                                v.Enabled = false
+                                v.Enabled = true
                             end)
                         end
                     end
                 end
                 
-                if not found then
-                    SendStatus("Peringatan!", "Gagal: Gunakan Jaket 3D (Layered Clothing) agar fitur ini bekerja!", "error")
-                    _G.JacketGlitchV4 = false
+                if not has3D and checkCount < 1 then
+                    SendNotify("Gagal", "Avatar kamu TIDAK memakai baju 3D (Layered Clothing). Glitch tidak akan terlihat!", "error")
+                    _G.GlitchV5 = false
                     break
+                elseif has3D and checkCount < 1 then
+                    SendNotify("Berhasil", "Layered Clothing terdeteksi. Glitch diaktifkan!", "success")
+                    checkCount = 1
                 end
-                task.wait(0.02)
+                task.wait(0.05)
             end
         end)
-        if found then SendStatus("Berhasil", "Glitch Aktif! Visual meledak sekarang terlihat.", "success") end
     else
-        SendStatus("Sistem", "Glitch dimatikan. Baju kembali normal.", "success")
+        SendNotify("Sistem", "Glitch dimatikan.", "success")
     end
 end)
 
--- [[ FITUR: FREECAM ]]
+-- [[ 2. FITUR: MOBILE FREECAM ]]
 local freecamOn = false
 local camPos = Vector3.zero
-local camSpeed = 50
-
-MakeButton("MOBILE FREECAM", Color3.fromRGB(0, 150, 0), function(s)
+NewButton("MOBILE FREECAM", Color3.fromRGB(0, 120, 0), function(s)
     freecamOn = s
     if s then
         camPos = Camera.CFrame.Position
         Camera.CameraType = Enum.CameraType.Scriptable
-        SendStatus("Freecam", "Kamera Bebas Aktif", "success")
+        SendNotify("Freecam", "Gunakan joystick untuk bergerak", "success")
     else
         Camera.CameraType = Enum.CameraType.Custom
-        SendStatus("Freecam", "Kembali ke Kamera Normal", "success")
     end
 end)
 
--- [[ AUTO FARM PADI ]]
-MakeButton("AUTO BUY SEED", Color3.fromRGB(0, 100, 200), function(s)
-    _G.AutoBuy = s
-    while _G.AutoBuy do
-        pcall(function() 
-            game:GetService("ReplicatedStorage").Remotes.TutorialRemotes.RequestShop:InvokeServer("BUY", "Bibit Padi", 1) 
-        end)
+-- [[ 3. FITUR: AUTO BUY & SELL ]]
+NewButton("AUTO BUY PADI", Color3.fromRGB(0, 100, 255), function(s)
+    _G.Buy = s
+    while _G.Buy do
+        pcall(function() game:GetService("ReplicatedStorage").Remotes.TutorialRemotes.RequestShop:InvokeServer("BUY", "Bibit Padi", 1) end)
         task.wait(0.5)
     end
 end)
 
--- Rainbow Border Animation
+NewButton("AUTO SELL PADI", Color3.fromRGB(200, 0, 0), function(s)
+    _G.Sell = s
+    while _G.Sell do
+        pcall(function() game:GetService("ReplicatedStorage").Remotes.TutorialRemotes.RequestSell:InvokeServer("SELL", "Padi", 45) end)
+        task.wait(0.5)
+    end
+end)
+
+-- [[ 4. FITUR: SPEED & JUMP ]]
+NewButton("FAST WALK (80)", Color3.fromRGB(200, 200, 0), function(s)
+    local h = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid")
+    if h then h.WalkSpeed = s and 80 or 16 end
+end)
+
+-- Systems: Rainbow & Rendering
 task.spawn(function()
     while true do
         for i = 0, 1, 0.01 do
@@ -180,15 +187,14 @@ task.spawn(function()
     end
 end)
 
--- Freecam Rendering
 RunService.RenderStepped:Connect(function(dt)
     if freecamOn then
         local mv = Controls:GetMoveVector()
         local rot = Camera.CFrame
         local move = (rot.RightVector * mv.X) + (rot.LookVector * -mv.Z)
-        camPos = camPos + move * camSpeed * dt
+        camPos = camPos + move * 100 * dt
         Camera.CFrame = CFrame.new(camPos) * (rot - rot.Position)
     end
 end)
 
-SendStatus("IkyySquare V4", "Script Berhasil Dimuat!", "success")
+SendNotify("IkyySquare V5", "Script Siap Digunakan!", "success")
