@@ -2,7 +2,7 @@ local Players = game:GetService("Players")
 local CoreGui = game:GetService("CoreGui")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
-local HttpService = game:GetService("HttpService") -- Tambahan untuk simulasi
+local HttpService = game:GetService("HttpService")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
@@ -13,22 +13,22 @@ local Controls = PlayerModule:GetControls()
 
 -- UI Setup
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "IkyySquare_V3_Updated"
+ScreenGui.Name = "IkyySquare_V3_Brutal"
 ScreenGui.Parent = CoreGui
 ScreenGui.ResetOnSpawn = false
 
--- Main Frame (PERSEGI EMPAT)
+-- Main Frame
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Parent = ScreenGui
 MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
-MainFrame.Position = UDim2.new(0.5, -100, 0.2, 0) -- Diatur agar lebih ke atas sedikit
-MainFrame.Size = UDim2.new(0, 200, 0, 360) -- Ukuran ditambah sedikit untuk tombol baru
+MainFrame.Position = UDim2.new(0.5, -100, 0.2, 0)
+MainFrame.Size = UDim2.new(0, 200, 0, 350)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
 MainFrame.Draggable = true
 
--- Rainbow Border (Persegi)
+-- Rainbow Border
 local Border = Instance.new("Frame")
 Border.Name = "Border"
 Border.Parent = MainFrame
@@ -73,13 +73,13 @@ NameLabel.BackgroundTransparency = 1
 NameLabel.Parent = Profile
 
 -- [SCROLLING CONTAINER]
-local Container = Instance.new("ScrollingFrame") -- Diubah ke Scrolling agar muat banyak
+local Container = Instance.new("ScrollingFrame")
 Container.Position = UDim2.new(0, 0, 0, 55)
 Container.Size = UDim2.new(1, 0, 1, -75)
 Container.BackgroundTransparency = 1
 Container.BorderSizePixel = 0
 Container.ScrollBarThickness = 2
-Container.CanvasSize = UDim2.new(0, 0, 0, 450)
+Container.CanvasSize = UDim2.new(0, 0, 0, 500)
 Container.Parent = MainFrame
 
 local UIList = Instance.new("UIListLayout")
@@ -92,7 +92,7 @@ local freecamOn, upHeld, downHeld = false, false, false
 local camSpeed, yaw, pitch = 50, 0, 0
 local camPos, frozenPos = Vector3.zero, nil
 
--- [MINIMIZE LOGIC]
+-- Minimize Logic
 local isMinimized = false
 MiniBtn.MouseButton1Click:Connect(function()
     isMinimized = not isMinimized
@@ -101,14 +101,14 @@ MiniBtn.MouseButton1Click:Connect(function()
         for _, v in pairs(MainFrame:GetChildren()) do if v ~= MiniBtn and v ~= Border then v.Visible = false end end
         MiniBtn.Text = "+" MiniBtn.Position = UDim2.new(0, 10, 0, 10)
     else
-        MainFrame:TweenSize(UDim2.new(0, 200, 0, 360), "Out", "Quad", 0.2, true)
+        MainFrame:TweenSize(UDim2.new(0, 200, 0, 350), "Out", "Quad", 0.2, true)
         task.wait(0.1)
         for _, v in pairs(MainFrame:GetChildren()) do v.Visible = true end
         MiniBtn.Text = "_" MiniBtn.Position = UDim2.new(1, -25, 0, 5)
     end
 end)
 
--- Styled Square Button
+-- Button Factory
 local function AddSquareButton(name, icon, color, func)
     local Btn = Instance.new("TextButton")
     Btn.Size = UDim2.new(0.9, 0, 0, 35)
@@ -117,13 +117,13 @@ local function AddSquareButton(name, icon, color, func)
     Btn.Text = "          " .. name
     Btn.TextColor3 = Color3.new(1, 1, 1)
     Btn.Font = Enum.Font.SourceSansBold
-    Btn.TextSize = 12
+    Btn.TextSize = 11
     Btn.TextXAlignment = Enum.TextXAlignment.Left
     Btn.Parent = Container
     
     local Icon = Instance.new("ImageLabel")
-    Icon.Size = UDim2.new(0, 18, 0, 18)
-    Icon.Position = UDim2.new(0, 8, 0.5, -9)
+    Icon.Size = UDim2.new(0, 16, 0, 16)
+    Icon.Position = UDim2.new(0, 8, 0.5, -8)
     Icon.Image = icon
     Icon.BackgroundTransparency = 1
     Icon.Parent = Btn
@@ -154,28 +154,42 @@ AddSquareButton("AUTO SELL PADI", "rbxassetid://6031154871", Color3.fromRGB(150,
     end
 end)
 
--- [FITUR EXECUTOR SIMULATOR (NEW)]
-AddSquareButton("SERVER LOAD TEST", "rbxassetid://6031289224", Color3.fromRGB(138, 43, 226), function(s)
-    _G.LoadTest = s
+-- [FITUR EXTREME / BRUTAL]
+AddSquareButton("BRUTAL LOAD TEST", "rbxassetid://6031225818", Color3.fromRGB(200, 0, 0), function(s)
+    _G.BrutalMode = s
     if s then
-        print("Starting Load Simulation on JobId: " .. game.JobId)
-        while _G.LoadTest do
-            task.spawn(function()
-                pcall(function()
-                    -- Menggunakan fungsi request jika tersedia (Executor) atau HttpService (Studio/Internal)
-                    local reqFunc = (syn and syn.request) or (http and http.request) or request or (HttpService and HttpService.RequestAsync)
-                    if reqFunc then
-                        reqFunc({
-                            Url = "https://games.roproxy.com/v1/games/" .. game.PlaceId .. "/servers/Public?limit=10",
-                            Method = "GET"
-                        })
-                    end
-                end)
-            end)
-            task.wait(0.2) -- Interval antar gelombang request
-        end
-    else
-        print("Load Simulation Stopped.")
+        task.spawn(function()
+            while _G.BrutalMode do
+                for i = 1, 25 do -- Batch 25 request sekaligus
+                    task.spawn(function()
+                        pcall(function()
+                            local r = (syn and syn.request) or (http and http.request) or request
+                            if r then
+                                r({
+                                    Url = "https://games.roproxy.com/v1/games/" .. game.PlaceId .. "/servers/Public?limit=100",
+                                    Method = "GET",
+                                    Headers = {["Cache-Control"] = "no-cache"}
+                                })
+                            end
+                        end)
+                    end)
+                end
+                task.wait(0.1 + (math.random() / 10)) -- Jitter delay anti-detection
+            end
+        end)
+    end
+end)
+
+AddSquareButton("ANTI-IDLE (STAY)", "rbxassetid://6034509993", Color3.fromRGB(0, 150, 150), function(s)
+    _G.AntiIdle = s
+    if s then
+        LocalPlayer.Idled:Connect(function()
+            if _G.AntiIdle then
+                game:GetService("VirtualUser"):Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+                task.wait(1)
+                game:GetService("VirtualUser"):Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+            end
+        end)
     end
 end)
 
@@ -229,7 +243,7 @@ Minus.Parent = SpeedFrame
 Minus.MouseButton1Click:Connect(function() camSpeed = math.max(10, camSpeed - 10) SpeedLabel.Text = "CAM SPEED: "..camSpeed end)
 
 -- [FREECAM OVERLAY]
-local FC_Overlay = Instance.new("Frame")
+FC_Overlay = Instance.new("Frame")
 FC_Overlay.Size = UDim2.new(1, 0, 1, 0)
 FC_Overlay.BackgroundTransparency = 1
 FC_Overlay.Visible = false
@@ -256,7 +270,7 @@ UBtn.InputEnded:Connect(function() upHeld = false end)
 DBtn.InputBegan:Connect(function() downHeld = true end)
 DBtn.InputEnded:Connect(function() downHeld = false end)
 
--- Rainbow Loop
+-- Global Loops
 task.spawn(function()
     while true do 
         for i = 0, 1, 0.01 do 
@@ -266,7 +280,6 @@ task.spawn(function()
     end
 end)
 
--- Control Logic
 UserInputService.InputChanged:Connect(function(input)
     if freecamOn and input.UserInputType == Enum.UserInputType.Touch then
         if input.Position.X > Camera.ViewportSize.X * 0.3 then
