@@ -1,313 +1,153 @@
-local Players = game:GetService("Players")
-local CoreGui = game:GetService("CoreGui")
+-- [[ SPTZYY PART DESTROYER: REAL-TIME PHYSICS EDITION ]] --
 local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
-local HttpService = game:GetService("HttpService")
-local LocalPlayer = Players.LocalPlayer
-local Camera = workspace.CurrentCamera
+local lp = Players.LocalPlayer
 
--- Mobile Controls
-local PlayerScripts = LocalPlayer:WaitForChild("PlayerScripts")
-local PlayerModule = require(PlayerScripts:WaitForChild("PlayerModule"))
-local Controls = PlayerModule:GetControls()
+-- [[ SETTINGS ]] --
+local botActive = true
+local destroyRadius = 100    -- Jarak kehancuran (dalam unit)
+local physicsKick = 15      -- Kekuatan dorongan saat part lepas
 
--- UI Setup
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "IkyySquare_V3_Brutal"
-ScreenGui.Parent = CoreGui
-ScreenGui.ResetOnSpawn = false
+-- [[ LOGIKA PENGHANCUR REAL-TIME ]] --
+RunService.Heartbeat:Connect(function()
+    if not botActive or not lp.Character or not lp.Character:FindFirstChild("HumanoidRootPart") then return end
+    
+    local rootPart = lp.Character.HumanoidRootPart
+
+    -- Mencari objek di sekitar pemain
+    for _, part in pairs(workspace:GetDescendants()) do
+        -- Validasi: Harus berupa Part, bukan milik karakter pemain, dan bukan Baseplate
+        if part:IsA("BasePart") and not part:IsDescendantOf(lp.Character) and part.Name ~= "Baseplate" and part.Name ~= "Terrain" then
+            
+            local distance = (part.Position - rootPart.Position).Magnitude
+            
+            if distance <= destroyRadius then
+                -- 1. AMBIL ALIH KONTROL (Network Ownership)
+                -- Agar perubahan 'Anchored' dan 'Velocity' terlihat oleh semua orang di server
+                pcall(function() 
+                    if part.ReceiveAge > 0 then 
+                        part:SetNetworkOwner(lp) 
+                    end
+                end)
+
+                -- 2. HANCURKAN STRUKTUR (Break Welds/Joints)
+                -- Ini membuat part copot dari bangunan secara permanen
+                part:BreakJoints()
+
+                -- 3. NONAKTIFKAN ANCHOR (Matikan paku udara)
+                if part.Anchored then
+                    part.Anchored = false
+                end
+
+                -- 4. BERIKAN EFEK JATUH NYATA
+                -- Memberi sedikit dorongan ke bawah dan acak agar tidak kaku
+                if part.Velocity.Magnitude < 1 then
+                    part.Velocity = Vector3.new(math.random(-2, 2), -physicsKick, math.random(-2, 2))
+                end
+                
+                -- Hancurkan segala jenis tali/constraint yang tersisa
+                for _, constraint in pairs(part:GetChildren()) do
+                    if constraint:IsA("Constraint") then
+                        constraint:Destroy()
+                    end
+                end
+            end
+        end
+    end
+end)
+
+---
+
+-- [[ UI SETUP: ICON & MAIN GUI ]] --
+local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
+ScreenGui.Name = "SptzyyDestroyer"
+
+-- Tombol Icon (Floating)
+local IconButton = Instance.new("ImageButton", ScreenGui)
+IconButton.Size = UDim2.new(0, 50, 0, 50)
+IconButton.Position = UDim2.new(0.1, 0, 0.5, 0)
+IconButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+IconButton.Image = "rbxassetid://6031225818" -- Icon Destroyer/Warning
+IconButton.BorderSizePixel = 0
+local IconCorner = Instance.new("UICorner", IconButton)
+IconCorner.CornerRadius = UDim.new(1, 0)
+local IconStroke = Instance.new("UIStroke", IconButton)
+IconStroke.Color = Color3.fromRGB(255, 50, 50)
+IconStroke.Thickness = 2
 
 -- Main Frame
-local MainFrame = Instance.new("Frame")
-MainFrame.Name = "MainFrame"
-MainFrame.Parent = ScreenGui
-MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
-MainFrame.Position = UDim2.new(0.5, -100, 0.2, 0)
-MainFrame.Size = UDim2.new(0, 200, 0, 350)
-MainFrame.BorderSizePixel = 0
+local MainFrame = Instance.new("Frame", ScreenGui)
+MainFrame.Size = UDim2.new(0, 220, 0, 160)
+MainFrame.Position = UDim2.new(0.5, -110, 0.4, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+MainFrame.Visible = false 
+local MainCorner = Instance.new("UICorner", MainFrame)
 MainFrame.Active = true
-MainFrame.Draggable = true
 
--- Rainbow Border
-local Border = Instance.new("Frame")
-Border.Name = "Border"
-Border.Parent = MainFrame
-Border.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-Border.BorderSizePixel = 0
-Border.Position = UDim2.new(0, -1, 0, -1)
-Border.Size = UDim2.new(1, 2, 1, 2)
-Border.ZIndex = 0
+local Title = Instance.new("TextLabel", MainFrame)
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.Text = "BEAST DESTROYER 🧨"
+Title.TextColor3 = Color3.new(1, 0.2, 0.2)
+Title.Font = Enum.Font.GothamBold
+Title.BackgroundTransparency = 1
 
--- Minimize Button
-local MiniBtn = Instance.new("TextButton")
-MiniBtn.Size = UDim2.new(0, 20, 0, 20)
-MiniBtn.Position = UDim2.new(1, -25, 0, 5)
-MiniBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-MiniBtn.Text = "_"
-MiniBtn.TextColor3 = Color3.new(1, 1, 1)
-MiniBtn.BorderSizePixel = 0
-MiniBtn.Parent = MainFrame
+local StatusBtn = Instance.new("TextButton", MainFrame)
+StatusBtn.Size = UDim2.new(0.85, 0, 0, 45)
+StatusBtn.Position = UDim2.new(0.075, 0, 0.35, 0)
+StatusBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+StatusBtn.Text = "DESTRUCTION: ON"
+StatusBtn.Font = Enum.Font.GothamBold
+StatusBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+Instance.new("UICorner", StatusBtn)
 
--- [PROFILE SECTION]
-local Profile = Instance.new("Frame")
-Profile.Size = UDim2.new(1, 0, 0, 50)
-Profile.BackgroundTransparency = 1
-Profile.Parent = MainFrame
+local Info = Instance.new("TextLabel", MainFrame)
+Info.Size = UDim2.new(1, 0, 0, 50)
+Info.Position = UDim2.new(0, 0, 0.65, 0)
+Info.Text = "STATUS: REAL-TIME SERVER\nAUTO-ANCHOR: OFF\nJoints Breaker: ACTIVE"
+Info.TextColor3 = Color3.fromRGB(180, 180, 180)
+Info.TextSize = 10
+Info.BackgroundTransparency = 1
+Info.Font = Enum.Font.GothamMedium
 
-local Avatar = Instance.new("ImageLabel")
-Avatar.Size = UDim2.new(0, 35, 0, 35)
-Avatar.Position = UDim2.new(0, 8, 0, 8)
-Avatar.Image = "https://www.roblox.com/headshot-thumbnail/image?userId=" .. LocalPlayer.UserId .. "&width=420&height=420&format=png"
-Avatar.BorderSizePixel = 0
-Avatar.Parent = Profile
-
-local NameLabel = Instance.new("TextLabel")
-NameLabel.Text = LocalPlayer.DisplayName
-NameLabel.Position = UDim2.new(0, 50, 0, 10)
-NameLabel.Size = UDim2.new(0, 120, 0, 15)
-NameLabel.TextColor3 = Color3.new(1, 1, 1)
-NameLabel.Font = Enum.Font.SourceSansBold
-NameLabel.TextSize = 14
-NameLabel.TextXAlignment = Enum.TextXAlignment.Left
-NameLabel.BackgroundTransparency = 1
-NameLabel.Parent = Profile
-
--- [SCROLLING CONTAINER]
-local Container = Instance.new("ScrollingFrame")
-Container.Position = UDim2.new(0, 0, 0, 55)
-Container.Size = UDim2.new(1, 0, 1, -75)
-Container.BackgroundTransparency = 1
-Container.BorderSizePixel = 0
-Container.ScrollBarThickness = 2
-Container.CanvasSize = UDim2.new(0, 0, 0, 500)
-Container.Parent = MainFrame
-
-local UIList = Instance.new("UIListLayout")
-UIList.Parent = Container
-UIList.HorizontalAlignment = Enum.HorizontalAlignment.Center
-UIList.Padding = UDim.new(0, 5)
-
--- Variables
-local freecamOn, upHeld, downHeld = false, false, false
-local camSpeed, yaw, pitch = 50, 0, 0
-local camPos, frozenPos = Vector3.zero, nil
-
--- Minimize Logic
-local isMinimized = false
-MiniBtn.MouseButton1Click:Connect(function()
-    isMinimized = not isMinimized
-    if isMinimized then
-        MainFrame:TweenSize(UDim2.new(0, 40, 0, 40), "Out", "Quad", 0.2, true)
-        for _, v in pairs(MainFrame:GetChildren()) do if v ~= MiniBtn and v ~= Border then v.Visible = false end end
-        MiniBtn.Text = "+" MiniBtn.Position = UDim2.new(0, 10, 0, 10)
-    else
-        MainFrame:TweenSize(UDim2.new(0, 200, 0, 350), "Out", "Quad", 0.2, true)
-        task.wait(0.1)
-        for _, v in pairs(MainFrame:GetChildren()) do v.Visible = true end
-        MiniBtn.Text = "_" MiniBtn.Position = UDim2.new(1, -25, 0, 5)
-    end
-end)
-
--- Button Factory
-local function AddSquareButton(name, icon, color, func)
-    local Btn = Instance.new("TextButton")
-    Btn.Size = UDim2.new(0.9, 0, 0, 35)
-    Btn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-    Btn.BorderSizePixel = 0
-    Btn.Text = "          " .. name
-    Btn.TextColor3 = Color3.new(1, 1, 1)
-    Btn.Font = Enum.Font.SourceSansBold
-    Btn.TextSize = 11
-    Btn.TextXAlignment = Enum.TextXAlignment.Left
-    Btn.Parent = Container
-    
-    local Icon = Instance.new("ImageLabel")
-    Icon.Size = UDim2.new(0, 16, 0, 16)
-    Icon.Position = UDim2.new(0, 8, 0.5, -8)
-    Icon.Image = icon
-    Icon.BackgroundTransparency = 1
-    Icon.Parent = Btn
-    
-    local act = false
-    Btn.MouseButton1Click:Connect(function()
-        act = not act
-        Btn.BackgroundColor3 = act and color or Color3.fromRGB(25, 25, 25)
-        func(act)
+-- [[ FUNGSI DRAG ]] --
+local function MakeDraggable(obj)
+    local dragging, dragInput, dragStart, startPos
+    obj.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true; dragStart = input.Position; startPos = obj.Position
+        end
     end)
-    return Btn
+    obj.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - dragStart
+            obj.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+        end
+    end)
 end
 
--- [FITUR GAMEPLAY]
-AddSquareButton("AUTO BUY PADI", "rbxassetid://6031764630", Color3.fromRGB(0, 85, 150), function(s)
-    _G.AutoBuy = s
-    while _G.AutoBuy do
-        pcall(function() game:GetService("ReplicatedStorage").Remotes.TutorialRemotes.RequestShop:InvokeServer("BUY", "Bibit Padi", 1) end)
-        task.wait(0.5)
-    end
+MakeDraggable(IconButton)
+MakeDraggable(MainFrame)
+
+-- Event Handlers
+IconButton.MouseButton1Click:Connect(function()
+    MainFrame.Visible = not MainFrame.Visible
 end)
 
-AddSquareButton("AUTO SELL PADI", "rbxassetid://6031154871", Color3.fromRGB(150, 0, 0), function(s)
-    _G.AutoSell = s
-    while _G.AutoSell do
-        pcall(function() game:GetService("ReplicatedStorage").Remotes.TutorialRemotes.RequestSell:InvokeServer("SELL", "Padi", 45) end)
-        task.wait(0.5)
-    end
-end)
-
--- [FITUR EXTREME / BRUTAL]
-AddSquareButton("BRUTAL LOAD TEST", "rbxassetid://6031225818", Color3.fromRGB(200, 0, 0), function(s)
-    _G.BrutalMode = s
-    if s then
-        task.spawn(function()
-            while _G.BrutalMode do
-                for i = 1, 25 do -- Batch 25 request sekaligus
-                    task.spawn(function()
-                        pcall(function()
-                            local r = (syn and syn.request) or (http and http.request) or request
-                            if r then
-                                r({
-                                    Url = "https://games.roproxy.com/v1/games/" .. game.PlaceId .. "/servers/Public?limit=100",
-                                    Method = "GET",
-                                    Headers = {["Cache-Control"] = "no-cache"}
-                                })
-                            end
-                        end)
-                    end)
-                end
-                task.wait(0.1 + (math.random() / 10)) -- Jitter delay anti-detection
-            end
-        end)
-    end
-end)
-
-AddSquareButton("ANTI-IDLE (STAY)", "rbxassetid://6034509993", Color3.fromRGB(0, 150, 150), function(s)
-    _G.AntiIdle = s
-    if s then
-        LocalPlayer.Idled:Connect(function()
-            if _G.AntiIdle then
-                game:GetService("VirtualUser"):Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
-                task.wait(1)
-                game:GetService("VirtualUser"):Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
-            end
-        end)
-    end
-end)
-
--- [FREECAM SECTION]
-AddSquareButton("MOBILE FREECAM", "rbxassetid://6034289542", Color3.fromRGB(0, 120, 0), function(s)
-    freecamOn = s
-    FC_Overlay.Visible = s
-    local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-    if s then
-        camPos = Camera.CFrame.Position
-        local lv = Camera.CFrame.LookVector
-        yaw, pitch = math.deg(math.atan2(-lv.X, -lv.Z)), math.deg(math.asin(math.clamp(lv.Y, -1, 1)))
-        Camera.CameraType = Enum.CameraType.Scriptable
-        if hrp then frozenPos = hrp.CFrame hrp.Anchored = true end
+StatusBtn.MouseButton1Click:Connect(function()
+    botActive = not botActive
+    if botActive then
+        StatusBtn.Text = "DESTRUCTION: ON"
+        StatusBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+        IconStroke.Color = Color3.fromRGB(255, 50, 50)
     else
-        Camera.CameraType = Enum.CameraType.Custom
-        if hrp then hrp.Anchored = false end
+        StatusBtn.Text = "DESTRUCTION: OFF"
+        StatusBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        IconStroke.Color = Color3.fromRGB(255, 255, 255)
     end
 end)
-
--- [SPEED CONTROL UI]
-local SpeedFrame = Instance.new("Frame")
-SpeedFrame.Size = UDim2.new(0.9, 0, 0, 35)
-SpeedFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-SpeedFrame.BorderSizePixel = 0
-SpeedFrame.Parent = Container
-
-local SpeedLabel = Instance.new("TextLabel")
-SpeedLabel.Size = UDim2.new(0.6, 0, 1, 0)
-SpeedLabel.Text = "CAM SPEED: " .. camSpeed
-SpeedLabel.TextColor3 = Color3.new(1,1,1)
-SpeedLabel.BackgroundTransparency = 1
-SpeedLabel.Font = Enum.Font.SourceSansBold
-SpeedLabel.TextSize = 10
-SpeedLabel.Parent = SpeedFrame
-
-local Plus = Instance.new("TextButton")
-Plus.Size = UDim2.new(0.2, 0, 1, 0)
-Plus.Position = UDim2.new(0.6, 0, 0, 0)
-Plus.Text = "+" Plus.BackgroundColor3 = Color3.fromRGB(40,40,40)
-Plus.TextColor3 = Color3.new(1,1,1)
-Plus.Parent = SpeedFrame
-Plus.MouseButton1Click:Connect(function() camSpeed = camSpeed + 10 SpeedLabel.Text = "CAM SPEED: "..camSpeed end)
-
-local Minus = Instance.new("TextButton")
-Minus.Size = UDim2.new(0.2, 0, 1, 0)
-Minus.Position = UDim2.new(0.8, 0, 0, 0)
-Minus.Text = "-" Minus.BackgroundColor3 = Color3.fromRGB(40,40,40)
-Minus.TextColor3 = Color3.new(1,1,1)
-Minus.Parent = SpeedFrame
-Minus.MouseButton1Click:Connect(function() camSpeed = math.max(10, camSpeed - 10) SpeedLabel.Text = "CAM SPEED: "..camSpeed end)
-
--- [FREECAM OVERLAY]
-FC_Overlay = Instance.new("Frame")
-FC_Overlay.Size = UDim2.new(1, 0, 1, 0)
-FC_Overlay.BackgroundTransparency = 1
-FC_Overlay.Visible = false
-FC_Overlay.Parent = ScreenGui
-
-local UBtn = Instance.new("TextButton")
-UBtn.Size = UDim2.new(0, 50, 0, 50)
-UBtn.Position = UDim2.new(1, -60, 0.5, -55)
-UBtn.Text = "UP" UBtn.BackgroundColor3 = Color3.fromRGB(0,0,0)
-UBtn.BackgroundTransparency = 0.5
-UBtn.TextColor3 = Color3.new(1,1,1)
-UBtn.Parent = FC_Overlay
-
-local DBtn = Instance.new("TextButton")
-DBtn.Size = UDim2.new(0, 50, 0, 50)
-DBtn.Position = UDim2.new(1, -60, 0.5, 5)
-DBtn.Text = "DOWN" DBtn.BackgroundColor3 = Color3.fromRGB(0,0,0)
-DBtn.BackgroundTransparency = 0.5
-DBtn.TextColor3 = Color3.new(1,1,1)
-DBtn.Parent = FC_Overlay
-
-UBtn.InputBegan:Connect(function() upHeld = true end)
-UBtn.InputEnded:Connect(function() upHeld = false end)
-DBtn.InputBegan:Connect(function() downHeld = true end)
-DBtn.InputEnded:Connect(function() downHeld = false end)
-
--- Global Loops
-task.spawn(function()
-    while true do 
-        for i = 0, 1, 0.01 do 
-            Border.BackgroundColor3 = Color3.fromHSV(i, 0.8, 1) 
-            task.wait(0.03) 
-        end 
-    end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-    if freecamOn and input.UserInputType == Enum.UserInputType.Touch then
-        if input.Position.X > Camera.ViewportSize.X * 0.3 then
-            yaw = yaw - input.Delta.X * 0.3
-            pitch = math.clamp(pitch - input.Delta.Y * 0.3, -88, 88)
-        end
-    end
-end)
-
-RunService.RenderStepped:Connect(function(dt)
-    if freecamOn then
-        local mv = Controls:GetMoveVector()
-        local rot = CFrame.Angles(0, math.rad(yaw), 0) * CFrame.Angles(math.rad(pitch), 0, 0)
-        local move = (rot.RightVector * mv.X) + (rot.LookVector * -mv.Z) + (Vector3.yAxis * ((upHeld and 1 or 0) - (downHeld and 1 or 0)))
-        camPos = camPos + move * camSpeed * dt
-        Camera.CFrame = CFrame.new(camPos) * rot
-        if frozenPos and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            LocalPlayer.Character.HumanoidRootPart.CFrame = frozenPos
-            LocalPlayer.Character.HumanoidRootPart.Velocity = Vector3.zero
-        end
-    end
-end)
-
-local WM = Instance.new("TextLabel")
-WM.Text = "IKYY SQUARE EXECUTOR V3"
-WM.Position = UDim2.new(0, 0, 1, -20)
-WM.Size = UDim2.new(1, 0, 0, 15)
-WM.BackgroundTransparency = 1
-WM.TextColor3 = Color3.fromRGB(80, 80, 80)
-WM.TextSize = 9
-WM.Parent = MainFrame
