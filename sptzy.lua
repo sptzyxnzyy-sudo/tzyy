@@ -4,8 +4,12 @@ local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 
-if CoreGui:FindFirstChild("IkyyPremium_V3") then CoreGui:FindFirstChild("IkyyPremium_V3"):Destroy() end
+-- Cleanup GUI lama
+if CoreGui:FindFirstChild("IkyyPremium_V3") then 
+    CoreGui:FindFirstChild("IkyyPremium_V3"):Destroy() 
+end
 
+-- ScreenGui Setup
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "IkyyPremium_V3"
 ScreenGui.Parent = CoreGui
@@ -20,13 +24,13 @@ MainFrame.Position = UDim2.new(0.5, -125, 0.5, -150)
 MainFrame.Size = UDim2.new(0, 250, 0, 320)
 MainFrame.Active = true
 MainFrame.Draggable = true
-MainFrame.ClipsDescendants = true -- Penting untuk efek minimize
+MainFrame.ClipsDescendants = true
 
 local MainCorner = Instance.new("UICorner")
 MainCorner.CornerRadius = UDim.new(0, 12)
 MainCorner.Parent = MainFrame
 
--- Rainbow Border
+-- Rainbow Glow Border
 local Border = Instance.new("Frame")
 Border.Name = "GlowBorder"
 Border.Parent = MainFrame
@@ -58,7 +62,7 @@ ToggleBtn.TextSize = 18
 ToggleBtn.AutoButtonColor = false
 Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(0, 6)
 
--- Content Frame (Wadah untuk semua elemen selain tombol close)
+-- Content Frame (Wadah elemen yang bisa disembunyikan)
 local Content = Instance.new("Frame")
 Content.Name = "Content"
 Content.Parent = MainFrame
@@ -89,7 +93,7 @@ UserName.TextSize = 14
 UserName.TextXAlignment = Enum.TextXAlignment.Left
 UserName.Parent = ProfileFrame
 
--- Scrolling Container
+-- Buttons Scrolling Container
 local Container = Instance.new("ScrollingFrame")
 Container.Position = UDim2.new(0, 0, 0, 80)
 Container.Size = UDim2.new(1, 0, 1, -110)
@@ -103,6 +107,15 @@ UIList.Parent = Container
 UIList.HorizontalAlignment = Enum.HorizontalAlignment.Center
 UIList.Padding = UDim.new(0, 8)
 
+-- Rainbow Logic
+task.spawn(function()
+    local rot = 0
+    RunService.RenderStepped:Connect(function(dt)
+        rot = rot + (dt * 100)
+        UIGradient.Rotation = rot
+    end)
+end)
+
 -- Minimize Logic
 local IsMinimized = false
 ToggleBtn.MouseButton1Click:Connect(function()
@@ -112,10 +125,8 @@ ToggleBtn.MouseButton1Click:Connect(function()
     local targetText = IsMinimized and "+" or "-"
     local targetTrans = IsMinimized and 1 or 0
     
-    -- Animate Main Frame
     TweenService:Create(MainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Quart), {Size = targetSize}):Play()
     
-    -- Animate Content Alpha
     for _, obj in pairs(Content:GetDescendants()) do
         if obj:IsA("TextLabel") or obj:IsA("TextButton") or obj:IsA("ImageLabel") then
             TweenService:Create(obj, TweenInfo.new(0.2), {TextTransparency = targetTrans, ImageTransparency = targetTrans}):Play()
@@ -126,16 +137,7 @@ ToggleBtn.MouseButton1Click:Connect(function()
     Content.Visible = not IsMinimized
 end)
 
--- Rainbow Loop
-task.spawn(function()
-    local rot = 0
-    RunService.RenderStepped:Connect(function(dt)
-        rot = rot + (dt * 100)
-        UIGradient.Rotation = rot
-    end)
-end)
-
--- Button Builder
+-- Button Factory
 local function CreateStyledButton(name, icon, activeColor, func)
     local Btn = Instance.new("TextButton")
     Btn.Size = UDim2.new(0.9, 0, 0, 40)
@@ -164,14 +166,15 @@ local function CreateStyledButton(name, icon, activeColor, func)
 
         task.spawn(function()
             while IsToggled do
-                pcall(func)
+                local success, err = pcall(func)
+                if not success then warn("Error: " .. err) end
                 task.wait(0.5)
             end
         end)
     end)
 end
 
--- DATA BUTTONS
+-- DAFTAR FITUR
 CreateStyledButton("AUTO BUY BIBIT", "rbxassetid://6031764630", Color3.fromRGB(0, 120, 215), function()
     game:GetService("ReplicatedStorage").Remotes.TutorialRemotes.RequestShop:InvokeServer("BUY", "Bibit Padi", 1)
 end)
@@ -184,12 +187,15 @@ CreateStyledButton("AUTO SELL PADI", "rbxassetid://6031154871", Color3.fromRGB(1
     game:GetService("ReplicatedStorage").Remotes.TutorialRemotes.RequestSell:InvokeServer("SELL", "Padi", 45)
 end)
 
+-- Footer
 local Footer = Instance.new("TextLabel")
-Footer.Text = "IKYY PREMIUM v3.3"
+Footer.Text = "IKYY PREMIUM v3.3 • 2024"
 Footer.Position = UDim2.new(0, 0, 1, -25)
 Footer.Size = UDim2.new(1, 0, 0, 20)
 Footer.BackgroundTransparency = 1
-Footer.TextColor3 = Color3.fromRGB(100, 100, 100)
+Footer.TextColor3 = Color3.fromRGB(80, 80, 80)
 Footer.Font = Enum.Font.Gotham
 Footer.TextSize = 10
 Footer.Parent = Content
+
+print("IkyyPremium_V3.3 Loaded!")
