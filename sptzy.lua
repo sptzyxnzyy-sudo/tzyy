@@ -1,139 +1,157 @@
--- [[ SPTZYY PART CONTROLLER: BEAST MOBILE EDITION ]] --
-local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
-local UserInputService = game:GetService("UserInputService")
-local lp = Players.LocalPlayer
+local CoreGui = game:GetService("CoreGui")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
 
--- [[ SETTINGS ]] --
-local botActive = true
-local pullRadius = 150      -- Radius lebih jauh
-local orbitHeight = 8      
-local orbitRadius = 10     
-local spinSpeed = 125        -- Putaran lebih kencang
-local followStrength = 100  -- Magnet sangat kencang (High Velocity)
+if CoreGui:FindFirstChild("IkyyPremium_V3") then CoreGui:FindFirstChild("IkyyPremium_V3"):Destroy() end
 
--- [[ LOGIKA PHYSICS & CONSTRAINT BREAKER ]] --
-local angle = 0
-RunService.Heartbeat:Connect(function()
-    if not botActive or not lp.Character or not lp.Character:FindFirstChild("HumanoidRootPart") then return end
-    
-    angle = angle + (0.05 * spinSpeed)
-    local rootPart = lp.Character.HumanoidRootPart
-    local targetPos = rootPart.Position + Vector3.new(math.cos(angle) * orbitRadius, orbitHeight, math.sin(angle) * orbitRadius)
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "IkyyPremium_V3"
+ScreenGui.Parent = CoreGui
+ScreenGui.ResetOnSpawn = false
 
-    for _, part in pairs(workspace:GetDescendants()) do
-        if part:IsA("BasePart") and not part.Anchored and not part:IsDescendantOf(lp.Character) then
-            local distance = (part.Position - rootPart.Position).Magnitude
-            
-            if distance <= pullRadius then
-                -- PUTUSKAN TALI/ROPE (BREAK CONSTRAINTS)
-                for _, constraint in pairs(part:GetChildren()) do
-                    if constraint:IsA("RopeConstraint") or constraint:IsA("RodConstraint") or constraint:IsA("SpringConstraint") then
-                        constraint:Destroy()
-                    end
-                end
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Parent = ScreenGui
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+MainFrame.Position = UDim2.new(0.5, -125, 0.5, -150)
+MainFrame.Size = UDim2.new(0, 250, 0, 320)
+MainFrame.Active = true
+MainFrame.Draggable = true
 
-                -- MAGNET KENCANG
-                pcall(function() part:SetNetworkOwner(lp) end)
-                part.Velocity = (targetPos - part.Position) * followStrength
-                
-                -- Anti-Gravity Super
-                part.RotVelocity = Vector3.new(0, 10, 0) -- Membuat part ikut berputar di sumbunya
-            end
-        end
-    end
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0, 12)
+MainCorner.Parent = MainFrame
+
+local Border = Instance.new("Frame")
+Border.Name = "GlowBorder"
+Border.Parent = MainFrame
+Border.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+Border.Position = UDim2.new(0, -1, 0, -1)
+Border.Size = UDim2.new(1, 2, 1, 2)
+Border.ZIndex = -1
+
+local BorderCorner = Instance.new("UICorner")
+BorderCorner.CornerRadius = UDim.new(0, 13)
+BorderCorner.Parent = Border
+
+local UIGradient = Instance.new("UIGradient")
+UIGradient.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 255, 255)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 0))
+}
+UIGradient.Parent = Border
+
+local ProfileFrame = Instance.new("Frame")
+ProfileFrame.Size = UDim2.new(1, 0, 0, 70)
+ProfileFrame.BackgroundTransparency = 1
+ProfileFrame.Parent = MainFrame
+
+local AvatarImg = Instance.new("ImageLabel")
+AvatarImg.Size = UDim2.new(0, 45, 0, 45)
+AvatarImg.Position = UDim2.new(0, 15, 0, 15)
+AvatarImg.Image = "https://www.roblox.com/headshot-thumbnail/image?userId=" .. LocalPlayer.UserId .. "&width=420&height=420&format=png"
+AvatarImg.Parent = ProfileFrame
+Instance.new("UICorner", AvatarImg).CornerRadius = UDim.new(1, 0)
+
+local UserName = Instance.new("TextLabel")
+UserName.Text = LocalPlayer.DisplayName
+UserName.Position = UDim2.new(0, 70, 0, 18)
+UserName.Size = UDim2.new(0, 160, 0, 20)
+UserName.TextColor3 = Color3.fromRGB(255, 255, 255)
+UserName.Font = Enum.Font.GothamBold
+UserName.BackgroundTransparency = 1
+UserName.TextSize = 14
+UserName.TextXAlignment = Enum.TextXAlignment.Left
+UserName.Parent = ProfileFrame
+
+local Container = Instance.new("ScrollingFrame")
+Container.Position = UDim2.new(0, 0, 0, 80)
+Container.Size = UDim2.new(1, 0, 1, -110)
+Container.BackgroundTransparency = 1
+Container.BorderSizePixel = 0
+Container.ScrollBarThickness = 2
+Container.Parent = MainFrame
+
+local UIList = Instance.new("UIListLayout")
+UIList.Parent = Container
+UIList.HorizontalAlignment = Enum.HorizontalAlignment.Center
+UIList.Padding = UDim.new(0, 8)
+
+task.spawn(function()
+    local rot = 0
+    RunService.RenderStepped:Connect(function(dt)
+        rot = rot + (dt * 100)
+        UIGradient.Rotation = rot
+    end)
 end)
 
--- [[ UI SETUP: ICON & MAIN GUI ]] --
-local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
-ScreenGui.Name = "SptzyyUltraControl"
+local function CreateStyledButton(name, icon, activeColor, func)
+    local Btn = Instance.new("TextButton")
+    Btn.Size = UDim2.new(0.9, 0, 0, 40)
+    Btn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    Btn.Text = "          " .. name
+    Btn.TextColor3 = Color3.fromRGB(200, 200, 200)
+    Btn.Font = Enum.Font.GothamSemibold
+    Btn.TextSize = 11
+    Btn.AutoButtonColor = false
+    Btn.TextXAlignment = Enum.TextXAlignment.Left
+    Btn.Parent = Container
+    
+    Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 8)
 
--- Tombol Icon (Floating)
-local IconButton = Instance.new("ImageButton", ScreenGui)
-IconButton.Size = UDim2.new(0, 50, 0, 50)
-IconButton.Position = UDim2.new(0.1, 0, 0.5, 0)
-IconButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-IconButton.Image = "rbxassetid://6031094678" -- Icon keren (Gears/Tools)
-IconButton.BorderSizePixel = 0
-local IconCorner = Instance.new("UICorner", IconButton)
-IconCorner.CornerRadius = UDim.new(1, 0)
-local IconStroke = Instance.new("UIStroke", IconButton)
-IconStroke.Color = Color3.fromRGB(0, 255, 150)
-IconStroke.Thickness = 2
+    local IconImg = Instance.new("ImageLabel")
+    IconImg.Size = UDim2.new(0, 20, 0, 20)
+    IconImg.Position = UDim2.new(0, 10, 0.5, -10)
+    IconImg.Image = icon
+    IconImg.BackgroundTransparency = 1
+    IconImg.Parent = Btn
+    
+    local StatusDot = Instance.new("Frame")
+    StatusDot.Size = UDim2.new(0, 6, 0, 6)
+    StatusDot.Position = UDim2.new(1, -20, 0.5, -3)
+    StatusDot.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    StatusDot.Parent = Btn
+    Instance.new("UICorner", StatusDot).CornerRadius = UDim.new(1, 0)
 
--- Main Frame
-local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Size = UDim2.new(0, 220, 0, 160)
-MainFrame.Position = UDim2.new(0.5, -110, 0.4, 0)
-MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-MainFrame.Visible = false -- Sembunyi di awal
-local MainCorner = Instance.new("UICorner", MainFrame)
-MainFrame.Active = true
+    local IsToggled = false
+    Btn.MouseButton1Click:Connect(function()
+        IsToggled = not IsToggled
+        local targetColor = IsToggled and activeColor or Color3.fromRGB(25, 25, 25)
+        TweenService:Create(Btn, TweenInfo.new(0.3), {BackgroundColor3 = targetColor}):Play()
+        TweenService:Create(StatusDot, TweenInfo.new(0.3), {BackgroundColor3 = IsToggled and Color3.new(1,1,1) or Color3.fromRGB(50,50,50)}):Play()
 
-local Title = Instance.new("TextLabel", MainFrame)
-Title.Size = UDim2.new(1, 0, 0, 40)
-Title.Text = "BEAST CONTROLLER ❤️"
-Title.TextColor3 = Color3.new(1, 1, 1)
-Title.Font = Enum.Font.GothamBold
-Title.BackgroundTransparency = 1
-
-local StatusBtn = Instance.new("TextButton", MainFrame)
-StatusBtn.Size = UDim2.new(0.85, 0, 0, 45)
-StatusBtn.Position = UDim2.new(0.075, 0, 0.35, 0)
-StatusBtn.BackgroundColor3 = Color3.fromRGB(0, 255, 150)
-StatusBtn.Text = "MAGNET: ON"
-StatusBtn.Font = Enum.Font.GothamBold
-StatusBtn.TextColor3 = Color3.fromRGB(20, 20, 20)
-Instance.new("UICorner", StatusBtn)
-
-local Info = Instance.new("TextLabel", MainFrame)
-Info.Size = UDim2.new(1, 0, 0, 50)
-Info.Position = UDim2.new(0, 0, 0.65, 0)
-Info.Text = "KEKUATAN: MAX\nROPE BREAKER: ACTIVE\nKlik Icon untuk sembunyi"
-Info.TextColor3 = Color3.fromRGB(150, 150, 150)
-Info.TextSize = 10
-Info.BackgroundTransparency = 1
-Info.Font = Enum.Font.GothamMedium
-
--- [[ LOGIKA DRAG & KLIK ICON ]] --
-local function MakeDraggable(obj)
-    local dragging, dragInput, dragStart, startPos
-    obj.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true; dragStart = input.Position; startPos = obj.Position
-        end
-    end)
-    obj.InputChanged:Connect(function(input)
-        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-            local delta = input.Position - dragStart
-            obj.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-        end
-    end)
-    UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = false
-        end
+        task.spawn(function()
+            while IsToggled do
+                pcall(func)
+                task.wait(0.1)
+            end
+        end)
     end)
 end
 
-MakeDraggable(IconButton)
-MakeDraggable(MainFrame)
-
--- Klik Icon Tampilkan/Sembunyikan
-IconButton.MouseButton1Click:Connect(function()
-    MainFrame.Visible = not MainFrame.Visible
+-- DATA BUTTONS
+CreateStyledButton("AUTO BUY BIBIT", "rbxassetid://6031764630", Color3.fromRGB(0, 120, 215), function()
+    game:GetService("ReplicatedStorage").Remotes.TutorialRemotes.RequestShop:InvokeServer("BUY", "Bibit Padi", 1)
 end)
 
--- Toggle Magnet
-StatusBtn.MouseButton1Click:Connect(function()
-    botActive = not botActive
-    if botActive then
-        StatusBtn.Text = "MAGNET: ON"
-        StatusBtn.BackgroundColor3 = Color3.fromRGB(0, 255, 150)
-        IconStroke.Color = Color3.fromRGB(0, 255, 150)
-    else
-        StatusBtn.Text = "MAGNET: OFF"
-        StatusBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
-        IconStroke.Color = Color3.fromRGB(255, 80, 80)
-    end
+CreateStyledButton("AUTO PLANT CROP", "rbxassetid://6034287525", Color3.fromRGB(46, 204, 113), function()
+    game:GetService("ReplicatedStorage").Remotes.TutorialRemotes.PlantCrop:FireServer(Vector3.new(-55.03845977783203, 37.296875, -299.0332946777344))
+    task.wait(0.4)
 end)
+
+CreateStyledButton("AUTO SELL PADI", "rbxassetid://6031154871", Color3.fromRGB(180, 0, 0), function()
+    game:GetService("ReplicatedStorage").Remotes.TutorialRemotes.RequestSell:InvokeServer("SELL", "Padi", 45)
+end)
+
+local Footer = Instance.new("TextLabel")
+Footer.Text = "IKYY PREMIUM v3.2 • ACTIVE"
+Footer.Position = UDim2.new(0, 0, 1, -25)
+Footer.Size = UDim2.new(1, 0, 0, 20)
+Footer.BackgroundTransparency = 1
+Footer.TextColor3 = Color3.fromRGB(100, 100, 100)
+Footer.Font = Enum.Font.Gotham
+Footer.TextSize = 10
+Footer.Parent = MainFrame
