@@ -4,16 +4,27 @@ local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 
--- Cleanup versi lama agar tidak terjadi penumpukan UI
-if CoreGui:FindFirstChild("IkyyPremium_V4") then 
-    CoreGui:FindFirstChild("IkyyPremium_V4"):Destroy() 
+-- Cleanup versi lama agar tidak duplikat
+if CoreGui:FindFirstChild("IkyyPremium_V5") then 
+    CoreGui:FindFirstChild("IkyyPremium_V5"):Destroy() 
 end
 
 -- ==========================================
--- MAIN SETUP
+-- ANTI-AFK SYSTEM (Agar tidak kena Kick)
+-- ==========================================
+task.spawn(function()
+    local VirtualUser = game:GetService("VirtualUser")
+    LocalPlayer.Idled:Connect(function()
+        VirtualUser:CaptureController()
+        VirtualUser:ClickButton2(Vector2.new())
+    end)
+end)
+
+-- ==========================================
+-- MAIN UI SETUP
 -- ==========================================
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "IkyyPremium_V4"
+ScreenGui.Name = "IkyyPremium_V5"
 ScreenGui.Parent = CoreGui
 ScreenGui.ResetOnSpawn = false
 
@@ -29,7 +40,7 @@ MainFrame.Draggable = true
 MainFrame.ClipsDescendants = true
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 16)
 
--- Rainbow Glow Border
+-- Rainbow Glow Border (Berputar)
 local Border = Instance.new("Frame")
 Border.Name = "GlowBorder"
 Border.Parent = MainFrame
@@ -47,27 +58,27 @@ UIGradient.Color = ColorSequence.new{
 }
 UIGradient.Parent = Border
 
--- Floating Open Button (Muncul saat menu di-close)
+-- Floating Open Button (Tombol Melayang)
 local OpenBtn = Instance.new("TextButton")
 OpenBtn.Name = "OpenBtn"
 OpenBtn.Parent = ScreenGui
 OpenBtn.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-OpenBtn.Position = UDim2.new(0.02, 0, 0.5, -20)
-OpenBtn.Size = UDim2.new(0, 45, 0, 45)
+OpenBtn.Position = UDim2.new(0.1, 0, 0.5, -20)
+OpenBtn.Size = UDim2.new(0, 50, 0, 50)
 OpenBtn.Text = "IKY"
 OpenBtn.Font = Enum.Font.GothamBold
 OpenBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-OpenBtn.TextSize = 12
+OpenBtn.TextSize = 14
 OpenBtn.Visible = false
-OpenBtn.Draggable = true
+OpenBtn.Draggable = true -- Bisa digeser sesuka hati
 Instance.new("UICorner", OpenBtn).CornerRadius = UDim.new(1, 0)
 
--- Rainbow Border untuk Open Button
 local OpenBorder = Border:Clone()
 OpenBorder.Parent = OpenBtn
-OpenBorder.Size = UDim2.new(1, 2, 1, 2)
+OpenBorder.Size = UDim2.new(1, 4, 1, 4)
+OpenBorder.Position = UDim2.new(0, -2, 0, -2)
 
--- Close Button
+-- Close Button (Ikon X)
 local CloseBtn = Instance.new("TextButton")
 CloseBtn.Name = "CloseBtn"
 CloseBtn.Parent = MainFrame
@@ -88,6 +99,7 @@ Content.Size = UDim2.new(1, 0, 1, 0)
 Content.BackgroundTransparency = 1
 Content.Parent = MainFrame
 
+-- Profile Section
 local Profile = Instance.new("Frame")
 Profile.Size = UDim2.new(1, 0, 0, 75)
 Profile.BackgroundTransparency = 1
@@ -111,7 +123,7 @@ UserText.BackgroundTransparency = 1
 UserText.TextXAlignment = Enum.TextXAlignment.Left
 UserText.Parent = Profile
 
--- Scroll Container
+-- Scroll Fitur
 local Container = Instance.new("ScrollingFrame")
 Container.Position = UDim2.new(0, 0, 0, 85)
 Container.Size = UDim2.new(1, 0, 1, -120)
@@ -126,20 +138,22 @@ UIList.HorizontalAlignment = Enum.HorizontalAlignment.Center
 UIList.Padding = UDim.new(0, 10)
 
 -- ==========================================
--- ANIMATION & LOGIC
+-- LOGIC & ANIMATIONS
 -- ==========================================
 
--- Rainbow Rotation
+-- Rainbow Animation
 task.spawn(function()
     local rot = 0
     RunService.RenderStepped:Connect(function(dt)
         rot = rot + (dt * 120)
         UIGradient.Rotation = rot
-        OpenBorder.UIGradient.Rotation = rot
+        if OpenBorder:FindFirstChild("UIGradient") then
+            OpenBorder.UIGradient.Rotation = rot
+        end
     end)
 end)
 
--- Open/Close Logic
+-- Minimize Logic
 CloseBtn.MouseButton1Click:Connect(function()
     MainFrame:TweenSize(UDim2.new(0, 0, 0, 0), "Out", "Quart", 0.3, true)
     task.wait(0.3)
@@ -147,17 +161,18 @@ CloseBtn.MouseButton1Click:Connect(function()
     OpenBtn.Visible = true
 end)
 
+-- Open Logic
 OpenBtn.MouseButton1Click:Connect(function()
     OpenBtn.Visible = false
     MainFrame.Visible = true
     MainFrame:TweenSize(UDim2.new(0, 250, 0, 320), "Out", "Back", 0.4, true)
 end)
 
--- Button Factory (Rapi & No Overlap)
+-- Fitur Button Maker (Rapi & Jarak Ikon Pas)
 local function CreateFitur(name, icon, activeColor, func)
     local Btn = Instance.new("TextButton")
     Btn.Size = UDim2.new(0.9, 0, 0, 45)
-    Btn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    Btn.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
     Btn.Text = ""
     Btn.AutoButtonColor = false
     Btn.Parent = Container
@@ -184,13 +199,16 @@ local function CreateFitur(name, icon, activeColor, func)
     local Toggled = false
     Btn.MouseButton1Click:Connect(function()
         Toggled = not Toggled
-        TweenService:Create(Btn, TweenInfo.new(0.3), {BackgroundColor3 = Toggled and activeColor or Color3.fromRGB(20, 20, 20)}):Play()
-        TweenService:Create(Label, TweenInfo.new(0.3), {TextColor3 = Toggled and Color3.new(1, 1, 1) or Color3.fromRGB(210, 210, 210)}):Play()
+        local targetColor = Toggled and activeColor or Color3.fromRGB(22, 22, 22)
+        local targetText = Toggled and Color3.new(1, 1, 1) or Color3.fromRGB(210, 210, 210)
+        
+        TweenService:Create(Btn, TweenInfo.new(0.3), {BackgroundColor3 = targetColor}):Play()
+        TweenService:Create(Label, TweenInfo.new(0.3), {TextColor3 = targetText}):Play()
 
         task.spawn(function()
             while Toggled do
                 local success, err = pcall(func)
-                if not success then warn("Error: "..err) end
+                if not success then warn("Error fitur: "..err) end
                 task.wait(0.5)
             end
         end)
@@ -198,10 +216,10 @@ local function CreateFitur(name, icon, activeColor, func)
 end
 
 -- ==========================================
--- DATA FITUR (DAFTAR PILIHAN)
+-- DAFTAR FITUR LENGKAP
 -- ==========================================
 
-CreateFitur("AUTO BUY BIBIT", "rbxassetid://6031764630", Color3.fromRGB(0, 102, 204), function()
+CreateFitur("AUTO BUY BIBIT PADI", "rbxassetid://6031764630", Color3.fromRGB(0, 102, 204), function()
     game:GetService("ReplicatedStorage").Remotes.TutorialRemotes.RequestShop:InvokeServer("BUY", "Bibit Padi", 1)
 end)
 
@@ -213,20 +231,19 @@ CreateFitur("AUTO SELL PADI", "rbxassetid://6031154871", Color3.fromRGB(153, 0, 
     game:GetService("ReplicatedStorage").Remotes.TutorialRemotes.RequestSell:InvokeServer("SELL", "Padi", 45)
 end)
 
--- FITUR BARU: HD ADMIN COMMAND
-CreateFitur("SEND JAIL CMD", "rbxassetid://6031068833", Color3.fromRGB(255, 140, 0), function()
+CreateFitur("HD ADMIN: JAIL CMD", "rbxassetid://6031068833", Color3.fromRGB(255, 140, 0), function()
     game:GetService("ReplicatedStorage").HDAdminHDClient.Signals.RequestCommand:InvokeServer(";jail")
 end)
 
--- Footer Info
+-- Footer
 local Footer = Instance.new("TextLabel")
-Footer.Text = "IKYY PREMIUM • v4.8 STABLE"
+Footer.Text = "IKYY PREMIUM • v5.0 ULTIMATE"
 Footer.Position = UDim2.new(0, 0, 1, -25)
 Footer.Size = UDim2.new(1, 0, 0, 20)
 Footer.BackgroundTransparency = 1
-Footer.TextColor3 = Color3.fromRGB(100, 100, 100)
+Footer.TextColor3 = Color3.fromRGB(80, 80, 80)
 Footer.Font = Enum.Font.Gotham
 Footer.TextSize = 10
 Footer.Parent = Content
 
-print("IkyyPremium_V4.8 Loaded - Hubungi Owner Jika Error.")
+print("IkyyPremium V5.0 Berhasil Dijalankan. Selamat Bermain!")
