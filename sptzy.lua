@@ -4,18 +4,20 @@ local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 
--- Cleanup versi lama agar tidak menumpuk di memori
+-- Cleanup versi lama agar tidak terjadi penumpukan UI
 if CoreGui:FindFirstChild("IkyyPremium_V4") then 
     CoreGui:FindFirstChild("IkyyPremium_V4"):Destroy() 
 end
 
--- ScreenGui Setup
+-- ==========================================
+-- MAIN SETUP
+-- ==========================================
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "IkyyPremium_V4"
 ScreenGui.Parent = CoreGui
 ScreenGui.ResetOnSpawn = false
 
--- Main Frame (UI Utama)
+-- Main Frame
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Parent = ScreenGui
@@ -27,7 +29,7 @@ MainFrame.Draggable = true
 MainFrame.ClipsDescendants = true
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 16)
 
--- Rainbow Glow Border (Efek Animasi)
+-- Rainbow Glow Border
 local Border = Instance.new("Frame")
 Border.Name = "GlowBorder"
 Border.Parent = MainFrame
@@ -45,11 +47,11 @@ UIGradient.Color = ColorSequence.new{
 }
 UIGradient.Parent = Border
 
--- Floating Open Button (Tombol Melayang)
+-- Floating Open Button (Muncul saat menu di-close)
 local OpenBtn = Instance.new("TextButton")
 OpenBtn.Name = "OpenBtn"
 OpenBtn.Parent = ScreenGui
-OpenBtn.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
+OpenBtn.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 OpenBtn.Position = UDim2.new(0.02, 0, 0.5, -20)
 OpenBtn.Size = UDim2.new(0, 45, 0, 45)
 OpenBtn.Text = "IKY"
@@ -59,15 +61,17 @@ OpenBtn.TextSize = 12
 OpenBtn.Visible = false
 OpenBtn.Draggable = true
 Instance.new("UICorner", OpenBtn).CornerRadius = UDim.new(1, 0)
+
+-- Rainbow Border untuk Open Button
 local OpenBorder = Border:Clone()
 OpenBorder.Parent = OpenBtn
-OpenBorder.CornerRadius = UDim.new(1,0)
+OpenBorder.Size = UDim2.new(1, 2, 1, 2)
 
--- Close Button (Icon Silang)
+-- Close Button
 local CloseBtn = Instance.new("TextButton")
 CloseBtn.Name = "CloseBtn"
 CloseBtn.Parent = MainFrame
-CloseBtn.BackgroundColor3 = Color3.fromRGB(28, 28, 28)
+CloseBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 CloseBtn.Position = UDim2.new(1, -35, 0, 12)
 CloseBtn.Size = UDim2.new(0, 24, 0, 24)
 CloseBtn.Text = "×"
@@ -76,13 +80,14 @@ CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 CloseBtn.TextSize = 18
 Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0, 8)
 
--- Content Frame
+-- ==========================================
+-- UI CONTENT
+-- ==========================================
 local Content = Instance.new("Frame")
 Content.Size = UDim2.new(1, 0, 1, 0)
 Content.BackgroundTransparency = 1
 Content.Parent = MainFrame
 
--- Profile Section
 local Profile = Instance.new("Frame")
 Profile.Size = UDim2.new(1, 0, 0, 75)
 Profile.BackgroundTransparency = 1
@@ -106,7 +111,7 @@ UserText.BackgroundTransparency = 1
 UserText.TextXAlignment = Enum.TextXAlignment.Left
 UserText.Parent = Profile
 
--- Fitur Scrolling List
+-- Scroll Container
 local Container = Instance.new("ScrollingFrame")
 Container.Position = UDim2.new(0, 0, 0, 85)
 Container.Size = UDim2.new(1, 0, 1, -120)
@@ -120,17 +125,21 @@ UIList.Parent = Container
 UIList.HorizontalAlignment = Enum.HorizontalAlignment.Center
 UIList.Padding = UDim.new(0, 10)
 
--- Rainbow Rotation Animation
+-- ==========================================
+-- ANIMATION & LOGIC
+-- ==========================================
+
+-- Rainbow Rotation
 task.spawn(function()
     local rot = 0
     RunService.RenderStepped:Connect(function(dt)
         rot = rot + (dt * 120)
         UIGradient.Rotation = rot
-        if OpenBorder then OpenBorder.UIGradient.Rotation = rot end
+        OpenBorder.UIGradient.Rotation = rot
     end)
 end)
 
--- LOGIKA OPEN / CLOSE (SMOOTH)
+-- Open/Close Logic
 CloseBtn.MouseButton1Click:Connect(function()
     MainFrame:TweenSize(UDim2.new(0, 0, 0, 0), "Out", "Quart", 0.3, true)
     task.wait(0.3)
@@ -144,7 +153,7 @@ OpenBtn.MouseButton1Click:Connect(function()
     MainFrame:TweenSize(UDim2.new(0, 250, 0, 320), "Out", "Back", 0.4, true)
 end)
 
--- Fitur Button Maker (Sangat Rapi)
+-- Button Factory (Rapi & No Overlap)
 local function CreateFitur(name, icon, activeColor, func)
     local Btn = Instance.new("TextButton")
     Btn.Size = UDim2.new(0.9, 0, 0, 45)
@@ -189,7 +198,7 @@ local function CreateFitur(name, icon, activeColor, func)
 end
 
 -- ==========================================
--- DATA FITUR (UPDATE v4.8)
+-- DATA FITUR (DAFTAR PILIHAN)
 -- ==========================================
 
 CreateFitur("AUTO BUY BIBIT", "rbxassetid://6031764630", Color3.fromRGB(0, 102, 204), function()
@@ -205,11 +214,11 @@ CreateFitur("AUTO SELL PADI", "rbxassetid://6031154871", Color3.fromRGB(153, 0, 
 end)
 
 -- FITUR BARU: HD ADMIN COMMAND
-CreateFitur("SEND JAIL CMD", "rbxassetid://6031068833", Color3.fromRGB(255, 165, 0), function()
+CreateFitur("SEND JAIL CMD", "rbxassetid://6031068833", Color3.fromRGB(255, 140, 0), function()
     game:GetService("ReplicatedStorage").HDAdminHDClient.Signals.RequestCommand:InvokeServer(";jail")
 end)
 
--- Footer
+-- Footer Info
 local Footer = Instance.new("TextLabel")
 Footer.Text = "IKYY PREMIUM • v4.8 STABLE"
 Footer.Position = UDim2.new(0, 0, 1, -25)
@@ -220,4 +229,4 @@ Footer.Font = Enum.Font.Gotham
 Footer.TextSize = 10
 Footer.Parent = Content
 
-print("IkyyPremium_V4.8 Loaded - HD Admin Support Added.")
+print("IkyyPremium_V4.8 Loaded - Hubungi Owner Jika Error.")
