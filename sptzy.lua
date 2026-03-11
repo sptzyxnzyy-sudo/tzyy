@@ -15,107 +15,89 @@ ScreenGui.ResetOnSpawn = false
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Parent = ScreenGui
-MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-MainFrame.BorderSizePixel = 0
-MainFrame.Position = UDim2.new(0.5, -110, 0.5, -100)
-MainFrame.Size = UDim2.new(0, 220, 0, 310) -- Ukuran ditambah sedikit untuk status kembang api
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+MainFrame.Position = UDim2.new(0.5, -110, 0.5, -150)
+MainFrame.Size = UDim2.new(0, 225, 0, 320)
 MainFrame.Active = true
 MainFrame.Draggable = true
 
--- UI Corner Helper
 local function AddCorner(parent, radius)
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, radius)
     corner.Parent = parent
 end
 
--- Rainbow Border Effect
+-- Rainbow Border
 local Border = Instance.new("Frame")
 Border.Name = "RainbowBorder"
 Border.Parent = MainFrame
 Border.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-Border.BorderSizePixel = 0
 Border.Position = UDim2.new(0, -2, 0, -2)
 Border.Size = UDim2.new(1, 4, 1, 4)
 Border.ZIndex = 0
+AddCorner(Border, 10)
+AddCorner(MainFrame, 10)
 
-AddCorner(Border, 8)
-AddCorner(MainFrame, 8)
+-- Rainbow Logic
+RunService.RenderStepped:Connect(function()
+    Border.BackgroundColor3 = Color3.fromHSV(tick() % 5 / 5, 0.8, 1)
+end)
 
--- Profile Section
+-- Header / Profile
 local ProfileFrame = Instance.new("Frame")
-ProfileFrame.Size = UDim2.new(1, 0, 0, 60)
+ProfileFrame.Size = UDim2.new(1, 0, 0, 65)
 ProfileFrame.BackgroundTransparency = 1
 ProfileFrame.Parent = MainFrame
 
 local AvatarImg = Instance.new("ImageLabel")
 AvatarImg.Size = UDim2.new(0, 45, 0, 45)
-AvatarImg.Position = UDim2.new(0, 10, 0, 10)
-AvatarImg.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
--- Menggunakan rbxthumb untuk loading avatar yang lebih stabil
+AvatarImg.Position = UDim2.new(0, 12, 0, 10)
 AvatarImg.Image = "rbxthumb://type=AvatarHeadShot&id=" .. LocalPlayer.UserId .. "&w=150&h=150"
 AvatarImg.Parent = ProfileFrame
 AddCorner(AvatarImg, 100)
 
 local UserName = Instance.new("TextLabel")
 UserName.Text = LocalPlayer.DisplayName
-UserName.Position = UDim2.new(0, 65, 0, 12)
-UserName.Size = UDim2.new(0, 140, 0, 20)
+UserName.Position = UDim2.new(0, 65, 0, 15)
+UserName.Size = UDim2.new(0, 120, 0, 20)
 UserName.TextColor3 = Color3.fromRGB(255, 255, 255)
 UserName.TextXAlignment = Enum.TextXAlignment.Left
 UserName.Font = Enum.Font.SourceSansBold
-UserName.BackgroundTransparency = 1
 UserName.TextSize = 16
+UserName.BackgroundTransparency = 1
 UserName.Parent = ProfileFrame
 
-local UserTag = Instance.new("TextLabel")
-UserTag.Text = "@" .. LocalPlayer.Name
-UserTag.Position = UDim2.new(0, 65, 0, 28)
-UserTag.Size = UDim2.new(0, 140, 0, 20)
-UserTag.TextColor3 = Color3.fromRGB(180, 180, 180)
-UserTag.TextXAlignment = Enum.TextXAlignment.Left
-UserTag.Font = Enum.Font.SourceSans
-UserTag.BackgroundTransparency = 1
-UserTag.TextSize = 12
-UserTag.Parent = ProfileFrame
+-- Close Button
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Text = "X"
+CloseBtn.Size = UDim2.new(0, 25, 0, 25)
+CloseBtn.Position = UDim2.new(1, -30, 0, 10)
+CloseBtn.BackgroundColor3 = Color3.fromRGB(40, 0, 0)
+CloseBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+CloseBtn.Parent = MainFrame
+AddCorner(CloseBtn, 5)
+CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
 
 -- Buttons Container
-local Container = Instance.new("Frame")
-Container.Position = UDim2.new(0, 0, 0, 70)
-Container.Size = UDim2.new(1, 0, 1, -110)
+local Container = Instance.new("ScrollingFrame")
+Container.Position = UDim2.new(0, 0, 0, 75)
+Container.Size = UDim2.new(1, 0, 1, -120)
 Container.BackgroundTransparency = 1
+Container.ScrollBarThickness = 2
 Container.Parent = MainFrame
 
 local UIList = Instance.new("UIListLayout")
 UIList.Parent = Container
 UIList.HorizontalAlignment = Enum.HorizontalAlignment.Center
-UIList.Padding = UDim.new(0, 10)
+UIList.Padding = UDim.new(0, 8)
 
--- Smooth Rainbow Logic (RenderStepped lebih hemat resource dibanding task.wait loop)
-RunService.RenderStepped:Connect(function()
-    local hue = tick() % 5 / 5
-    Border.BackgroundColor3 = Color3.fromHSV(hue, 0.8, 1)
-end)
-
--- Fireworks Info Label
-local FireworksStatus = Instance.new("TextLabel")
-FireworksStatus.Name = "FireworksStatus"
-FireworksStatus.Parent = MainFrame
-FireworksStatus.Size = UDim2.new(1, 0, 0, 20)
-FireworksStatus.Position = UDim2.new(0, 0, 1, -45)
-FireworksStatus.BackgroundTransparency = 1
-FireworksStatus.TextColor3 = Color3.fromRGB(150, 150, 150)
-FireworksStatus.TextSize = 11
-FireworksStatus.Font = Enum.Font.SourceSansItalic
-FireworksStatus.Text = "Status: No Fireworks"
-
--- Button Creation Function
-local function CreateStyledButton(name, icon, activeColor, func)
+-- Function Create Button
+local function CreateButton(name, icon, activeColor, func)
     local Btn = Instance.new("TextButton")
-    Btn.Size = UDim2.new(0.9, 0, 0, 45)
-    Btn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    Btn.Size = UDim2.new(0, 200, 0, 40)
+    Btn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
     Btn.Text = "          " .. name
-    Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Btn.TextColor3 = Color3.fromRGB(200, 200, 200)
     Btn.Font = Enum.Font.SourceSansSemibold
     Btn.TextSize = 14
     Btn.TextXAlignment = Enum.TextXAlignment.Left
@@ -123,8 +105,8 @@ local function CreateStyledButton(name, icon, activeColor, func)
     AddCorner(Btn, 6)
     
     local IconImg = Instance.new("ImageLabel")
-    IconImg.Size = UDim2.new(0, 22, 0, 22)
-    IconImg.Position = UDim2.new(0, 10, 0.5, -11)
+    IconImg.Size = UDim2.new(0, 20, 0, 20)
+    IconImg.Position = UDim2.new(0, 10, 0.5, -10)
     IconImg.Image = icon
     IconImg.BackgroundTransparency = 1
     IconImg.Parent = Btn
@@ -132,62 +114,61 @@ local function CreateStyledButton(name, icon, activeColor, func)
     local Active = false
     Btn.MouseButton1Click:Connect(function()
         Active = not Active
-        
-        -- Animasi perubahan warna saat aktif/mati
         TweenService:Create(Btn, TweenInfo.new(0.3), {
-            BackgroundColor3 = Active and activeColor or Color3.fromRGB(35, 35, 35)
+            BackgroundColor3 = Active and activeColor or Color3.fromRGB(30, 30, 30),
+            TextColor3 = Active and Color3.new(1,1,1) or Color3.fromRGB(200,200,200)
         }):Play()
 
-        if Active then
-            task.spawn(function()
-                while Active do
-                    pcall(func)
-                    task.wait(1) -- Jeda 1 detik agar tidak kena kick antispam server
-                end
-            end)
-        end
+        task.spawn(function()
+            while Active do
+                local s, e = pcall(func)
+                if not s then warn("Error: "..e) end
+                task.wait(0.5) -- Delay prevent kick
+            end
+        end)
     end)
 end
 
--- ICONS
-local CART_ICON = "rbxassetid://6031764630"
-local SELL_ICON = "rbxassetid://6031154871"
-
--- Add Buttons
-CreateStyledButton("AUTO BELI PADI", CART_ICON, Color3.fromRGB(0, 102, 204), function()
+-- FITUR: AUTO BELI & JUAL
+CreateButton("AUTO BUY PADI", "rbxassetid://6031764630", Color3.fromRGB(0, 80, 200), function()
     ReplicatedStorage.Remotes.TutorialRemotes.RequestShop:InvokeServer("BUY", "Bibit Padi", 1)
 end)
 
-CreateStyledButton("AUTO SELL PADI", SELL_ICON, Color3.fromRGB(153, 0, 0), function()
+CreateButton("AUTO SELL PADI", "rbxassetid://6031154871", Color3.fromRGB(150, 0, 0), function()
     ReplicatedStorage.Remotes.TutorialRemotes.RequestSell:InvokeServer("SELL", "Padi", 45)
 end)
 
--- === FIREWORKS BROADCAST REMOTE HANDLER ===
-local FireworksRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("FireworksBroadcast")
+-- FITUR: FIREWORKS STATUS
+local FireworksStatus = Instance.new("TextLabel")
+FireworksStatus.Size = UDim2.new(1, 0, 0, 20)
+FireworksStatus.Position = UDim2.new(0, 0, 1, -45)
+FireworksStatus.BackgroundTransparency = 1
+FireworksStatus.TextColor3 = Color3.fromRGB(100, 100, 100)
+FireworksStatus.Text = "Status: No Fireworks"
+FireworksStatus.TextSize = 12
+FireworksStatus.Parent = MainFrame
 
-FireworksRemote.OnClientEvent:Connect(function(data)
-    -- Asumsi data berisi {duration, from, startAt}
-    local senderId = data.from or "Unknown"
-    local duration = data.duration or 0
+-- Remote Listener Fireworks
+local F_Remote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("FireworksBroadcast")
+F_Remote.OnClientEvent:Connect(function(data)
+    -- Logika sesuai argumen yang kamu berikan
+    FireworksStatus.Text = "🎆 Fireworks: ON (By: " .. (data.from or "Server") .. ")"
+    FireworksStatus.TextColor3 = Color3.fromRGB(255, 200, 0)
     
-    FireworksStatus.Text = "🎆 Fireworks Active! (" .. senderId .. ")"
-    FireworksStatus.TextColor3 = Color3.fromRGB(255, 215, 0)
-    
-    -- Reset status setelah durasi kembang api habis
-    task.delay(duration, function()
+    task.delay(data.duration or 10, function()
         FireworksStatus.Text = "Status: No Fireworks"
-        FireworksStatus.TextColor3 = Color3.fromRGB(150, 150, 150)
+        FireworksStatus.TextColor3 = Color3.fromRGB(100, 100, 100)
     end)
 end)
 
 -- Watermark
 local WM = Instance.new("TextLabel")
-WM.Text = "IKYY EXECUTOR v3"
+WM.Text = "IKYY PREMIUM V3 - 2026"
 WM.Position = UDim2.new(0, 0, 1, -25)
 WM.Size = UDim2.new(1, 0, 0, 20)
 WM.BackgroundTransparency = 1
-WM.TextColor3 = Color3.fromRGB(80, 80, 80)
+WM.TextColor3 = Color3.fromRGB(60, 60, 60)
 WM.TextSize = 10
 WM.Parent = MainFrame
 
-print("IkyyPremium_V3 Loaded Successfully!")
+print("IkyyPremium V3 Loaded!")
