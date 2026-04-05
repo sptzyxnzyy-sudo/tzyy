@@ -5,25 +5,25 @@ local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 
 -- UI Cleanup
-if CoreGui:FindFirstChild("Ikyy_SkyTerminator_V21") then CoreGui:FindFirstChild("Ikyy_SkyTerminator_V21"):Destroy() end
+if CoreGui:FindFirstChild("Ikyy_Fling_V22") then CoreGui:FindFirstChild("Ikyy_Fling_V22"):Destroy() end
 
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "Ikyy_SkyTerminator_V21"
+ScreenGui.Name = "Ikyy_Fling_V22"
 ScreenGui.Parent = CoreGui
 
--- UI Design (Neon Pink/Red - Aggressive)
+-- UI Design (Toxic Green - Alert Look)
 local Main = Instance.new("Frame")
 Main.Size = UDim2.new(0, 220, 0, 140)
 Main.Position = UDim2.new(0.5, -110, 0.5, -70)
-Main.BackgroundColor3 = Color3.fromRGB(10, 0, 5)
+Main.BackgroundColor3 = Color3.fromRGB(5, 15, 5)
 Main.Parent = ScreenGui
 local Corner = Instance.new("UICorner") Corner.CornerRadius = UDim.new(0, 15) Corner.Parent = Main
-local Stroke = Instance.new("UIStroke") Stroke.Thickness = 3 Stroke.Color = Color3.fromRGB(255, 0, 100) Stroke.Parent = Main
+local Stroke = Instance.new("UIStroke") Stroke.Thickness = 3 Stroke.Color = Color3.fromRGB(0, 255, 100) Stroke.Parent = Main
 
 local Title = Instance.new("TextLabel")
-Title.Text = "SKY TERMINATOR V21"
+Title.Text = "SERVER FLING V22"
 Title.Size = UDim2.new(1, 0, 0, 40)
-Title.TextColor3 = Color3.fromRGB(255, 0, 100)
+Title.TextColor3 = Color3.fromRGB(0, 255, 100)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 13
 Title.BackgroundTransparency = 1
@@ -31,22 +31,22 @@ Title.Parent = Main
 
 -- SWITCH COMPONENT
 local SwitchBG = Instance.new("Frame")
-SwitchBG.Size = UDim2.new(0, 100, 0, 40)
-SwitchBG.Position = UDim2.new(0.5, -50, 0.5, 0)
-SwitchBG.BackgroundColor3 = Color3.fromRGB(30, 20, 25)
+SwitchBG.Size = UDim2.new(0, 80, 0, 35)
+SwitchBG.Position = UDim2.new(0.5, -40, 0.5, 0)
+SwitchBG.BackgroundColor3 = Color3.fromRGB(20, 40, 20)
 SwitchBG.Parent = Main
 local SCorner = Instance.new("UICorner") SCorner.CornerRadius = UDim.new(1, 0) SCorner.Parent = SwitchBG
 
 local SwitchCircle = Instance.new("TextButton")
-SwitchCircle.Size = UDim2.new(0, 34, 0, 34)
+SwitchCircle.Size = UDim2.new(0, 29, 0, 29)
 SwitchCircle.Position = UDim2.new(0, 3, 0, 3)
-SwitchCircle.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+SwitchCircle.BackgroundColor3 = Color3.fromRGB(150, 150, 150)
 SwitchCircle.Text = ""
 SwitchCircle.Parent = SwitchBG
 local CCorner = Instance.new("UICorner") CCorner.CornerRadius = UDim.new(1, 0) CCorner.Parent = SwitchCircle
 
 local StatusLabel = Instance.new("TextLabel")
-StatusLabel.Text = "FLING: READY"
+StatusLabel.Text = "STABILIZED"
 StatusLabel.Size = UDim2.new(1, 0, 0, 20)
 StatusLabel.Position = UDim2.new(0, 0, 1, -25)
 StatusLabel.TextColor3 = Color3.fromRGB(100, 100, 100)
@@ -55,79 +55,78 @@ StatusLabel.TextSize = 10
 StatusLabel.BackgroundTransparency = 1
 StatusLabel.Parent = Main
 
--- LOGIKA YEET/FLING TO SKY
-local FlingEnabled = false
+-- LOGIKA FLING SERVER-SIDE (REPLICATED)
+local FlingActive = false
+local FlingPart = nil
 
-local function SkyFling(otherPart)
-    if not FlingEnabled then return end
+local function CreateFlingPart()
+    local char = LocalPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
     
-    local character = otherPart.Parent
-    -- Jika menyentuh part dalam model, cek parent-nya lagi (antisipasi aksesori)
-    if not character:IsA("Model") then character = character.Parent end
+    -- Membuat BodyAngularVelocity untuk memutar karaktermu dengan sangat cepat
+    -- Putaran inilah yang akan melempar orang lain saat bersentuhan
+    local bAV = Instance.new("BodyAngularVelocity")
+    bAV.Name = "FlingForce"
+    bAV.Parent = hrp
+    bAV.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+    bAV.P = 1250000 -- Power
     
-    local player = Players:GetPlayerFromCharacter(character)
-    
-    if player and player ~= LocalPlayer then
-        local targetHRP = character:FindFirstChild("HumanoidRootPart")
+    return bAV
+end
+
+-- Loop Utama Fling
+RunService.Stepped:Connect(function()
+    if FlingActive then
+        local char = LocalPlayer.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
         
-        if targetHRP then
-            pcall(function()
-                -- Memberikan gaya dorong vertikal ekstrem (Sumbu Y)
-                -- 9e9 adalah nilai angka yang sangat besar
-                targetHRP.Velocity = Vector3.new(0, 1000000, 0) 
-                
-                -- Memberikan putaran ekstrem agar karakter mereka terpental berantakan
-                targetHRP.RotVelocity = Vector3.new(5000, 5000, 5000)
-                
-                -- Memaksa posisi ke langit sedikit agar fisika server merespon
-                targetHRP.CFrame = targetHRP.CFrame * CFrame.new(0, 10, 0)
-            end)
+        if hrp then
+            -- Memberikan gaya putar acak agar tidak bisa ditebak sistem anti-cheat
+            local force = hrp:FindFirstChild("FlingForce") or CreateFlingPart()
+            force.AngularVelocity = Vector3.new(999999, 999999, 999999)
+            
+            -- Menghilangkan gesekan kaki agar kamu bisa meluncur menabrak mereka
+            for _, part in pairs(char:GetChildren()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = false
+                    part.Velocity = Vector3.new(0, 0, 0) -- Mencegah kamu sendiri terlempar keluar map
+                end
+            end
+            hrp.CanCollide = true -- HRP tetap colide agar bisa menabrak orang
+        end
+    else
+        -- Bersihkan gaya saat OFF
+        local char = LocalPlayer.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        if hrp and hrp:FindFirstChild("FlingForce") then
+            hrp.FlingForce:Destroy()
         end
     end
-end
+end)
 
--- Listener Touched untuk Karakter Kamu
-local function SetupFlingListener()
-    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-    for _, part in pairs(char:GetDescendants()) do
-        if part:IsA("BasePart") then
-            part.Touched:Connect(SkyFling)
-        end
-    end
-end
-
--- SWITCH ACTION
+-- TOGGLE ACTION
 SwitchCircle.MouseButton1Click:Connect(function()
-    FlingEnabled = not FlingEnabled
+    FlingActive = not FlingActive
     
-    if FlingEnabled then
-        SwitchCircle:TweenPosition(UDim2.new(0, 63, 0, 3), "Out", "Quad", 0.2)
-        SwitchCircle.BackgroundColor3 = Color3.fromRGB(255, 0, 100)
-        SwitchBG.BackgroundColor3 = Color3.fromRGB(60, 0, 30)
-        StatusLabel.Text = "FLING: ACTIVE"
-        StatusLabel.TextColor3 = Color3.fromRGB(255, 0, 100)
-        
-        SetupFlingListener()
+    if FlingActive then
+        SwitchCircle:TweenPosition(UDim2.new(0, 48, 0, 3), "Out", "Quad", 0.2)
+        SwitchCircle.BackgroundColor3 = Color3.fromRGB(0, 255, 100)
+        SwitchBG.BackgroundColor3 = Color3.fromRGB(0, 60, 20)
+        StatusLabel.Text = "FLING: ACTIVE (TOUCH SOMEONE)"
+        StatusLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
     else
         SwitchCircle:TweenPosition(UDim2.new(0, 3, 0, 3), "Out", "Quad", 0.2)
-        SwitchCircle.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
-        SwitchBG.BackgroundColor3 = Color3.fromRGB(30, 20, 25)
-        StatusLabel.Text = "READY"
+        SwitchCircle.BackgroundColor3 = Color3.fromRGB(150, 150, 150)
+        SwitchBG.BackgroundColor3 = Color3.fromRGB(20, 40, 20)
+        StatusLabel.Text = "STABILIZED"
         StatusLabel.TextColor3 = Color3.fromRGB(100, 100, 100)
     end
 end)
 
--- Re-setup on Spawn
-LocalPlayer.CharacterAdded:Connect(function()
-    task.wait(1)
-    if FlingEnabled then SetupFlingListener() end
-end)
-
--- Draggable Logic
+-- Draggable UI
 local d, di, ds, sp
 Main.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then d = true ds = i.Position sp = Main.Position end end)
 Main.InputChanged:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch then di = i end end)
 UserInputService.InputChanged:Connect(function(i) if i == di and d then local del = i.Position - ds Main.Position = UDim2.new(sp.X.Scale, sp.X.Offset + del.X, sp.Y.Scale, sp.Y.Offset + del.Y) end end)
 UserInputService.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then d = false end end)
-
-print("V21 Sky Terminator Active - Touch anyone to launch them!")
