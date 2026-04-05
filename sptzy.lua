@@ -5,90 +5,130 @@ local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 
 -- UI Cleanup
-if CoreGui:FindFirstChild("Ikyy_TargetV24") then CoreGui:FindFirstChild("Ikyy_TargetV24"):Destroy() end
+if CoreGui:FindFirstChild("Ikyy_StaticGhost_V26") then CoreGui:FindFirstChild("Ikyy_StaticGhost_V26"):Destroy() end
 
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "Ikyy_TargetV24"
+ScreenGui.Name = "Ikyy_StaticGhost_V26"
 ScreenGui.Parent = CoreGui
 
--- Main UI Design
+-- UI Design (Dark Ghost Theme)
 local Main = Instance.new("Frame")
-Main.Size = UDim2.new(0, 250, 0, 350)
-Main.Position = UDim2.new(0.5, -125, 0.5, -175)
-Main.BackgroundColor3 = Color3.fromRGB(10, 10, 15)
+Main.Size = UDim2.new(0, 260, 0, 380)
+Main.Position = UDim2.new(0.5, -130, 0.5, -190)
+Main.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
 Main.Parent = ScreenGui
 local Corner = Instance.new("UICorner") Corner.CornerRadius = UDim.new(0, 15) Corner.Parent = Main
-local Stroke = Instance.new("UIStroke") Stroke.Thickness = 2 Stroke.Color = Color3.fromRGB(255, 0, 50) Stroke.Parent = Main
+local Stroke = Instance.new("UIStroke") Stroke.Thickness = 2 Stroke.Color = Color3.fromRGB(100, 100, 255) Stroke.Parent = Main
 
 local Title = Instance.new("TextLabel")
-Title.Text = "IKYY TARGET FLING V24"
-Title.Size = UDim2.new(1, 0, 0, 40)
-Title.TextColor3 = Color3.fromRGB(255, 50, 50)
+Title.Text = "STATIC GHOST V26"
+Title.Size = UDim2.new(1, 0, 0, 45)
+Title.TextColor3 = Color3.fromRGB(150, 150, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 14
 Title.BackgroundTransparency = 1
 Title.Parent = Main
 
+-- TOGGLE GHOST (STAY IN PLACE)
+local GhostToggle = Instance.new("TextButton")
+GhostToggle.Size = UDim2.new(1, -20, 0, 45)
+GhostToggle.Position = UDim2.new(0, 10, 0, 50)
+GhostToggle.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+GhostToggle.Text = "GHOST MODE: OFF"
+GhostToggle.TextColor3 = Color3.fromRGB(200, 200, 200)
+GhostToggle.Font = Enum.Font.GothamBold
+GhostToggle.TextSize = 11
+GhostToggle.Parent = Main
+local GCorner = Instance.new("UICorner") GCorner.CornerRadius = UDim.new(0, 10) GCorner.Parent = GhostToggle
+
+-- PLAYER LIST
 local Scroll = Instance.new("ScrollingFrame")
-Scroll.Size = UDim2.new(1, -20, 1, -60)
-Scroll.Position = UDim2.new(0, 10, 0, 50)
+Scroll.Size = UDim2.new(1, -20, 1, -120)
+Scroll.Position = UDim2.new(0, 10, 0, 110)
 Scroll.BackgroundTransparency = 1
 Scroll.ScrollBarThickness = 2
 Scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
 Scroll.Parent = Main
-
 local Layout = Instance.new("UIListLayout")
 Layout.Parent = Scroll
 Layout.Padding = UDim.new(0, 5)
 
--- LOGIKA CORE: FLING & HEADSIT
-local SelectedTarget = nil
+-- LOGIKA GHOST (TANPA PINDAH POSISI)
+local GhostActive = false
 
-local function KillTarget(targetPlayer)
-    if not targetPlayer or not targetPlayer.Character then return end
+local function SetGhost(state)
+    local char = LocalPlayer.Character
+    if not char then return end
+    
+    -- Menghilangkan Nama (HumanoidDisplay)
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if hum then
+        hum.DisplayDistanceType = state and Enum.HumanoidDisplayDistanceType.None or Enum.HumanoidDisplayDistanceType.Viewer
+    end
+
+    -- Menghilangkan Semua Part Tubuh & Aksesori
+    for _, v in pairs(char:GetDescendants()) do
+        if v:IsA("BasePart") or v:IsA("Decal") then
+            -- Local Transparency agar Client tetap bisa lihat diri sendiri tipis-tipis
+            -- Tapi Server akan melihatmu hilang jika game tidak punya proteksi transparency
+            v.Transparency = state and 1 or 0
+            if v.Name == "HumanoidRootPart" then v.Transparency = 1 end
+        end
+    end
+end
+
+GhostToggle.MouseButton1Click:Connect(function()
+    GhostActive = not GhostActive
+    GhostToggle.Text = GhostActive and "GHOST MODE: ACTIVE (HIDDEN)" or "GHOST MODE: OFF"
+    GhostToggle.BackgroundColor3 = GhostActive and Color3.fromRGB(50, 50, 150) or Color3.fromRGB(20, 20, 30)
+    SetGhost(GhostActive)
+end)
+
+-- LOGIKA FLING (SAMA SEPERTI SEBELUMNYA TAPI OPTIMIZED)
+local function FlingPlayer(target)
     local char = LocalPlayer.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
-    local targetHRP = targetPlayer.Character:FindFirstChild("HumanoidRootPart")
+    local tchar = target.Character
+    local thrp = tchar and tchar:FindFirstChild("HumanoidRootPart")
     
-    if hrp and targetHRP then
-        -- 1. Auto Headsit Logic (Teleport ke kepala target agar posisi pas)
-        hrp.CFrame = targetHRP.CFrame * CFrame.new(0, 1.5, 0)
+    if hrp and thrp then
+        local oldPos = hrp.CFrame
         
-        -- 2. Force Physics (Velocity Overload)
-        local Velocity = Instance.new("BodyAngularVelocity")
-        Velocity.Name = "FlingForce"
-        Velocity.Parent = hrp
-        Velocity.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
-        Velocity.P = 10^12
-        Velocity.AngularVelocity = Vector3.new(9e9, 9e9, 9e9)
+        -- Aktifkan Power Rotasi
+        local bAV = Instance.new("BodyAngularVelocity")
+        bAV.Parent = hrp
+        bAV.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
+        bAV.P = 10^12
+        bAV.AngularVelocity = Vector3.new(9e9, 9e9, 9e9)
         
-        -- 3. Collision Anti-Self Fling
+        -- Ghost Hitbox (Tabrakan tanpa memantul)
         for _, v in pairs(char:GetChildren()) do
-            if v:IsA("BasePart") then
-                v.CanCollide = false
-            end
+            if v:IsA("BasePart") then v.CanCollide = false end
         end
         hrp.CanCollide = true
         
-        -- Berikan dorongan selama 1 detik lalu matikan agar kamu tidak out
-        task.wait(0.5)
-        Velocity:Destroy()
+        -- Teleport kilat ke target (Headsit)
+        hrp.CFrame = thrp.CFrame * CFrame.new(0, 1.5, 0)
+        task.wait(0.3) -- Tabrakan brutal
+        
+        -- Reset Posisi & Gaya
+        bAV:Destroy()
+        hrp.CFrame = oldPos
         for _, v in pairs(char:GetChildren()) do
             if v:IsA("BasePart") then v.CanCollide = true end
         end
     end
 end
 
--- UI PLAYER LIST GENERATOR
+-- UI LIST GENERATOR
 local function UpdateList()
     for _, v in pairs(Scroll:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end
-    
     for _, p in pairs(Players:GetPlayers()) do
         if p ~= LocalPlayer then
             local Btn = Instance.new("TextButton")
             Btn.Size = UDim2.new(1, -5, 0, 35)
-            Btn.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
-            Btn.Text = "  " .. p.DisplayName .. " (@" .. p.Name .. ")"
+            Btn.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+            Btn.Text = "  " .. p.DisplayName
             Btn.TextColor3 = Color3.new(1, 1, 1)
             Btn.Font = Enum.Font.GothamSemibold
             Btn.TextSize = 10
@@ -97,19 +137,13 @@ local function UpdateList()
             local BCorner = Instance.new("UICorner") BCorner.CornerRadius = UDim.new(0, 5) BCorner.Parent = Btn
             
             Btn.MouseButton1Click:Connect(function()
-                Btn.BackgroundColor3 = Color3.fromRGB(255, 0, 50)
-                Btn.Text = "  KILLING: " .. p.Name:upper()
-                KillTarget(p)
-                task.wait(0.5)
-                Btn.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
-                Btn.Text = "  " .. p.DisplayName
+                FlingPlayer(p)
             end)
         end
     end
     Scroll.CanvasSize = UDim2.new(0, 0, 0, Layout.AbsoluteContentSize.Y + 10)
 end
 
--- Refresh List
 UpdateList()
 Players.PlayerAdded:Connect(UpdateList)
 Players.PlayerRemoving:Connect(UpdateList)
