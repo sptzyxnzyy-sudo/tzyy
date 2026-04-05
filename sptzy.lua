@@ -6,11 +6,11 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 
--- Cleanup
-if CoreGui:FindFirstChild("IkyyPremium_V8") then CoreGui:FindFirstChild("IkyyPremium_V8"):Destroy() end
+-- Cleanup UI
+if CoreGui:FindFirstChild("IkyyPremium_V10") then CoreGui:FindFirstChild("IkyyPremium_V10"):Destroy() end
 
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "IkyyPremium_V8"
+ScreenGui.Name = "IkyyPremium_V10"
 ScreenGui.Parent = CoreGui
 ScreenGui.ResetOnSpawn = false
 
@@ -26,9 +26,9 @@ end
 
 -- Main Frame
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 320, 0, 450)
-MainFrame.Position = UDim2.new(0.5, -160, 0.5, -225)
-MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 15)
+MainFrame.Size = UDim2.new(0, 300, 0, 400)
+MainFrame.Position = UDim2.new(0.5, -150, 0.5, -200)
+MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 12)
 MainFrame.Parent = ScreenGui
 AddCorner(MainFrame, 15)
 MakeDraggable(MainFrame)
@@ -40,21 +40,22 @@ Stroke.Parent = MainFrame
 
 -- Header
 local Title = Instance.new("TextLabel")
-Title.Text = "IKYY AUTO-SCANNER V8"
+Title.Text = "IKYY SMART INJECTOR V10"
 Title.Size = UDim2.new(1, 0, 0, 50)
 Title.TextColor3 = Color3.fromRGB(0, 255, 255)
 Title.Font = Enum.Font.GothamBold
-Title.TextSize = 14
+Title.TextSize = 13
 Title.BackgroundTransparency = 1
 Title.Parent = MainFrame
 
--- Scrolling Container
+-- Scrolling Frame (Auto-Expand)
 local Scroll = Instance.new("ScrollingFrame")
-Scroll.Size = UDim2.new(1, -20, 1, -140)
-Scroll.Position = UDim2.new(0, 10, 0, 60)
+Scroll.Size = UDim2.new(1, -20, 1, -100)
+Scroll.Position = UDim2.new(0, 10, 0, 55)
 Scroll.BackgroundTransparency = 1
 Scroll.ScrollBarThickness = 2
 Scroll.ScrollBarImageColor3 = Color3.fromRGB(0, 255, 255)
+Scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
 Scroll.Parent = MainFrame
 
 local Layout = Instance.new("UIListLayout")
@@ -62,124 +63,121 @@ Layout.Parent = Scroll
 Layout.Padding = UDim.new(0, 8)
 Layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
--- Footer / Real-time Logs
+-- Auto Scroll Logic
+Layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    Scroll.CanvasSize = UDim2.new(0, 0, 0, Layout.AbsoluteContentSize.Y + 10)
+end)
+
+-- Footer Status
 local Footer = Instance.new("TextLabel")
-Footer.Size = UDim2.new(1, 0, 0, 50)
-Footer.Position = UDim2.new(0, 0, 1, -55)
-Footer.Text = "MONITORING SERVER EVENTS..."
-Footer.TextColor3 = Color3.fromRGB(0, 255, 150)
+Footer.Size = UDim2.new(1, 0, 0, 40)
+Footer.Position = UDim2.new(0, 0, 1, -40)
+Footer.Text = "TAP ITEM TO START/STOP INJECTION"
+Footer.TextColor3 = Color3.fromRGB(150, 150, 150)
 Footer.Font = Enum.Font.Code
 Footer.TextSize = 9
 Footer.BackgroundTransparency = 1
 Footer.Parent = MainFrame
 
--- PAYLOADS
-local Payloads = {"Buy", "Purchase", "Get", 1, true, {["Action"]="Buy"}, "All"}
-local Toggles = { Engine = false }
+-- Global Payloads
+local Payloads = {"Buy", "Purchase", 1, true, {["Action"]="Buy"}, 999999}
+local ActiveRemotes = {} -- Tabel untuk menyimpan status ON/OFF tiap remote
 
--- UI: ENGINE SWITCH
-local function CreateEngineSwitch()
-    local Sw = Instance.new("TextButton")
-    Sw.Size = UDim2.new(1, -10, 0, 40)
-    Sw.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
-    Sw.Text = "PAYLOAD ENGINE: OFF"
-    Sw.TextColor3 = Color3.fromRGB(200, 200, 200)
-    Sw.Font = Enum.Font.GothamBold
-    Sw.TextSize = 11
-    Sw.Parent = Scroll
-    AddCorner(Sw, 10)
-
-    Sw.MouseButton1Click:Connect(function()
-        Toggles.Engine = not Toggles.Engine
-        Sw.Text = Toggles.Engine and "PAYLOAD ENGINE: ACTIVE" or "PAYLOAD ENGINE: OFF"
-        Sw.TextColor3 = Toggles.Engine and Color3.fromRGB(0, 255, 255) or Color3.fromRGB(200, 200, 200)
-        Footer.Text = Toggles.Engine and "ENGINE READY FOR INJECTION" or "ENGINE IDLE"
-    end)
-end
-
--- FUNCTION: INJECT AUTO-GENERATED REMOTE
-local function Inject(remote)
-    if not Toggles.Engine then 
-        Footer.Text = "SYSTEM: ENABLE ENGINE FIRST!"
-        Footer.TextColor3 = Color3.fromRGB(255, 50, 50)
-        return 
-    end
-
-    Title.Text = "BYPASSING..."
-    Footer.Text = "INJECTING PAYLOAD TO: " .. remote.Name
-    
-    for _, p in pairs(Payloads) do
-        pcall(function()
-            if remote:IsA("RemoteEvent") then
-                remote:FireServer(p)
-                remote:FireServer(p, 1)
-            elseif remote:IsA("RemoteFunction") then
-                remote:InvokeServer(p)
-            end
-        end)
-    end
-
-    task.wait(1)
-    Title.Text = "IKYY AUTO-SCANNER V8"
-    Footer.Text = "SUCCESS: PACKET SENT TO " .. remote.Name
-    Footer.TextColor3 = Color3.fromRGB(0, 255, 255)
-end
-
--- FUNCTION: ADD REMOTE TO UI
-local function AddToUI(remote)
+-- FUNCTION: ADD PRODUCT WITH TOGGLE LOGIC
+local function AddSmartProduct(remote)
     if Scroll:FindFirstChild(remote.Name) then return end
     
     local Btn = Instance.new("TextButton")
     Btn.Name = remote.Name
-    Btn.Size = UDim2.new(1, -5, 0, 45)
-    Btn.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
-    Btn.Text = "  " .. remote.Name .. " (" .. remote.ClassName .. ")"
-    Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Btn.Size = UDim2.new(1, -5, 0, 50)
+    Btn.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+    Btn.Text = "  " .. remote.Name
+    Btn.TextColor3 = Color3.fromRGB(200, 200, 200)
     Btn.Font = Enum.Font.GothamSemibold
-    Btn.TextSize = 10
+    Btn.TextSize = 11
     Btn.TextXAlignment = Enum.TextXAlignment.Left
     Btn.Parent = Scroll
-    AddCorner(Btn, 8)
+    AddCorner(Btn, 10)
 
-    local Tag = Instance.new("TextLabel")
-    Tag.Text = "AUTO-GEN"
-    Tag.Size = UDim2.new(0, 60, 1, 0)
-    Tag.Position = UDim2.new(1, -65, 0, 0)
-    Tag.TextColor3 = Color3.fromRGB(0, 255, 255)
-    Tag.Font = Enum.Font.GothamBold
-    Tag.TextSize = 8
-    Tag.BackgroundTransparency = 1
-    Tag.Parent = Btn
+    local StatusTag = Instance.new("TextLabel")
+    StatusTag.Text = "IDLE"
+    StatusTag.Size = UDim2.new(0, 60, 1, 0)
+    StatusTag.Position = UDim2.new(1, -65, 0, 0)
+    StatusTag.TextColor3 = Color3.fromRGB(80, 80, 80)
+    StatusTag.Font = Enum.Font.GothamBold
+    StatusTag.TextSize = 9
+    StatusTag.BackgroundTransparency = 1
+    StatusTag.Parent = Btn
 
-    Btn.MouseButton1Click:Connect(function() Inject(remote) end)
-    Scroll.CanvasSize = UDim2.new(0, 0, 0, Layout.AbsoluteContentSize.Y + 20)
-end
+    -- Logic Click Toggle
+    Btn.MouseButton1Click:Connect(function()
+        ActiveRemotes[remote] = not ActiveRemotes[remote]
+        local isON = ActiveRemotes[remote]
 
--- REAL-TIME MONITORING LOGIC
-local function StartMonitoring(folder)
-    folder.ChildAdded:Connect(function(child)
-        if child:IsA("RemoteEvent") or child:IsA("RemoteFunction") then
-            Footer.Text = "NEW REMOTE DETECTED: " .. child.Name
-            Footer.TextColor3 = Color3.fromRGB(255, 255, 0)
-            AddToUI(child)
-            task.wait(1)
-            Footer.TextColor3 = Color3.fromRGB(0, 255, 150)
+        if isON then
+            -- Visual ON
+            Btn.BackgroundColor3 = Color3.fromRGB(0, 40, 40)
+            Btn.TextColor3 = Color3.fromRGB(0, 255, 255)
+            StatusTag.Text = "RUNNING"
+            StatusTag.TextColor3 = Color3.fromRGB(0, 255, 255)
+            Footer.Text = "INJECTING: " .. remote.Name
+            
+            -- Loop Injection Logic
+            task.spawn(function()
+                while ActiveRemotes[remote] do
+                    for _, p in pairs(Payloads) do
+                        if not ActiveRemotes[remote] then break end
+                        pcall(function()
+                            if remote:IsA("RemoteEvent") then remote:FireServer(p)
+                            elseif remote:IsA("RemoteFunction") then remote:InvokeServer(p) end
+                        end)
+                    end
+                    task.wait(1.5) -- Delay per cycle agar tidak kick
+                end
+            end)
+            
+            -- Success Message Visual
+            game:GetService("StarterGui"):SetCore("ChatMakeSystemMessage", {
+                Text = "[IKYY-V10]: Started Loop for " .. remote.Name;
+                Color = Color3.fromRGB(0, 255, 255);
+                Font = Enum.Font.GothamBold;
+            })
+        else
+            -- Visual OFF
+            Btn.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+            Btn.TextColor3 = Color3.fromRGB(200, 200, 200)
+            StatusTag.Text = "IDLE"
+            StatusTag.TextColor3 = Color3.fromRGB(80, 80, 80)
+            Footer.Text = "STOPPED: " .. remote.Name
+            
+            game:GetService("StarterGui"):SetCore("ChatMakeSystemMessage", {
+                Text = "[IKYY-V10]: Stopped Loop for " .. remote.Name;
+                Color = Color3.fromRGB(255, 50, 50);
+                Font = Enum.Font.GothamBold;
+            })
         end
     end)
 end
 
--- INITIAL SCAN & START LISTENERS
-CreateEngineSwitch()
-
--- Scan ReplicatedStorage & Workspace
-local targets = {ReplicatedStorage, game:GetService("Workspace")}
-for _, area in pairs(targets) do
-    for _, v in pairs(area:GetDescendants()) do
-        if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
-            AddToUI(v)
+-- INITIAL SCAN & AUTO-SYNC
+local function FullScan()
+    local targets = {ReplicatedStorage, game:GetService("Workspace")}
+    for _, area in pairs(targets) do
+        for _, v in pairs(area:GetDescendants()) do
+            if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
+                local n = v.Name:lower()
+                if n:find("buy") or n:find("shop") or n:find("purchase") or n:find("remote") or n:find("item") then
+                    AddSmartProduct(v)
+                end
+            end
         end
+        -- Auto-add if server creates new remote
+        area.ChildAdded:Connect(function(child)
+            if child:IsA("RemoteEvent") or child:IsA("RemoteFunction") then
+                AddSmartProduct(child)
+            end
+        end)
     end
-    StartMonitoring(area)
 end
 
 -- Rainbow Pulse
@@ -187,4 +185,5 @@ RunService.RenderStepped:Connect(function()
     Stroke.Color = Color3.fromHSV(tick() % 5 / 5, 0.6, 1)
 end)
 
-print("IkyyPremium V8 Final: Auto-Generated Scanner Active!")
+task.spawn(FullScan)
+print("IkyyPremium V10: Smart Toggle & Auto-Expand Loaded!")
