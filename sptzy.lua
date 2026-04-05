@@ -2,29 +2,30 @@ local Players = game:GetService("Players")
 local CoreGui = game:GetService("CoreGui")
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Lighting = game:GetService("Lighting")
 local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 
 -- UI Cleanup
-if CoreGui:FindFirstChild("Ikyy_Stealth_V18") then CoreGui:FindFirstChild("Ikyy_Stealth_V18"):Destroy() end
+if CoreGui:FindFirstChild("Ikyy_ToolGrabber_V19") then CoreGui:FindFirstChild("Ikyy_ToolGrabber_V19"):Destroy() end
 
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "Ikyy_Stealth_V18"
+ScreenGui.Name = "Ikyy_ToolGrabber_V19"
 ScreenGui.Parent = CoreGui
 
--- UI Design (Sleek Cyan - Stealth Look)
+-- UI Design (Modern Purple)
 local Main = Instance.new("Frame")
 Main.Size = UDim2.new(0, 240, 0, 160)
 Main.Position = UDim2.new(0.5, -120, 0.5, -80)
-Main.BackgroundColor3 = Color3.fromRGB(10, 10, 15)
+Main.BackgroundColor3 = Color3.fromRGB(15, 10, 20)
 Main.Parent = ScreenGui
 local Corner = Instance.new("UICorner") Corner.CornerRadius = UDim.new(0, 12) Corner.Parent = Main
-local Stroke = Instance.new("UIStroke") Stroke.Thickness = 2 Stroke.Color = Color3.fromRGB(0, 255, 200) Stroke.Parent = Main
+local Stroke = Instance.new("UIStroke") Stroke.Thickness = 2 Stroke.Color = Color3.fromRGB(170, 0, 255) Stroke.Parent = Main
 
 local Title = Instance.new("TextLabel")
-Title.Text = "STEALTH STRESSER V18"
+Title.Text = "IKYY TOOL GRABBER V19"
 Title.Size = UDim2.new(1, 0, 0, 45)
-Title.TextColor3 = Color3.fromRGB(0, 255, 200)
+Title.TextColor3 = Color3.fromRGB(200, 100, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 14
 Title.BackgroundTransparency = 1
@@ -33,63 +34,74 @@ Title.Parent = Main
 local ToggleBtn = Instance.new("TextButton")
 ToggleBtn.Size = UDim2.new(0, 180, 0, 50)
 ToggleBtn.Position = UDim2.new(0.5, -90, 0.5, 0)
-ToggleBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
-ToggleBtn.Text = "ENGINE: STANDBY"
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(25, 20, 30)
+ToggleBtn.Text = "GRABBER: OFF"
 ToggleBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
 ToggleBtn.Font = Enum.Font.GothamBold
 ToggleBtn.TextSize = 12
 ToggleBtn.Parent = Main
 local BCorner = Instance.new("UICorner") BCorner.CornerRadius = UDim.new(0, 10) BCorner.Parent = ToggleBtn
 
--- LOGIKA STEALTH (ANTI-KICK BYPASS)
-local IsRunning = false
-local Payloads = {
-    [1] = string.rep("\0", 500), -- Null bytes (Ringan tapi bingungkan server)
-    [2] = {["Data"] = math.huge, ["Target"] = "All"}, -- Table stress
-    [3] = "GetServerData", -- Perintah palsu
-    [4] = 0/0 -- NaN (Not a Number) untuk merusak kalkulasi
-}
+-- LOGIKA TOOL GRABBER
+local IsGrabbing = false
 
-local function ExecuteStealth()
-    while IsRunning do
-        -- Gunakan spawn agar tidak membeku (Client-side stability)
-        task.spawn(function()
-            -- Scan hanya Remote yang relevan agar tidak boros bandwidth
-            for _, r in pairs(game:GetDescendants()) do
-                if not IsRunning then break end
-                if r:IsA("RemoteEvent") or r:IsA("RemoteFunction") then
-                    pcall(function()
-                        -- Mengirim 5 paket cepat per remote (Bukan ribuan sekaligus)
-                        for i = 1, 5 do
-                            local p = Payloads[math.random(1, #Payloads)]
-                            if r:IsA("RemoteEvent") then
-                                r:FireServer(p, p)
-                            else
-                                task.spawn(function() r:InvokeServer(p) end)
-                            end
-                        end
-                    end)
-                end
+local function GrabAllTools()
+    local Backpack = LocalPlayer:FindFirstChildOfClass("Backpack")
+    if not Backpack then return end
+    
+    -- Lokasi yang discan
+    local Locations = {game.Workspace, ReplicatedStorage, Lighting}
+    
+    for _, folder in pairs(Locations) do
+        for _, obj in pairs(folder:GetDescendants()) do
+            if not IsGrabbing then break end
+            
+            -- Cek apakah objek adalah Tool dan bukan milik orang lain
+            if obj:IsA("Tool") or obj:IsA("HopperBin") then
+                pcall(function()
+                    -- Ambil tool ke Backpack
+                    obj.Parent = Backpack
+                end)
             end
-        end)
-        -- Jeda dinamis agar tidak dianggap 'Packet Spam' oleh Anti-Cheat
-        task.wait(0.2) 
+        end
     end
 end
 
+-- Monitor jika ada Tool baru muncul saat ON
+local function ListenForNewTools()
+    game.Workspace.DescendantAdded:Connect(function(descendant)
+        if IsGrabbing and descendant:IsA("Tool") then
+            local Backpack = LocalPlayer:FindFirstChildOfClass("Backpack")
+            if Backpack then
+                pcall(function() descendant.Parent = Backpack end)
+            end
+        end
+    end)
+end
+
 ToggleBtn.MouseButton1Click:Connect(function()
-    IsRunning = not IsRunning
-    if IsRunning then
-        ToggleBtn.Text = "ENGINE: ACTIVE"
-        ToggleBtn.TextColor3 = Color3.fromRGB(0, 255, 200)
-        ToggleBtn.BackgroundColor3 = Color3.fromRGB(0, 40, 30)
-        task.spawn(ExecuteStealth)
+    IsGrabbing = not IsGrabbing
+    if IsGrabbing then
+        ToggleBtn.Text = "GRABBER: ACTIVE"
+        ToggleBtn.TextColor3 = Color3.fromRGB(200, 100, 255)
+        ToggleBtn.BackgroundColor3 = Color3.fromRGB(40, 10, 60)
+        
+        -- Jalankan scan pertama
+        task.spawn(GrabAllTools)
+        -- Beritahu user lewat Chat
+        game.StarterGui:SetCore("ChatMakeSystemMessage", {
+            Text = "[V19]: Scanning and collecting all tools...";
+            Color = Color3.fromRGB(170, 0, 255);
+        })
     else
-        ToggleBtn.Text = "ENGINE: STANDBY"
+        ToggleBtn.Text = "GRABBER: OFF"
         ToggleBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
-        ToggleBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+        ToggleBtn.BackgroundColor3 = Color3.fromRGB(25, 20, 30)
     end
 end)
+
+-- Jalankan listener satu kali
+task.spawn(ListenForNewTools)
 
 -- Draggable Logic
 local d, di, ds, sp
