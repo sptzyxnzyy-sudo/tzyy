@@ -1,87 +1,84 @@
--- RAJUAUTO SCANNER v7.0 [FINAL]
--- Micro-Square UI | Server-Side Payload Manipulation
+-- RAJUAUTO SCANNER v5.5 - Updated Logic: Search -> Connect -> Execute
+-- Design: Micro Square UI | Theme: Modern Neon
 
 local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
-local CoreGui = game:GetService("CoreGui")
-local TweenService = game:GetService("TweenService")
-
--- Cleanup UI lama
-if CoreGui:FindFirstChild("RajuFinal_V7") then
-    CoreGui["RajuFinal_V7"]:Destroy()
-end
-
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "RajuFinal_V7"
-ScreenGui.Parent = CoreGui
-ScreenGui.ResetOnSpawn = false
+ScreenGui.Name = "RajuPayload_V55_Updated"
+ScreenGui.Parent = game.CoreGui
 
-local selectedRemotes = {}
+local selectedEvents = {}
 
--- [1] Tombol Toggle (Floating Icon)
+-- 1. Toggle Button
 local Toggle = Instance.new("TextButton")
 Toggle.Size = UDim2.new(0, 35, 0, 35)
-Toggle.Position = UDim2.new(0, 15, 0.4, 0)
-Toggle.BackgroundColor3 = Color3.fromRGB(10, 10, 12)
-Toggle.Text = "⚡"
-Toggle.TextColor3 = Color3.fromRGB(0, 255, 255)
+Toggle.Position = UDim2.new(0, 15, 0.45, 0)
+Toggle.BackgroundColor3 = Color3.fromRGB(10, 10, 15)
+Toggle.Text = "🧪"
+Toggle.TextColor3 = Color3.fromRGB(0, 255, 150)
 Toggle.TextSize = 18
 Toggle.Parent = ScreenGui
 Instance.new("UICorner", Toggle).CornerRadius = UDim.new(0, 10)
 local TStroke = Instance.new("UIStroke", Toggle)
-TStroke.Color = Color3.fromRGB(0, 255, 255)
+TStroke.Color = Color3.fromRGB(0, 255, 150)
 TStroke.Thickness = 1.5
 
--- [2] Main Frame (Compact Square: 180x240)
+-- 2. Main Frame
 local Main = Instance.new("Frame")
-Main.Size = UDim2.new(0, 180, 0, 240)
-Main.Position = UDim2.new(0.5, -90, 0.5, -120)
-Main.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
+Main.Size = UDim2.new(0, 180, 0, 250)
+Main.Position = UDim2.new(0.5, -90, 0.5, -125)
+Main.BackgroundColor3 = Color3.fromRGB(12, 12, 15)
 Main.Visible = false
-Main.BorderSizePixel = 0
 Main.Parent = ScreenGui
 
 local MCorner = Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 6)
 local MStroke = Instance.new("UIStroke", Main)
-MStroke.Color = Color3.fromRGB(0, 255, 255)
-MStroke.Thickness = 1.2
+MStroke.Color = Color3.fromRGB(0, 255, 150)
+MStroke.Thickness = 1
 
--- [3] Header (Draggable Area)
+-- 3. Header
 local Header = Instance.new("Frame")
 Header.Size = UDim2.new(1, 0, 0, 28)
-Header.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+Header.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
 Header.Parent = Main
 Instance.new("UICorner", Header)
 
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, 0, 1, 0)
-Title.Text = "MICRO EXECUTOR v7"
+Title.Text = "PAYLOAD SCANNER V5"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 10
 Title.BackgroundTransparency = 1
 Title.Parent = Header
 
--- [4] Scroll List (Fungsi Scroll Penuh)
+-- 4. Status Label (New)
+local StatusLabel = Instance.new("TextLabel")
+StatusLabel.Size = UDim2.new(0.9, 0, 0, 15)
+StatusLabel.Position = UDim2.new(0.05, 0, 0, 65)
+StatusLabel.BackgroundTransparency = 1
+StatusLabel.Text = "Status: Idle"
+StatusLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+StatusLabel.TextSize = 8
+StatusLabel.Font = Enum.Font.Gotham
+StatusLabel.Parent = Main
+
+-- 5. Scroll List
 local Scroll = Instance.new("ScrollingFrame")
-Scroll.Size = UDim2.new(0.9, 0, 0, 130)
-Scroll.Position = UDim2.new(0.05, 0, 0, 70)
+Scroll.Size = UDim2.new(0.9, 0, 0, 125)
+Scroll.Position = UDim2.new(0.05, 0, 0, 85)
 Scroll.BackgroundTransparency = 1
 Scroll.ScrollBarThickness = 2
-Scroll.ScrollBarImageColor3 = Color3.fromRGB(0, 255, 255)
-Scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+Scroll.ScrollBarImageColor3 = Color3.fromRGB(0, 255, 150)
 Scroll.Parent = Main
 
 local Layout = Instance.new("UIListLayout", Scroll)
 Layout.Padding = UDim.new(0, 3)
-Layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-    Scroll.CanvasSize = UDim2.new(0, 0, 0, Layout.AbsoluteContentSize.Y)
-end)
 
--- [5] Control Buttons
+-- 6. Buttons Template
 local function createBtn(txt, y, color)
     local b = Instance.new("TextButton")
-    b.Size = UDim2.new(0.9, 0, 0, 24)
+    b.Size = UDim2.new(0.9, 0, 0, 25)
     b.Position = UDim2.new(0.05, 0, 0, y)
     b.BackgroundColor3 = color
     b.Text = txt
@@ -93,13 +90,86 @@ local function createBtn(txt, y, color)
     return b
 end
 
-local ScanBtn = createBtn("REFRESH NETWORK", 38, Color3.fromRGB(35, 35, 45))
-local ExecBtn = createBtn("EXECUTE SERVER-SIDE", 205, Color3.fromRGB(0, 100, 150))
-ExecBtn.Visible = false
+local ScanBtn = createBtn("1. SEARCH SERVER API", 35, Color3.fromRGB(35, 35, 45))
+local SendBtn = createBtn("3. EXECUTE PAYLOAD", 218, Color3.fromRGB(0, 120, 80))
+SendBtn.Visible = false
 
---- FUNGSI LOGIKA ---
+--- LOGIKA INTI ---
 
--- Dragging System
+-- Fungsi Mencari API
+local function searchAPI()
+    for _, v in pairs(Scroll:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end
+    table.clear(selectedEvents)
+    StatusLabel.Text = "Status: Scanning..."
+    
+    local found = 0
+    for _, obj in pairs(game:GetDescendants()) do
+        if obj:IsA("RemoteEvent") then
+            found = found + 1
+            
+            -- UI Item untuk API yang ditemukan
+            local b = Instance.new("TextButton")
+            b.Size = UDim2.new(1, 0, 0, 24)
+            b.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+            b.Text = "  " .. obj.Name
+            b.TextColor3 = Color3.fromRGB(180, 180, 180)
+            b.Font = Enum.Font.Gotham
+            b.TextSize = 8
+            b.TextXAlignment = Enum.TextXAlignment.Left
+            b.Parent = Scroll
+            Instance.new("UICorner", b).CornerRadius = UDim.new(0, 4)
+            
+            -- Fungsi Menghubungkan (Connect)
+            b.MouseButton1Click:Connect(function()
+                if selectedEvents[obj] then
+                    selectedEvents[obj] = nil
+                    b.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+                    b.TextColor3 = Color3.fromRGB(180, 180, 180)
+                    StatusLabel.Text = "Status: Disconnected " .. obj.Name
+                else
+                    selectedEvents[obj] = true
+                    b.BackgroundColor3 = Color3.fromRGB(0, 150, 255) -- Blue for "Connected"
+                    b.TextColor3 = Color3.fromRGB(255, 255, 255)
+                    StatusLabel.Text = "Status: Connected to " .. obj.Name
+                end
+                SendBtn.Visible = next(selectedEvents) ~= nil
+            end)
+        end
+    end
+    StatusLabel.Text = "Status: Found " .. found .. " API Nodes"
+end
+
+-- Fungsi Eksekusi (Execute)
+local function executePayload()
+    StatusLabel.Text = "Status: Injecting Payload..."
+    for remote, _ in pairs(selectedEvents) do
+        local payload = {
+            ["Value"] = math.random(1000, 9999),
+            ["Action"] = "Bypass_Execute",
+            ["Data"] = "Raju_System_v5"
+        }
+        
+        task.spawn(function()
+            pcall(function()
+                remote:FireServer(payload)
+            end)
+        end)
+    end
+    
+    -- Feedback Visual
+    SendBtn.Text = "EXECUTING..."
+    SendBtn.BackgroundColor3 = Color3.fromRGB(0, 255, 150)
+    task.wait(0.5)
+    SendBtn.Text = "3. EXECUTE PAYLOAD"
+    SendBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 80)
+    StatusLabel.Text = "Status: Payload Sent Successfully"
+end
+
+-- Event Listeners
+ScanBtn.MouseButton1Click:Connect(searchAPI)
+SendBtn.MouseButton1Click:Connect(executePayload)
+
+-- Dragging Logic (Fixed)
 local dragging, dragStart, startPos
 Header.InputBegan:Connect(function(i)
     if i.UserInputType == Enum.UserInputType.MouseButton1 then
@@ -114,80 +184,7 @@ UIS.InputChanged:Connect(function(i)
 end)
 UIS.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end end)
 
--- Open/Close UI
 Toggle.MouseButton1Click:Connect(function()
     Main.Visible = not Main.Visible
-    Toggle.Text = Main.Visible and "X" or "⚡"
-end)
-
--- List Item Generator
-local function addRemote(remote)
-    local b = Instance.new("TextButton")
-    b.Size = UDim2.new(1, 0, 0, 24)
-    b.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
-    b.Text = "  " .. remote.Name
-    b.TextColor3 = Color3.fromRGB(180, 180, 180)
-    b.Font = Enum.Font.Gotham
-    b.TextSize = 8
-    b.TextXAlignment = Enum.TextXAlignment.Left
-    b.Parent = Scroll
-    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 4)
-    
-    b.MouseButton1Click:Connect(function()
-        if selectedRemotes[remote] then
-            selectedRemotes[remote] = nil
-            b.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
-            b.TextColor3 = Color3.fromRGB(180, 180, 180)
-        else
-            selectedRemotes[remote] = true
-            b.BackgroundColor3 = Color3.fromRGB(0, 60, 80)
-            b.TextColor3 = Color3.fromRGB(255, 255, 255)
-        end
-        ExecBtn.Visible = next(selectedRemotes) ~= nil
-    end)
-end
-
--- Scanner Feature (Berfungsi Mendeteksi Semua)
-ScanBtn.MouseButton1Click:Connect(function()
-    for _, v in pairs(Scroll:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end
-    table.clear(selectedRemotes)
-    ExecBtn.Visible = false
-    
-    local found = game:GetDescendants()
-    for _, obj in pairs(found) do
-        if obj:IsA("RemoteEvent") then
-            addRemote(obj)
-        end
-    end
-end)
-
--- Execution Feature (Server-Side Data Manipulation)
-ExecBtn.MouseButton1Click:Connect(function()
-    for remote, _ in pairs(selectedRemotes) do
-        task.spawn(function()
-            -- PAYLOAD MANIPULATION: Data yang dikirim ke server
-            -- Silahkan sesuaikan isi tabel ini dengan data manipulasi kamu
-            local payload = {
-                ["Status"] = "Activated",
-                ["Amount"] = 999999,
-                ["Admin"] = true
-            }
-            
-            local success, err = pcall(function()
-                remote:FireServer(payload)
-            end)
-            
-            if success then
-                ExecBtn.Text = "SUCCESS!"
-                ExecBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 100)
-            else
-                ExecBtn.Text = "FAILED"
-                ExecBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
-            end
-            
-            task.wait(0.5)
-            ExecBtn.Text = "EXECUTE SERVER-SIDE"
-            ExecBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 150)
-        end)
-    end
+    Toggle.Text = Main.Visible and "X" or "🧪"
 end)
