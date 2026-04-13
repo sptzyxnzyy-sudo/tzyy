@@ -1,129 +1,190 @@
 local HttpService = game:GetService("HttpService")
 local UserInputService = game:GetService("UserInputService")
+local CoreGui = game:GetService("CoreGui")
 
--- 1. Inisialisasi Main ScreenGui
+-- 1. ScreenGui Utama
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "ToolboxGui"
-ScreenGui.Parent = game.CoreGui -- Gunakan CoreGui agar tidak hilang saat mati (untuk executor)
+ScreenGui.Name = "MiniToolbox"
+ScreenGui.Parent = CoreGui
 ScreenGui.ResetOnSpawn = false
 
--- 2. Frame Utama (Kotak Alat)
+-- 2. Frame Utama (Persegi Kecil)
 local MainFrame = Instance.new("Frame")
-MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 300, 0, 400)
-MainFrame.Position = UDim2.new(0.5, -150, 0.5, -200)
-MainFrame.BackgroundColor3 = Color3.fromRGB(240, 240, 240)
-MainFrame.BorderSizePixel = 2
+MainFrame.Size = UDim2.new(0, 280, 0, 320) -- Ukuran lebih kecil & persegi
+MainFrame.Position = UDim2.new(0.5, -140, 0.5, -160)
+MainFrame.BackgroundColor3 = Color3.fromRGB(245, 245, 235)
+MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
-MainFrame.Draggable = true -- Fitur geser dasar (deprecated tapi efektif di executor)
 MainFrame.Parent = ScreenGui
 
--- 3. Header / Judul
+local Corner = Instance.new("UICorner")
+Corner.CornerRadius = UDim.new(0, 6)
+Corner.Parent = MainFrame
+
+-- Shadow/Border tipis
+local Stroke = Instance.new("UIStroke")
+Stroke.Thickness = 1.5
+Stroke.Color = Color3.fromRGB(180, 180, 180)
+Stroke.Parent = MainFrame
+
+-- 3. Header (Tempat Drag)
 local Header = Instance.new("Frame")
 Header.Size = UDim2.new(1, 0, 0, 30)
-Header.BackgroundColor3 = Color3.fromRGB(220, 220, 220)
+Header.BackgroundColor3 = Color3.fromRGB(225, 225, 215)
 Header.Parent = MainFrame
 
+local HCorner = Instance.new("UICorner")
+HCorner.CornerRadius = UDim.new(0, 6)
+HCorner.Parent = Header
+
 local Title = Instance.new("TextLabel")
-Title.Text = "Kotak Alat"
-Title.Size = UDim2.new(1, -40, 1, 0)
+Title.Text = "Kotak Alat Mini"
+Title.Size = UDim2.new(1, -35, 1, 0)
+Title.Position = UDim2.new(0, 10, 0, 0)
 Title.BackgroundTransparency = 1
 Title.Font = Enum.Font.SourceSansBold
-Title.TextSize = 18
+Title.TextSize = 16
+Title.TextColor3 = Color3.fromRGB(50, 50, 50)
+Title.TextXAlignment = Enum.TextXAlignment.Left
 Title.Parent = Header
 
--- Tombol Close (X)
 local CloseBtn = Instance.new("TextButton")
 CloseBtn.Text = "X"
-CloseBtn.Size = UDim2.new(0, 30, 0, 30)
-CloseBtn.Position = UDim2.new(1, -30, 0, 0)
-CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+CloseBtn.Size = UDim2.new(0, 25, 0, 20)
+CloseBtn.Position = UDim2.new(1, -30, 0, 5)
+CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 60, 60)
 CloseBtn.TextColor3 = Color3.new(1, 1, 1)
+CloseBtn.Font = Enum.Font.SourceSansBold
 CloseBtn.Parent = Header
 
-CloseBtn.MouseButton1Click:Connect(function()
-    MainFrame.Visible = false
-end)
+local CCorner = Instance.new("UICorner")
+CCorner.CornerRadius = UDim.new(0, 4)
+CCorner.Parent = CloseBtn
 
--- 4. Input Pencarian
+-- 4. Input & Search Button (Sejajar)
+local SearchContainer = Instance.new("Frame")
+SearchContainer.Size = UDim2.new(1, -20, 0, 30)
+SearchContainer.Position = UDim2.new(0, 10, 0, 40)
+SearchContainer.BackgroundTransparency = 1
+SearchContainer.Parent = MainFrame
+
 local SearchBox = Instance.new("TextBox")
-SearchBox.PlaceholderText = "nama keyword..."
-SearchBox.Size = UDim2.new(0.7, -10, 0, 35)
-SearchBox.Position = UDim2.new(0, 5, 0, 40)
-SearchBox.Parent = MainFrame
+SearchBox.PlaceholderText = "Cari model..."
+SearchBox.Size = UDim2.new(0.7, -5, 1, 0)
+SearchBox.BackgroundColor3 = Color3.new(1, 1, 1)
+SearchBox.BorderSizePixel = 0
+SearchBox.Text = ""
+SearchBox.Parent = SearchContainer
+
+local SCorner = Instance.new("UICorner")
+SCorner.CornerRadius = UDim.new(0, 4)
+SCorner.Parent = SearchBox
 
 local SearchBtn = Instance.new("TextButton")
-SearchBtn.Text = "Dapatkan"
-SearchBtn.Size = UDim2.new(0.3, -5, 0, 35)
-SearchBtn.Position = UDim2.new(0.7, 0, 0, 40)
-SearchBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-SearchBtn.Parent = MainFrame
+SearchBtn.Text = "Cari"
+SearchBtn.Size = UDim2.new(0.3, 0, 1, 0)
+SearchBtn.Position = UDim2.new(0.7, 0, 0, 0)
+SearchBtn.BackgroundColor3 = Color3.fromRGB(80, 150, 250)
+SearchBtn.TextColor3 = Color3.new(1, 1, 1)
+SearchBtn.Font = Enum.Font.SourceSansBold
+SearchBtn.Parent = SearchContainer
 
--- 5. Area Hasil (Scrolling Frame)
+local BCorner = Instance.new("UICorner")
+BCorner.CornerRadius = UDim.new(0, 4)
+BCorner.Parent = SearchBtn
+
+-- 5. Scrolling Hasil (Dikecilkan)
 local ItemList = Instance.new("ScrollingFrame")
-ItemList.Size = UDim2.new(1, -10, 1, -85)
-ItemList.Position = UDim2.new(0, 5, 0, 80)
+ItemList.Size = UDim2.new(1, -20, 1, -85)
+ItemList.Position = UDim2.new(0, 10, 0, 75)
+ItemList.BackgroundTransparency = 1
+ItemList.ScrollBarThickness = 3
 ItemList.CanvasSize = UDim2.new(0, 0, 0, 0)
-ItemList.ScrollBarThickness = 6
 ItemList.Parent = MainFrame
 
 local Layout = Instance.new("UIGridLayout")
+Layout.CellSize = UDim2.new(0, 120, 0, 140) -- Ukuran card lebih kecil
+Layout.Padding = UDim2.new(0, 10, 0, 10)
 Layout.Parent = ItemList
-Layout.CellSize = UDim2.new(0, 135, 0, 150)
-Layout.Padding = UDim2.new(0, 5, 0, 5)
 
--- 6. Logika Mengambil Data API
+-- 6. Logika API & Fungsi
 local function searchModels(keyword)
-    -- Membersihkan hasil lama
+    if keyword == "" then return end
+    
+    -- Bersihkan list
     for _, child in pairs(ItemList:GetChildren()) do
         if child:IsA("Frame") then child:Destroy() end
     end
 
-    local url = "https://apis.roblox.com/toolbox-service/v1/marketplace/10?limit=30&pageNumber=0&keyword=" .. keyword
+    local cleanKeyword = HttpService:UrlEncode(keyword)
+    local url = "https://apis.roproxy.com/toolbox-service/v1/marketplace/10?limit=20&keyword=" .. cleanKeyword
     
-    -- Catatan: Di executor, HttpService:GetAsync biasanya dibatasi. 
-    -- Kebanyakan executor menggunakan fungsi custom seperti 'request' atau 'http_get'.
     local success, response = pcall(function()
-        -- Gunakan fungsi request executor jika ada, jika tidak pakai standard (mungkin butuh proxy)
-        return game:HttpGet(url) 
+        return game:HttpGet(url)
     end)
 
-    if success then
+    if success and response then
         local data = HttpService:JSONDecode(response)
-        for _, item in pairs(data.data) do
-            -- Frame Item
-            local ItemFrame = Instance.new("Frame")
-            ItemFrame.BackgroundColor3 = Color3.new(1, 1, 1)
-            ItemFrame.Parent = ItemList
+        if data and data.data then
+            for _, item in pairs(data.data) do
+                local Card = Instance.new("Frame")
+                Card.BackgroundColor3 = Color3.new(1, 1, 1)
+                Card.Parent = ItemList
+                
+                local Cr = Instance.new("UICorner")
+                Cr.CornerRadius = UDim.new(0, 4)
+                Cr.Parent = Card
 
-            -- Thumbnail
-            local Thumb = Instance.new("ImageLabel")
-            Thumb.Size = UDim2.new(1, 0, 0, 100)
-            Thumb.Image = "rbxassetid://" .. (item.assetId or 0) -- Simulasi thumb
-            Thumb.Parent = ItemFrame
+                local Thumb = Instance.new("ImageLabel")
+                Thumb.Size = UDim2.new(1, -10, 0, 90)
+                Thumb.Position = UDim2.new(0, 5, 0, 5)
+                Thumb.BackgroundTransparency = 1
+                Thumb.Image = "https://www.roblox.com/asset-thumbnail/image?assetId=" .. item.id .. "&width=150&height=150&format=png"
+                Thumb.Parent = Card
 
-            -- Judul & Pembuat
-            local Label = Instance.new("TextLabel")
-            Label.Text = item.name .. "\noleh " .. (item.creatorName or "Unknown")
-            Label.Size = UDim2.new(1, 0, 0, 50)
-            Label.Position = UDim2.new(0, 0, 0, 100)
-            Label.TextWrapped = true
-            Label.TextSize = 12
-            Label.Parent = ItemFrame
+                local Label = Instance.new("TextLabel")
+                Label.Text = item.name
+                Label.Size = UDim2.new(1, -10, 0, 35)
+                Label.Position = UDim2.new(0, 5, 0, 100)
+                Label.TextSize = 10
+                Label.TextWrapped = true
+                Label.BackgroundTransparency = 1
+                Label.Parent = Card
+            end
+            ItemList.CanvasSize = UDim2.new(0, 0, 0, Layout.AbsoluteContentSize.Y + 10)
         end
-        ItemList.CanvasSize = UDim2.new(0, 0, 0, Layout.AbsoluteContentSize.Y)
-    else
-        warn("Gagal mengambil data: " .. tostring(response))
     end
 end
 
+-- Klik Tombol
 SearchBtn.MouseButton1Click:Connect(function()
     searchModels(SearchBox.Text)
 end)
 
--- Fitur Toggle (Tekan "K" untuk buka/tutup kembali)
-UserInputService.InputBegan:Connect(function(input, gpe)
-    if not gpe and input.KeyCode == Enum.KeyCode.K then
-        MainFrame.Visible = not MainFrame.Visible
+-- Support Enter di Keyboard
+SearchBox.FocusLost:Connect(function(enterPressed)
+    if enterPressed then
+        searchModels(SearchBox.Text)
     end
+end)
+
+-- Close & Drag
+CloseBtn.MouseButton1Click:Connect(function() MainFrame.Visible = false end)
+
+local dragging, dragStart, startPos
+Header.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = MainFrame.Position
+    end
+end)
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        local delta = input.Position - dragStart
+        MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
 end)
