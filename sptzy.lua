@@ -1,26 +1,27 @@
--- Kode Executor: Mengubah Garis Pinggir GUI
-local function applyStyle(stroke)
-    if stroke:IsA("UIStroke") then
-        -- Pengaturan Visual Modern
-        stroke.Color = Color3.fromRGB(0, 255, 255) -- Warna Cyan Neon
-        stroke.Thickness = 2 -- Ketebalan garis
-        stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-        stroke.Transparency = 0.1 -- Sedikit transparan agar halus
+-- Versi Force Overwrite untuk Executor
+local function forceStyle()
+    -- Mencari di PlayerGui dan CoreGui
+    local targets = {game:GetService("Players").LocalPlayer:FindFirstChild("PlayerGui"), game:GetService("CoreGui")}
+    
+    for _, folder in pairs(targets) do
+        if folder then
+            for _, stroke in pairs(folder:GetDescendants()) do
+                if stroke:IsA("UIStroke") then
+                    stroke.Color = Color3.fromRGB(0, 255, 255) -- Cyan
+                    stroke.Thickness = 2.5
+                    stroke.Enabled = true
+                    -- Mengunci properti agar tidak diubah balik oleh script game
+                end
+            end
+        end
     end
 end
 
--- 1. Jalankan pada GUI yang sudah ada
-for _, object in pairs(game:GetService("CoreGui"):GetDescendants()) do
-    applyStyle(object)
-end
-
-for _, object in pairs(game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui"):GetDescendants()) do
-    applyStyle(object)
-end
-
--- 2. Jalankan otomatis jika ada UI baru yang muncul (Fitur Auto-Update)
-game:GetService("Players").LocalPlayer.PlayerGui.DescendantAdded:Connect(function(descendant)
-    applyStyle(descendant)
+-- Menjalankan fungsi setiap 2 detik agar permanen
+task.spawn(function()
+    while task.wait(2) do
+        pcall(forceStyle)
+    end
 end)
 
-print("UI Border Styles Applied Successfully!")
+print("Skrip Force Border aktif!")
