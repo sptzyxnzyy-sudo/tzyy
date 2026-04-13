@@ -1,49 +1,42 @@
--- Skrip Universal Border Fixer
-local function applyModernStyle(obj)
-    -- Jika objek adalah UIStroke (garis pinggir modern)
+-- Kode untuk mengubah garis pinggir (UIStroke) pada GUI MAP
+local function gubahGarisPinggir(obj)
+    -- Mencari objek UIStroke yang sudah ada di GUI map
     if obj:IsA("UIStroke") then
-        obj.Color = Color3.fromRGB(0, 255, 255) -- Cyan
-        obj.Thickness = 1.8
+        obj.Color = Color3.fromRGB(0, 255, 255) -- Ganti warna (Cyan)
+        obj.Thickness = 2 -- Ketebalan garis
         obj.Transparency = 0
         obj.Enabled = true
+    end
     
-    -- Jika objek adalah Frame/Button tanpa UIStroke (metode lama)
-    elseif obj:IsA("Frame") or obj:IsA("TextButton") or obj:IsA("TextBox") then
-        -- Jika tidak ada UIStroke, kita buatkan baru agar lebih bagus
+    -- Jika elemen UI map tidak punya UIStroke, kita tambahkan manual agar ada garisnya
+    if obj:IsA("Frame") or obj:IsA("TextButton") or obj:IsA("ImageLabel") then
         if not obj:FindFirstChildOfClass("UIStroke") then
-            local newStroke = Instance.new("UIStroke")
-            newStroke.Color = Color3.fromRGB(0, 255, 255)
-            newStroke.Thickness = 1.2
-            newStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-            newStroke.Parent = obj
+            local stroke baru = Instance.new("UIStroke")
+            baru.Color = Color3.fromRGB(0, 255, 255)
+            baru.Thickness = 1.5
+            baru.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+            baru.Parent = obj
         end
-        -- Menghilangkan border bawaan yang kaku (metode lama)
-        obj.BorderSizePixel = 0 
+        -- Menghilangkan border kotak gaya lama agar terlihat modern
+        obj.BorderSizePixel = 0
     end
 end
 
--- Fungsi scan menyeluruh
-local function scanAll()
-    for _, item in pairs(game:GetDescendants()) do
-        -- Membatasi hanya pada objek UI agar tidak lag di Mobile/Chromebook
-        if item:IsA("ScreenGui") or item:IsA("SurfaceGui") or item:IsA("BillboardGui") then
-            for _, child in pairs(item:GetDescendants()) do
-                pcall(function()
-                    applyModernStyle(child)
-                end)
-            end
-        end
-    end
-end
+-- Menjalankan fungsi ke semua GUI yang ada di dalam Map (PlayerGui)
+local pg = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
 
--- Jalankan sekali di awal
-scanAll()
-
--- Pantau jika ada UI baru yang muncul di Studio Lite (Real-time)
-game.DescendantAdded:Connect(function(newObj)
+for _, v in pairs(pg:GetDescendants()) do
     pcall(function()
-        applyModernStyle(newObj)
+        gubahGarisPinggir(v)
+    end)
+end
+
+-- Otomatis mengubah jika ada GUI map baru yang muncul saat bermain
+pg.DescendantAdded:Connect(function(baru)
+    pcall(function()
+        task.wait(0.1) -- Tunggu sebentar agar objek termuat sempurna
+        gubahGarisPinggir(baru)
     end)
 end)
 
-print("Semua UI di Studio Lite telah diperbarui!")
+print("Garis pinggir GUI Map berhasil digubah!")
