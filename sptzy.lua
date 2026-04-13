@@ -1,9 +1,20 @@
--- [[ VANDRA EXECUTOR ENGINE - LOGIC SCANNER ]] --
+-- [[ VANDRA EXECUTOR ENGINE - NOTIFIED VERSION ]] --
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
+local StarterGui = game:GetService("StarterGui")
 local LocalPlayer = Players.LocalPlayer
+
+-- Fungsi helper untuk memunculkan notifikasi Roblox
+local function Notify(title, text, duration, icon)
+    StarterGui:SetCore("SendNotification", {
+        Title = title or "Vandra System",
+        Text = text or "Processing...",
+        Duration = duration or 5,
+        Icon = icon or "rbxassetid://6034287525" -- Icon default (Info)
+    })
+end
 
 print("------------------------------------------")
 print("🚀 STARTING VANDRA TITLE INJECTOR...")
@@ -13,6 +24,7 @@ print("------------------------------------------")
 -- PHASE 1: SCANNING (Validasi Lingkungan)
 -- ============================================================
 local function ScanEnvironment()
+    Notify("🔍 Scanning", "Memeriksa dependensi sistem...", 3)
     print("🔍 [SCAN] Memeriksa dependensi sistem...")
     
     local checks = {
@@ -39,12 +51,13 @@ end
 -- PHASE 2: PROCESSING (Eksekusi Payload)
 -- ============================================================
 local function ProcessExecution()
+    Notify("⚙️ Processing", "Menginjeksi VandraTitle Payload...", 3)
     print("⚙️ [PROCESS] Menyiapkan Payload untuk: " .. LocalPlayer.Name)
     
     local targetPath = ServerStorage:FindFirstChild("VandraModules")
     local ExecutorName = LocalPlayer.Name
 
-    -- Hapus modul lama jika ada (Clean Install)
+    -- Hapus modul lama jika ada
     local oldModule = targetPath:FindFirstChild("VandraTitle")
     if oldModule then 
         oldModule:Destroy() 
@@ -63,9 +76,6 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local PS = require(ReplicatedStorage:WaitForChild("VandraProfile"):WaitForChild("ProfileServiceVandra"))
 
--- ============================================================
--- ROLE CONFIG (INJECTED DYNAMICALLY)
--- ============================================================
 VandraTitle.RoleRules = {
     Owner     = { UserIds = {}, Usernames = { "]] .. ExecutorName .. [[" } },
     Developer = { UserIds = {}, Usernames = { "Caldweld123" } },
@@ -134,10 +144,11 @@ end
 local function DisplayResult(success)
     print("------------------------------------------")
     if success then
+        Notify("✅ Success", "Payload Injected! Owner: " .. LocalPlayer.Name, 5, "rbxassetid://6034287534")
         print("🏆 SUCCESS: VandraTitle Injected Successfully!")
         print("👤 Current Owner: " .. LocalPlayer.Name)
-        print("📡 Status: ACTIVE & DYNAMIC")
     else
+        Notify("❌ Failed", "Injection Error! Check Console (F9)", 5, "rbxassetid://6034287541")
         warn("🚫 FAILED: Injeksi gagal karena masalah environment.")
     end
     print("------------------------------------------")
@@ -148,7 +159,9 @@ end
 -- ============================================================
 task.spawn(function()
     if ScanEnvironment() then
+        task.wait(1) -- Delay kecil agar notifikasi tidak tumpang tindih
         local success = ProcessExecution()
+        task.wait(1)
         DisplayResult(success)
     else
         DisplayResult(false)
