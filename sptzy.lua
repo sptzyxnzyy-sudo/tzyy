@@ -1,169 +1,151 @@
--- [[ VANDRA EXECUTOR ENGINE - NOTIFIED VERSION ]] --
+-- [[ CONFIGURATION ]]
+local IsEnabled = false
+local TargetRemote = nil
+local CoreGui = game:GetService("CoreGui")
+local TweenService = game:GetService("TweenService")
 
-local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local ServerStorage = game:GetService("ServerStorage")
-local StarterGui = game:GetService("StarterGui")
-local LocalPlayer = Players.LocalPlayer
+-- [[ NOTIFICATION SYSTEM ]]
+local function SendNotification(title, text, color)
+    local NotifGui = Instance.new("ScreenGui", CoreGui)
+    
+    local Frame = Instance.new("Frame", NotifGui)
+    Frame.Size = UDim2.new(0, 220, 0, 60)
+    Frame.Position = UDim2.new(1, 10, 0.8, 0) -- Mulai dari luar layar
+    Frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    Frame.BorderSizePixel = 0
+    
+    -- Accent Line
+    local Line = Instance.new("Frame", Frame)
+    Line.Size = UDim2.new(0, 4, 1, 0)
+    Line.BackgroundColor3 = color or Color3.fromRGB(0, 255, 255)
+    Line.BorderSizePixel = 0
+    
+    local TLabel = Instance.new("TextLabel", Frame)
+    TLabel.Size = UDim2.new(1, -15, 0.5, 0)
+    TLabel.Position = UDim2.new(0, 10, 0, 5)
+    TLabel.Text = title
+    TLabel.TextColor3 = Color3.new(1, 1, 1)
+    TLabel.Font = Enum.Font.GothamBold
+    TLabel.TextXAlignment = Enum.TextXAlignment.Left
+    TLabel.BackgroundTransparency = 1
+    
+    local DLabel = Instance.new("TextLabel", Frame)
+    DLabel.Size = UDim2.new(1, -15, 0.5, 0)
+    DLabel.Position = UDim2.new(0, 10, 0.5, 0)
+    DLabel.Text = text
+    DLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+    DLabel.Font = Enum.Font.Gotham
+    DLabel.TextSize = 12
+    DLabel.TextXAlignment = Enum.TextXAlignment.Left
+    DLabel.BackgroundTransparency = 1
 
--- Fungsi helper untuk memunculkan notifikasi Roblox
-local function Notify(title, text, duration, icon)
-    StarterGui:SetCore("SendNotification", {
-        Title = title or "Vandra System",
-        Text = text or "Processing...",
-        Duration = duration or 5,
-        Icon = icon or "rbxassetid://6034287525" -- Icon default (Info)
-    })
+    -- Animasi Masuk
+    Frame:TweenPosition(UDim2.new(1, -230, 0.8, 0), "Out", "Quart", 0.5, true)
+    
+    task.delay(3, function()
+        Frame:TweenPosition(UDim2.new(1, 10, 0.8, 0), "In", "Quart", 0.5, true)
+        task.wait(0.5)
+        NotifGui:Destroy()
+    end)
 end
 
-print("------------------------------------------")
-print("🚀 STARTING VANDRA TITLE INJECTOR...")
-print("------------------------------------------")
-
--- ============================================================
--- PHASE 1: SCANNING (Validasi Lingkungan)
--- ============================================================
-local function ScanEnvironment()
-    Notify("🔍 Scanning", "Memeriksa dependensi sistem...", 3)
-    print("🔍 [SCAN] Memeriksa dependensi sistem...")
+-- [[ HEURISTIC SCANNER ]]
+local function FindRemoteByLogic()
+    SendNotification("SYSTEM", "Memulai Scanning...", Color3.fromRGB(255, 165, 0))
+    task.wait(0.5)
     
-    local checks = {
-        {Name = "ServerStorage", Target = ServerStorage},
-        {Name = "ReplicatedStorage", Target = ReplicatedStorage},
-        {Name = "VandraProfile", Target = ReplicatedStorage:FindFirstChild("VandraProfile")},
-        {Name = "VandraModules", Target = ServerStorage:FindFirstChild("VandraModules")}
-    }
-
-    local ready = true
-    for _, item in pairs(checks) do
-        if not item.Target then
-            warn("❌ [SCAN ERROR] " .. item.Name .. " tidak ditemukan!")
-            ready = false
-        else
-            print("✅ [SCAN] " .. item.Name .. " terdeteksi.")
+    local potentialRemotes = {}
+    for _, obj in pairs(game:GetService("ReplicatedStorage"):GetDescendants()) do
+        if obj:IsA("RemoteEvent") then
+            -- Logika: Cari yang berada di folder dalam (gameplay logic)
+            if not obj.Name:lower():find("chat") and not obj.Name:lower():find("voice") then
+                table.insert(potentialRemotes, obj)
+            end
         end
     end
     
-    return ready
-end
-
--- ============================================================
--- PHASE 2: PROCESSING (Eksekusi Payload)
--- ============================================================
-local function ProcessExecution()
-    Notify("⚙️ Processing", "Menginjeksi VandraTitle Payload...", 3)
-    print("⚙️ [PROCESS] Menyiapkan Payload untuk: " .. LocalPlayer.Name)
-    
-    local targetPath = ServerStorage:FindFirstChild("VandraModules")
-    local ExecutorName = LocalPlayer.Name
-
-    -- Hapus modul lama jika ada
-    local oldModule = targetPath:FindFirstChild("VandraTitle")
-    if oldModule then 
-        oldModule:Destroy() 
-        print("🗑️ [PROCESS] Modul lama dihapus.")
+    if #potentialRemotes > 0 then
+        table.sort(potentialRemotes, function(a, b)
+            return #a:GetFullName() > #b:GetFullName()
+        end)
+        local found = potentialRemotes[1]
+        SendNotification("SUCCESS", "Remote Terhubung: " .. found.Name, Color3.fromRGB(0, 255, 0))
+        return found
     end
-
-    -- Buat Modul Baru
-    local newModule = Instance.new("ModuleScript")
-    newModule.Name = "VandraTitle"
     
-    -- Source Code Injection
-    newModule.Source = [[
-local VandraTitle = {}
-local Players           = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
-local PS = require(ReplicatedStorage:WaitForChild("VandraProfile"):WaitForChild("ProfileServiceVandra"))
-
-VandraTitle.RoleRules = {
-    Owner     = { UserIds = {}, Usernames = { "]] .. ExecutorName .. [[" } },
-    Developer = { UserIds = {}, Usernames = { "Caldweld123" } },
-    HeadAdmin = { UserIds = {}, Usernames = { "" } },
-    Admin     = { UserIds = {}, Usernames = { "" } },
-    Moderator = { UserIds = {}, Usernames = { "" } },
-    Streamer  = { UserIds = {}, Usernames = { "" } },
-    Community = { UserIds = {}, Usernames = { "" } },
-}
-
-VandraTitle.RoleOrder = { "Owner","Developer","HeadAdmin","Admin","Moderator","Streamer","Community" }
-VandraTitle.RoleDisplay = {
-    Owner="👑OWNER👑", Developer="💖LUV OWNER💖", HeadAdmin="HEAD ADMIN",
-    Admin="ADMIN", Moderator="MODERATOR", Streamer="STREAMER", Community="MEDELLIN AREA",
-}
-VandraTitle.RoleColors = {
-    Owner=Color3.fromRGB(255,215,0), Developer=Color3.fromRGB(0,255,255),
-    HeadAdmin=Color3.fromRGB(148,0,211), Admin=Color3.fromRGB(255,69,0),
-    Moderator=Color3.fromRGB(50,205,50), Streamer=Color3.fromRGB(255,0,0),
-    Community=Color3.fromRGB(255,182,193),
-}
-VandraTitle.RoleUsesGradient = { Owner=true, Community=true }
-
-VandraTitle.SummitLevels = {
-    {Min=-1,Title="OVERLOADED"},{Min=0,Title="NEWBIE EXPLORER"},{Min=20,Title="SWIFT WANDERER"},
-    {Min=1000,Title="MASTER MIXER"},{Min=2000,Title="TOTAL ELIMINATOR"}
-}
-
-VandraTitle.MinusGradient = { Colors={Color3.fromRGB(138,43,226),Color3.fromRGB(75,0,130),Color3.fromRGB(25,25,112)}, Speed=0.02, RotationSpeed=3 }
-VandraTitle.Gradient1K    = { Colors={Color3.fromRGB(0,100,255),Color3.fromRGB(255,255,0),Color3.fromRGB(255,0,0)}, Speed=0.02, RotationSpeed=3 }
-VandraTitle.Gradient2K    = { Colors={Color3.fromRGB(255,0,255),Color3.fromRGB(0,255,255),Color3.fromRGB(255,255,0)}, Speed=0.02, RotationSpeed=3 }
-VandraTitle.Gradient3K    = { Colors={Color3.fromRGB(255,0,0),Color3.fromRGB(255,127,0),Color3.fromRGB(255,255,0)}, Speed=0.02, RotationSpeed=3 }
-VandraTitle.Gradient5K    = { Colors={Color3.fromRGB(148,0,211),Color3.fromRGB(75,0,130),Color3.fromRGB(0,0,255),Color3.fromRGB(0,255,0),Color3.fromRGB(255,255,0),Color3.fromRGB(255,127,0),Color3.fromRGB(255,0,0)}, Speed=0.02, RotationSpeed=4 }
-
-function VandraTitle:AddDynamicRole(username, roleName)
-    local target = Players:FindFirstChild(username)
-    local ok, uid = pcall(function() return target and target.UserId or Players:GetUserIdFromNameAsync(username) end)
-    
-    if ok and uid then
-        PS.Roles.Save(uid, { role=roleName, username=username, addedAt=os.time() })
-        PS.Roles.ForceFlush(uid)
-        if target then
-            target:SetAttribute("DynamicRole", roleName)
-            target:SetAttribute("RoleUsesGradient", VandraTitle.RoleUsesGradient[roleName] == true)
-        end
-        return true, "Role Updated"
-    end
-    return false, "Failed"
-end
-
-function VandraTitle.GetRoleTitle(player)
-    local dyn = player:GetAttribute("DynamicRole")
-    if dyn and dyn ~= "" then return dyn end
+    SendNotification("ERROR", "Remote Tidak Ditemukan!", Color3.fromRGB(255, 0, 0))
     return nil
 end
 
-return VandraTitle
-]]
-    newModule.Parent = targetPath
-    return true
-end
+-- [[ MAIN UI DESIGN ]]
+local SG = Instance.new("ScreenGui", CoreGui)
+local Main = Instance.new("Frame", SG)
+Main.Size = UDim2.new(0, 240, 0, 160)
+Main.Position = UDim2.new(0.5, -120, 0.5, -80)
+Main.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+Main.BorderSizePixel = 0
+Main.Active = true
+Main.Draggable = true
 
--- ============================================================
--- PHASE 3: RESULT (Tampilkan Hasil)
--- ============================================================
-local function DisplayResult(success)
-    print("------------------------------------------")
-    if success then
-        Notify("✅ Success", "Payload Injected! Owner: " .. LocalPlayer.Name, 5, "rbxassetid://6034287534")
-        print("🏆 SUCCESS: VandraTitle Injected Successfully!")
-        print("👤 Current Owner: " .. LocalPlayer.Name)
+-- Neon Header
+local Header = Instance.new("Frame", Main)
+Header.Size = UDim2.new(1, 0, 0, 3)
+Header.BackgroundColor3 = Color3.fromRGB(0, 255, 255)
+Header.BorderSizePixel = 0
+
+local Title = Instance.new("TextLabel", Main)
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.Text = "PHANTOM EXECUTOR"
+Title.TextColor3 = Color3.new(1, 1, 1)
+Title.Font = Enum.Font.GothamBold
+Title.BackgroundTransparency = 1
+
+local Switch = Instance.new("TextButton", Main)
+Switch.Size = UDim2.new(0, 200, 0, 45)
+Switch.Position = UDim2.new(0.5, -100, 0.45, 0)
+Switch.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+Switch.Text = "STATUS: OFF"
+Switch.TextColor3 = Color3.new(1, 1, 1)
+Switch.Font = Enum.Font.Gotham
+Switch.BorderSizePixel = 0
+
+local Footer = Instance.new("TextLabel", Main)
+Footer.Size = UDim2.new(1, 0, 0, 20)
+Footer.Position = UDim2.new(0, 0, 1, -25)
+Footer.Text = "Logic: Heuristic (No Keywords)"
+Footer.TextColor3 = Color3.fromRGB(100, 100, 100)
+Footer.TextSize = 10
+Footer.BackgroundTransparency = 1
+
+-- [[ EXECUTION ]]
+TargetRemote = FindRemoteByLogic()
+
+Switch.MouseButton1Click:Connect(function()
+    IsEnabled = not IsEnabled
+    if IsEnabled then
+        Switch.Text = "STATUS: ACTIVE"
+        Switch.BackgroundColor3 = Color3.fromRGB(0, 80, 80)
+        SendNotification("LOGIC", "Sistem Aktif", Color3.fromRGB(0, 255, 255))
     else
-        Notify("❌ Failed", "Injection Error! Check Console (F9)", 5, "rbxassetid://6034287541")
-        warn("🚫 FAILED: Injeksi gagal karena masalah environment.")
+        Switch.Text = "STATUS: OFF"
+        Switch.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+        SendNotification("LOGIC", "Sistem Mati", Color3.fromRGB(150, 0, 0))
     end
-    print("------------------------------------------")
-end
+end)
 
--- ============================================================
--- MAIN LOOP (ALUR UTAMA)
--- ============================================================
 task.spawn(function()
-    if ScanEnvironment() then
-        task.wait(1) -- Delay kecil agar notifikasi tidak tumpang tindih
-        local success = ProcessExecution()
-        task.wait(1)
-        DisplayResult(success)
-    else
-        DisplayResult(false)
+    while task.wait(0.1) do
+        if IsEnabled and TargetRemote then
+            pcall(function()
+                for _, plr in pairs(game.Players:GetPlayers()) do
+                    if plr ~= game.Players.LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                        local hrp = plr.Character.HumanoidRootPart
+                        local hum = plr.Character:FindFirstChild("Humanoid")
+                        -- Mengirimkan paket koordinat server-side
+                        TargetRemote:FireServer(hrp.Position, hum, hrp)
+                    end
+                end
+            end)
+        end
     end
 end)
