@@ -1,133 +1,124 @@
--- [[ PHANTOM INSTANT MAP CLONER ]]
--- Logika: Klik COPY (Simpan data) -> Klik PASTE (Munculkan hasil)
+-- [[ PHANTOM WORKSPACE EXPLORER ]]
+-- Spesialisasi: Scan, Klik, & Navigasi Workspace
+-- UI: Modern Neon Cyan Mobile Optimized
 
 local LP = game.Players.LocalPlayer
-local Terrain = workspace.Terrain
 local CoreGui = game:GetService("CoreGui")
+local currentFolder = workspace
 
--- Penyimpanan Data Internal (Memory)
-local ClipboardData = {
-    Parts = {},
-    Terrain = {}
-}
+-- Bersihkan UI lama
+if CoreGui:FindFirstChild("WorkspaceExplorer") then
+    CoreGui.WorkspaceExplorer:Destroy()
+end
 
--- [[ UI MODERN ]]
+-- [[ 1. UI DESIGN ]]
 local SG = Instance.new("ScreenGui", CoreGui)
+SG.Name = "WorkspaceExplorer"
+
 local Main = Instance.new("Frame", SG)
-Main.Size = UDim2.new(0, 260, 0, 180)
-Main.Position = UDim2.new(0.5, -130, 0.4, 0)
+Main.Size = UDim2.new(0, 300, 0, 400)
+Main.Position = UDim2.new(0.5, -150, 0.25, 0)
 Main.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+Main.BorderSizePixel = 0
 Main.Active = true
 Main.Draggable = true
 
 local Corner = Instance.new("UICorner", Main)
+Corner.CornerRadius = UDim.new(0, 15)
+
 local Stroke = Instance.new("UIStroke", Main)
 Stroke.Color = Color3.fromRGB(0, 255, 255)
 Stroke.Thickness = 2
 
-local Title = Instance.new("TextLabel", Main)
-Title.Size = UDim2.new(1, 0, 0, 40)
-Title.Text = "MAP CLONER (INSTANT)"
+-- Header & Navigasi
+local Header = Instance.new("Frame", Main)
+Header.Size = UDim2.new(1, 0, 0, 50)
+Header.BackgroundTransparency = 1
+
+local Title = Instance.new("TextLabel", Header)
+Title.Size = UDim2.new(1, -60, 1, 0)
+Title.Position = UDim2.new(0, 10, 0, 0)
+Title.Text = "WORKSPACE/"
 Title.TextColor3 = Color3.new(1, 1, 1)
 Title.Font = Enum.Font.GothamBold
-Title.BackgroundTransparency = 1
+Title.TextSize = 14
+Title.TextXAlignment = Enum.TextXAlignment.Left
 
--- Tombol Copy
-local CopyBtn = Instance.new("TextButton", Main)
-CopyBtn.Size = UDim2.new(0, 220, 0, 45)
-CopyBtn.Position = UDim2.new(0.5, -110, 0.3, 0)
-CopyBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-CopyBtn.Text = "COPY MAP & TERRAIN"
-CopyBtn.TextColor3 = Color3.fromRGB(0, 255, 255)
-CopyBtn.Font = Enum.Font.GothamBold
+local BackBtn = Instance.new("TextButton", Header)
+BackBtn.Size = UDim2.new(0, 40, 0, 30)
+BackBtn.Position = UDim2.new(1, -50, 0.5, -15)
+BackBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+BackBtn.Text = "<-"
+BackBtn.TextColor3 = Color3.fromRGB(0, 255, 255)
+BackBtn.Font = Enum.Font.GothamBold
+Instance.new("UICorner", BackBtn).CornerRadius = UDim.new(0, 8)
 
--- Tombol Paste
-local PasteBtn = Instance.new("TextButton", Main)
-PasteBtn.Size = UDim2.new(0, 220, 0, 45)
-PasteBtn.Position = UDim2.new(0.5, -110, 0.65, 0)
-PasteBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 120)
-PasteBtn.Text = "PASTE HERE"
-PasteBtn.TextColor3 = Color3.new(1, 1, 1)
-PasteBtn.Font = Enum.Font.GothamBold
+-- Container List
+local Scroll = Instance.new("ScrollingFrame", Main)
+Scroll.Size = UDim2.new(1, -20, 1, -70)
+Scroll.Position = UDim2.new(0, 10, 0, 60)
+Scroll.BackgroundTransparency = 1
+Scroll.ScrollBarThickness = 2
+Scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
 
-Instance.new("UICorner", CopyBtn)
-Instance.new("UICorner", PasteBtn)
+local UIList = Instance.new("UIListLayout", Scroll)
+UIList.Padding = UDim.new(0, 5)
+UIList.SortOrder = Enum.SortOrder.LayoutOrder
 
--- [[ LOGIKA COPY ]]
-CopyBtn.MouseButton1Click:Connect(function()
-    ClipboardData.Parts = {}
-    ClipboardData.Terrain = {}
-    
-    local root = LP.Character.HumanoidRootPart
-    local scanPos = root.Position
-    
-    -- 1. Scan Parts (Sekitar 50 studs)
-    for _, v in pairs(workspace:GetPartBoundsInRadius(scanPos, 50)) do
-        if v.Anchored and not v.Parent:FindFirstChild("Humanoid") then
-            table.insert(ClipboardData.Parts, {
-                Name = v.Name,
-                ClassName = v.ClassName,
-                Size = v.Size,
-                CFrame = root.CFrame:ToObjectSpace(v.CFrame), -- Simpan posisi relatif terhadap player
-                Material = v.Material,
-                Color = v.Color,
-                Transparency = v.Transparency
-            })
-        end
+-- [[ 2. LOGIKA EXPLORER ]]
+local function RefreshList(folder)
+    -- Bersihkan list lama
+    for _, v in pairs(Scroll:GetChildren()) do
+        if v:IsA("TextButton") then v:Destroy() end
     end
     
-    -- 2. Scan Terrain
-    local region = Region3.new(scanPos - Vector3.new(20, 10, 20), scanPos + Vector3.new(20, 5, 20)):ExpandToGrid(4)
-    local material, occupancy = Terrain:ReadVoxels(region, 4)
-    local size = material.Size
+    currentFolder = folder
+    Title.Text = "DIR: " .. string.sub(folder:GetFullName(), 1, 25)
     
-    for z = 1, size.Z do
-        for y = 1, size.Y do
-            for x = 1, size.X do
-                local mat = material[x][y][z]
-                if mat ~= Enum.Material.Air then
-                    local vPos = region.CFrame * CFrame.new((x - size.X/2 - 0.5) * 4, (y - size.Y/2 - 0.5) * 4, (z - size.Z/2 - 0.5) * 4)
-                    table.insert(ClipboardData.Terrain, {
-                        Pos = root.CFrame:ToObjectSpace(vPos),
-                        Mat = mat
-                    })
-                end
+    local children = folder:GetChildren()
+    Scroll.CanvasSize = UDim2.new(0, 0, 0, #children * 45)
+
+    for i, v in pairs(children) do
+        local ItemBtn = Instance.new("TextButton", Scroll)
+        ItemBtn.Size = UDim2.new(1, -5, 0, 40)
+        ItemBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+        ItemBtn.Text = "  [" .. v.ClassName .. "] " .. v.Name
+        ItemBtn.TextColor3 = v:IsA("Folder") and Color3.fromRGB(0, 255, 255) or Color3.fromRGB(200, 200, 200)
+        ItemBtn.TextXAlignment = Enum.TextXAlignment.Left
+        ItemBtn.Font = Enum.Font.Gotham
+        ItemBtn.TextSize = 12
+        ItemBtn.AutoButtonColor = true
+        
+        Instance.new("UICorner", ItemBtn).CornerRadius = UDim.new(0, 6)
+        
+        -- Garis tipis pinggir (Neon cyan hanya untuk folder)
+        if v:IsA("Folder") or v:IsA("Model") then
+            local SideBar = Instance.new("Frame", ItemBtn)
+            SideBar.Size = UDim2.new(0, 3, 1, 0)
+            SideBar.BackgroundColor3 = Color3.fromRGB(0, 255, 255)
+            SideBar.BorderSizePixel = 0
+        end
+
+        ItemBtn.MouseButton1Click:Connect(function()
+            if #v:GetChildren() > 0 then
+                RefreshList(v)
+            else
+                -- Notifikasi jika item tidak memiliki isi
+                local oldText = ItemBtn.Text
+                ItemBtn.Text = "  (No Contents)"
+                task.wait(1)
+                ItemBtn.Text = oldText
             end
-        end
+        end)
     end
-    
-    CopyBtn.Text = "COPIED: " .. (#ClipboardData.Parts + #ClipboardData.Terrain) .. " OBJS"
-    task.wait(1)
-    CopyBtn.Text = "COPY MAP & TERRAIN"
+end
+
+-- [[ 3. INTERAKSI ]]
+BackBtn.MouseButton1Click:Connect(function()
+    if currentFolder ~= workspace then
+        RefreshList(currentFolder.Parent)
+    end
 end)
 
--- [[ LOGIKA PASTE ]]
-PasteBtn.MouseButton1Click:Connect(function()
-    local root = LP.Character.HumanoidRootPart
-    local currentCF = root.CFrame
-    
-    -- Paste Parts
-    local folder = Instance.new("Folder", workspace)
-    folder.Name = "Pasted_Map_" .. math.random(100, 999)
-    
-    for _, data in pairs(ClipboardData.Parts) do
-        local p = Instance.new(data.ClassName)
-        p.Size = data.Size
-        p.CFrame = currentCF:ToWorldSpace(data.CFrame)
-        p.Material = data.Material
-        p.Color = data.Color
-        p.Transparency = data.Transparency
-        p.Anchored = true
-        p.Parent = folder
-    end
-    
-    -- Paste Terrain
-    for _, tData in pairs(ClipboardData.Terrain) do
-        local worldPos = currentCF:ToWorldSpace(tData.Pos)
-        Terrain:FillBlock(worldPos, Vector3.new(4, 4, 4), tData.Mat)
-    end
-    
-    PasteBtn.Text = "SUCCESS!"
-    task.wait(1)
-    PasteBtn.Text = "PASTE HERE"
-end)
+-- Inisialisasi awal
+RefreshList(workspace)
