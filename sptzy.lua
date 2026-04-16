@@ -1,124 +1,110 @@
--- [[ PHANTOM WORKSPACE EXPLORER ]]
--- Spesialisasi: Scan, Klik, & Navigasi Workspace
--- UI: Modern Neon Cyan Mobile Optimized
+-- [[ PHANTOM FINDER & TELEPORTER ]]
+-- Fitur: Cari Nama Part/Model -> Teleport ke lokasinya
+-- UI: Modern Neon Cyan, Auto-Clear Input
 
 local LP = game.Players.LocalPlayer
 local CoreGui = game:GetService("CoreGui")
-local currentFolder = workspace
 
--- Bersihkan UI lama
-if CoreGui:FindFirstChild("WorkspaceExplorer") then
-    CoreGui.WorkspaceExplorer:Destroy()
-end
+-- Cleanup UI
+if CoreGui:FindFirstChild("PhantomFinder") then CoreGui.PhantomFinder:Destroy() end
 
--- [[ 1. UI DESIGN ]]
+-- [[ UI CONSTRUCTION ]]
 local SG = Instance.new("ScreenGui", CoreGui)
-SG.Name = "WorkspaceExplorer"
+SG.Name = "PhantomFinder"
 
 local Main = Instance.new("Frame", SG)
-Main.Size = UDim2.new(0, 300, 0, 400)
-Main.Position = UDim2.new(0.5, -150, 0.25, 0)
-Main.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-Main.BorderSizePixel = 0
+Main.Size = UDim2.new(0, 300, 0, 250)
+Main.Position = UDim2.new(0.5, -150, 0.3, 0)
+Main.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
 Main.Active = true
 Main.Draggable = true
 
 local Corner = Instance.new("UICorner", Main)
-Corner.CornerRadius = UDim.new(0, 15)
-
 local Stroke = Instance.new("UIStroke", Main)
 Stroke.Color = Color3.fromRGB(0, 255, 255)
 Stroke.Thickness = 2
 
--- Header & Navigasi
-local Header = Instance.new("Frame", Main)
-Header.Size = UDim2.new(1, 0, 0, 50)
-Header.BackgroundTransparency = 1
-
-local Title = Instance.new("TextLabel", Header)
-Title.Size = UDim2.new(1, -60, 1, 0)
-Title.Position = UDim2.new(0, 10, 0, 0)
-Title.Text = "WORKSPACE/"
+-- Title
+local Title = Instance.new("TextLabel", Main)
+Title.Size = UDim2.new(1, 0, 0, 50)
+Title.Text = "OBJECT TELEPORTER"
 Title.TextColor3 = Color3.new(1, 1, 1)
 Title.Font = Enum.Font.GothamBold
-Title.TextSize = 14
-Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.TextSize = 16
+Title.BackgroundTransparency = 1
 
-local BackBtn = Instance.new("TextButton", Header)
-BackBtn.Size = UDim2.new(0, 40, 0, 30)
-BackBtn.Position = UDim2.new(1, -50, 0.5, -15)
-BackBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-BackBtn.Text = "<-"
-BackBtn.TextColor3 = Color3.fromRGB(0, 255, 255)
-BackBtn.Font = Enum.Font.GothamBold
-Instance.new("UICorner", BackBtn).CornerRadius = UDim.new(0, 8)
+-- Input Box (Nama Objek)
+local InputObj = Instance.new("TextBox", Main)
+InputObj.Size = UDim2.new(0, 240, 0, 50)
+InputObj.Position = UDim2.new(0.5, -120, 0, 70)
+InputObj.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+InputObj.PlaceholderText = "Ketik Nama Part/Model..."
+InputObj.Text = ""
+InputObj.TextColor3 = Color3.new(1, 1, 1)
+InputObj.Font = Enum.Font.Gotham
+Instance.new("UICorner", InputObj)
 
--- Container List
-local Scroll = Instance.new("ScrollingFrame", Main)
-Scroll.Size = UDim2.new(1, -20, 1, -70)
-Scroll.Position = UDim2.new(0, 10, 0, 60)
-Scroll.BackgroundTransparency = 1
-Scroll.ScrollBarThickness = 2
-Scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+-- LOGIKA: Input Bersih Otomatis
+InputObj.Focused:Connect(function()
+    InputObj.Text = ""
+end)
 
-local UIList = Instance.new("UIListLayout", Scroll)
-UIList.Padding = UDim.new(0, 5)
-UIList.SortOrder = Enum.SortOrder.LayoutOrder
+-- Tombol Teleport
+local TpBtn = Instance.new("TextButton", Main)
+TpBtn.Size = UDim2.new(0, 240, 0, 50)
+TpBtn.Position = UDim2.new(0.5, -120, 0, 140)
+TpBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 150)
+TpBtn.Text = "TELEPORT KE OBJEK"
+TpBtn.TextColor3 = Color3.new(1, 1, 1)
+TpBtn.Font = Enum.Font.GothamBold
+Instance.new("UICorner", TpBtn)
 
--- [[ 2. LOGIKA EXPLORER ]]
-local function RefreshList(folder)
-    -- Bersihkan list lama
-    for _, v in pairs(Scroll:GetChildren()) do
-        if v:IsA("TextButton") then v:Destroy() end
-    end
+-- Status Label
+local Status = Instance.new("TextLabel", Main)
+Status.Size = UDim2.new(1, 0, 0, 30)
+Status.Position = UDim2.new(0, 0, 1, -35)
+Status.Text = "Ready"
+Status.TextColor3 = Color3.fromRGB(150, 150, 150)
+Status.TextSize = 11
+Status.BackgroundTransparency = 1
+
+-- [[ LOGIKA TELEPORT KE OBJEK ]]
+local function TeleportToName(name)
+    local target = workspace:FindFirstChild(name, true) -- 'true' agar mencari sampai ke dalam folder
     
-    currentFolder = folder
-    Title.Text = "DIR: " .. string.sub(folder:GetFullName(), 1, 25)
-    
-    local children = folder:GetChildren()
-    Scroll.CanvasSize = UDim2.new(0, 0, 0, #children * 45)
-
-    for i, v in pairs(children) do
-        local ItemBtn = Instance.new("TextButton", Scroll)
-        ItemBtn.Size = UDim2.new(1, -5, 0, 40)
-        ItemBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-        ItemBtn.Text = "  [" .. v.ClassName .. "] " .. v.Name
-        ItemBtn.TextColor3 = v:IsA("Folder") and Color3.fromRGB(0, 255, 255) or Color3.fromRGB(200, 200, 200)
-        ItemBtn.TextXAlignment = Enum.TextXAlignment.Left
-        ItemBtn.Font = Enum.Font.Gotham
-        ItemBtn.TextSize = 12
-        ItemBtn.AutoButtonColor = true
+    if target then
+        local char = LP.Character
+        local root = char and char:FindFirstChild("HumanoidRootPart")
         
-        Instance.new("UICorner", ItemBtn).CornerRadius = UDim.new(0, 6)
-        
-        -- Garis tipis pinggir (Neon cyan hanya untuk folder)
-        if v:IsA("Folder") or v:IsA("Model") then
-            local SideBar = Instance.new("Frame", ItemBtn)
-            SideBar.Size = UDim2.new(0, 3, 1, 0)
-            SideBar.BackgroundColor3 = Color3.fromRGB(0, 255, 255)
-            SideBar.BorderSizePixel = 0
-        end
-
-        ItemBtn.MouseButton1Click:Connect(function()
-            if #v:GetChildren() > 0 then
-                RefreshList(v)
-            else
-                -- Notifikasi jika item tidak memiliki isi
-                local oldText = ItemBtn.Text
-                ItemBtn.Text = "  (No Contents)"
-                task.wait(1)
-                ItemBtn.Text = oldText
+        if root then
+            local cf = nil
+            if target:IsA("BasePart") then
+                cf = target.CFrame
+            elseif target:IsA("Model") then
+                cf = target:GetModelCFrame() or (target.PrimaryPart and target.PrimaryPart.CFrame)
             end
-        end)
+            
+            if cf then
+                root.CFrame = cf + Vector3.new(0, 3, 0)
+                Status.Text = "Success: Berhasil ke " .. target.Name
+                Status.TextColor3 = Color3.fromRGB(0, 255, 0)
+            else
+                Status.Text = "Error: Objek tidak punya posisi"
+                Status.TextColor3 = Color3.fromRGB(255, 0, 0)
+            end
+        end
+    else
+        Status.Text = "Error: Objek '" .. name .. "' tidak ditemukan"
+        Status.TextColor3 = Color3.fromRGB(255, 0, 0)
     end
 end
 
--- [[ 3. INTERAKSI ]]
-BackBtn.MouseButton1Click:Connect(function()
-    if currentFolder ~= workspace then
-        RefreshList(currentFolder.Parent)
+TpBtn.MouseButton1Click:Connect(function()
+    local targetName = InputObj.Text
+    if targetName ~= "" then
+        TeleportToName(targetName)
+    else
+        Status.Text = "Warning: Input tidak boleh kosong!"
+        Status.TextColor3 = Color3.fromRGB(255, 165, 0)
     end
 end)
-
--- Inisialisasi awal
-RefreshList(workspace)
