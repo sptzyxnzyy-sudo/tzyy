@@ -1,26 +1,33 @@
+--[[
+    ROBLOX SECURITY TESTER - MORPH INJECTOR
+    Fitur: Auto-Scan Remotes, High-Contrast UI, Draggable GUI.
+]]
+
 local Players = game:GetService("Players")
 local CoreGui = game:GetService("CoreGui")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
 
--- Pembersihan GUI Lama
+-- 1. Pembersihan GUI Lama (Agar tidak menumpuk)
 if CoreGui:FindFirstChild("MorphSecurityPro") then
     CoreGui.MorphSecurityPro:Destroy()
 end
 
+-- 2. Setup ScreenGui
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "MorphSecurityPro"
 ScreenGui.Parent = CoreGui
 ScreenGui.ResetOnSpawn = false
 
--- Frame Utama
+-- 3. Frame Utama
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Parent = ScreenGui
-MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15) -- Hitam Pekat
 MainFrame.Position = UDim2.new(0.5, -125, 0.5, -110)
-MainFrame.Size = UDim2.new(0, 250, 0, 220)
+MainFrame.Size = UDim2.new(0, 250, 0, 230)
 MainFrame.Active = true
-MainFrame.Draggable = true -- Masih didukung di banyak executor
+MainFrame.Draggable = true -- Support geser untuk sebagian besar executor
 
 local UICorner = Instance.new("UICorner", MainFrame)
 UICorner.CornerRadius = UDim.new(0, 12)
@@ -29,96 +36,121 @@ local UIStroke = Instance.new("UIStroke", MainFrame)
 UIStroke.Color = Color3.fromRGB(0, 255, 255) -- Cyan Neon
 UIStroke.Thickness = 2
 
--- Judul (Agar jelas sedang pakai tool apa)
+-- 4. Judul (Header)
 local Title = Instance.new("TextLabel", MainFrame)
-Title.Size = UDim2.new(1, 0, 0, 40)
+Title.Size = UDim2.new(1, 0, 0, 45)
 Title.BackgroundTransparency = 1
 Title.Text = "MORPH SECURITY TEST"
 Title.TextColor3 = Color3.fromRGB(0, 255, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 16
 
--- Input Username (Warna Teks Putih Terang agar Jelas)
+-- 5. Input Username (Teks Putih Jelas)
 local UsernameInput = Instance.new("TextBox", MainFrame)
 UsernameInput.Name = "UsernameInput"
-UsernameInput.Position = UDim2.new(0.1, 0, 0.25, 0)
+UsernameInput.Position = UDim2.new(0.1, 0, 0.28, 0)
 UsernameInput.Size = UDim2.new(0.8, 0, 0, 40)
-UsernameInput.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-UsernameInput.PlaceholderText = "Ketik Username Di Sini..."
-UsernameInput.PlaceholderColor3 = Color3.fromRGB(150, 150, 150)
+UsernameInput.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+UsernameInput.PlaceholderText = "Input Username..."
+UsernameInput.PlaceholderColor3 = Color3.fromRGB(120, 120, 120)
 UsernameInput.Text = ""
-UsernameInput.TextColor3 = Color3.fromRGB(255, 255, 255) -- Teks yang diketik jadi Putih
+UsernameInput.TextColor3 = Color3.fromRGB(255, 255, 255) -- Teks Putih Terang
 UsernameInput.Font = Enum.Font.Gotham
 UsernameInput.TextSize = 14
-UsernameInput.ClipsDescendants = true
+UsernameInput.ClearTextOnFocus = false
 
-Instance.new("UICorner", UsernameInput).CornerRadius = UDim.new(0, 6)
+local InputCorner = Instance.new("UICorner", UsernameInput)
+InputCorner.CornerRadius = UDim.new(0, 6)
 
--- Tombol Inject (Tombol Utama)
+-- 6. Tombol Inject
 local InjectBtn = Instance.new("TextButton", MainFrame)
 InjectBtn.Name = "InjectBtn"
-InjectBtn.Position = UDim2.new(0.1, 0, 0.5, 0)
+InjectBtn.Position = UDim2.new(0.1, 0, 0.53, 0)
 InjectBtn.Size = UDim2.new(0.8, 0, 0, 45)
-InjectBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 180) -- Cyan Gelap
-InjectBtn.Text = "MULAI SCAN & TEST"
+InjectBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 170)
+InjectBtn.Text = "SCAN & INJECT"
 InjectBtn.TextColor3 = Color3.white
 InjectBtn.Font = Enum.Font.GothamBold
 InjectBtn.TextSize = 14
+InjectBtn.AutoButtonColor = true
 
-Instance.new("UICorner", InjectBtn).CornerRadius = UDim.new(0, 6)
+local BtnCorner = Instance.new("UICorner", InjectBtn)
+BtnCorner.CornerRadius = UDim.new(0, 6)
 
--- Status Label
+-- 7. Status Label (Keterangan Proses)
 local StatusLabel = Instance.new("TextLabel", MainFrame)
-StatusLabel.Position = UDim2.new(0.1, 0, 0.75, 0)
+StatusLabel.Position = UDim2.new(0.1, 0, 0.78, 0)
 StatusLabel.Size = UDim2.new(0.8, 0, 0, 40)
 StatusLabel.BackgroundTransparency = 1
-StatusLabel.Text = "Status: Menunggu Input"
-StatusLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+StatusLabel.Text = "Status: Menunggu Perintah"
+StatusLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
 StatusLabel.Font = Enum.Font.Gotham
-StatusLabel.TextSize = 12
+StatusLabel.TextSize = 11
 StatusLabel.TextWrapped = true
 
--- Logika Eksekusi
+-- 8. Logika Inti (Hanya jalan jika diklik)
 InjectBtn.MouseButton1Click:Connect(function()
     local targetUser = UsernameInput.Text
+    
     if targetUser == "" then 
-        StatusLabel.Text = "⚠️ Error: Username tidak boleh kosong!"
-        StatusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+        StatusLabel.Text = "⚠️ Masukkan username terlebih dahulu!"
+        StatusLabel.TextColor3 = Color3.fromRGB(255, 80, 80)
         return 
     end
     
     StatusLabel.Text = "🔍 Mencari Remote & Mengirim Payload..."
-    StatusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    StatusLabel.TextColor3 = Color3.white
     
-    local foundCount = 0
+    -- Mencari UserId secara otomatis
     local successId, targetId = pcall(function()
         return Players:GetUserIdFromNameAsync(targetUser)
     end)
 
-    if not successId then
-        StatusLabel.Text = "❌ Username tidak terdaftar di Roblox!"
-        StatusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+    if not successId or not targetId then
+        StatusLabel.Text = "❌ Username '" .. targetUser .. "' tidak ditemukan!"
+        StatusLabel.TextColor3 = Color3.fromRGB(255, 80, 80)
         return
     end
 
+    local foundCount = 0
+    
+    -- Mulai Pemindaian (Scan)
     for _, remote in pairs(ReplicatedStorage:GetDescendants()) do
         if remote:IsA("RemoteEvent") then
+            -- Daftar payload yang umum digunakan untuk exploit morph
             local payloads = {
                 {targetUser},
                 {targetId},
                 {["Character"] = targetUser},
-                {"Morph", targetUser}
+                {"Morph", targetUser},
+                {["UserId"] = targetId}
             }
 
-            for _, p in pairs(payloads) do
+            for _, data dalam pairs(payloads) do
                 pcall(function()
-                    remote:FireServer(unpack(p))
+                    remote:FireServer(unpack(data))
                 end)
             end
             foundCount = foundCount + 1
         end
     end
 
-    StatusLabel.Text = "✅ Berhasil! Menguji " .. foundCount .. " Remote."
-    StatusLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
+    -- Hasil Akhir
+    if foundCount > 0 then
+        StatusLabel.Text = "✅ Berhasil! Payload terkirim ke " .. foundCount .. " Remote."
+        StatusLabel.TextColor3 = Color3.fromRGB(80, 255, 80)
+        print("Security Test Selesai. Total Remote diuji: " .. foundCount)
+    else
+        StatusLabel.Text = "⚠️ Tidak ada RemoteEvent ditemukan di ReplicatedStorage."
+        StatusLabel.TextColor3 = Color3.fromRGB(255, 200, 0)
+    end
+end)
+
+-- Efek Hover Sederhana untuk Tombol
+InjectBtn.MouseEnter:Connect(function()
+    TweenService:Create(InjectBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 210, 210)}):Play()
+end)
+
+InjectBtn.MouseLeave:Connect(function()
+    TweenService:Create(InjectBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 170, 170)}):Play()
 end)
