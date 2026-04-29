@@ -1,17 +1,17 @@
 local HttpService = game:GetService("HttpService")
 local CoreGui = game:GetService("CoreGui")
 
-if CoreGui:FindFirstChild("MiniToolbox") then CoreGui.MiniToolbox:Destroy() end
+if CoreGui:FindFirstChild("SptzyyToolbox") then CoreGui.SptzyyToolbox:Destroy() end
 
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "MiniToolbox"
+ScreenGui.Name = "SptzyyToolbox"
 ScreenGui.Parent = CoreGui
 
 -- Main Frame (300x300)
 local Main = Instance.new("Frame")
 Main.Size = UDim2.new(0, 300, 0, 300)
 Main.Position = UDim2.new(0.5, -150, 0.5, -150)
-Main.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+Main.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 Main.BorderSizePixel = 0
 Main.Active = true
 Main.Draggable = true
@@ -22,75 +22,128 @@ local function addCorner(obj, r)
     c.CornerRadius = UDim.new(0, r or 4)
     c.Parent = obj
 end
-addCorner(Main, 6)
+addCorner(Main, 8)
 
--- Search Input (Tetap di Atas)
+-- Header Section
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, -20, 0, 25)
+Title.Position = UDim2.new(0, 10, 0, 5)
+Title.Text = "SEARCH TOOLBOX"
+Title.Font = Enum.Font.SourceSansBold
+Title.TextSize = 18
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.BackgroundTransparency = 1
+Title.Parent = Main
+
+local Credit = Instance.new("TextLabel")
+Credit.Size = UDim2.new(1, -20, 0, 15)
+Credit.Position = UDim2.new(0, 10, 0, 22)
+Credit.Text = "by @sptzyy"
+Credit.Font = Enum.Font.SourceSans
+Credit.TextSize = 11
+Credit.TextColor3 = Color3.fromRGB(150, 150, 150)
+Credit.TextXAlignment = Enum.TextXAlignment.Left
+Credit.BackgroundTransparency = 1
+Credit.Parent = Main
+
+-- Search Input
 local Input = Instance.new("TextBox")
-Input.Size = UDim2.new(1, -20, 0, 30)
-Input.Position = UDim2.new(0, 10, 0, 10)
-Input.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+Input.Size = UDim2.new(1, -20, 0, 25)
+Input.Position = UDim2.new(0, 10, 0, 45)
+Input.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 Input.PlaceholderText = "Cari asset..."
 Input.Text = ""
 Input.TextColor3 = Color3.fromRGB(255, 255, 255)
 Input.Font = Enum.Font.SourceSans
-Input.TextSize = 14
+Input.TextSize = 13
 Input.Parent = Main
-addCorner(Input)
+addCorner(Input, 4)
 
--- Container Pages
+-- List Page
 local ListPage = Instance.new("ScrollingFrame")
-ListPage.Size = UDim2.new(1, -10, 1, -55)
-ListPage.Position = UDim2.new(0, 5, 0, 50)
+ListPage.Size = UDim2.new(1, -10, 1, -85)
+ListPage.Position = UDim2.new(0, 5, 0, 80)
 ListPage.BackgroundTransparency = 1
-ListPage.ScrollBarThickness = 3
+ListPage.ScrollBarThickness = 2
+ListPage.Visible = true
 ListPage.Parent = Main
 
 local Grid = Instance.new("UIGridLayout")
-Grid.CellSize = UDim2.new(0, 90, 0, 90) -- Fit 3 kolom di 300px
-Grid.CellPadding = UDim2.new(0, 4, 0, 4)
+Grid.CellSize = UDim2.new(0, 92, 0, 110)
+Grid.CellPadding = UDim2.new(0, 3, 0, 5)
 Grid.HorizontalAlignment = Enum.HorizontalAlignment.Center
 Grid.Parent = ListPage
 
+-- Detail Page
 local DetailPage = Instance.new("Frame")
-DetailPage.Size = ListPage.Size
-DetailPage.Position = ListPage.Position
+DetailPage.Size = UDim2.new(1, 0, 1, -40)
+DetailPage.Position = UDim2.new(0, 0, 0, 40)
 DetailPage.BackgroundColor3 = Main.BackgroundColor3
 DetailPage.Visible = false
 DetailPage.Parent = Main
+addCorner(DetailPage, 8)
 
--- Detail Components
+-- Back Button (Panah Sudut Kiri Atas)
+local BackBtn = Instance.new("TextButton")
+BackBtn.Size = UDim2.new(0, 30, 0, 30)
+BackBtn.Position = UDim2.new(0, 5, 0, 5)
+BackBtn.Text = "←"
+BackBtn.Font = Enum.Font.SourceSansBold
+BackBtn.TextSize = 25
+BackBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+BackBtn.BackgroundTransparency = 1
+BackBtn.Parent = DetailPage
+
 local DetImg = Instance.new("ImageLabel")
-DetImg.Size = UDim2.new(0, 100, 0, 100)
-DetImg.Position = UDim2.new(0.5, -50, 0, 10)
-DetImg.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+DetImg.Size = UDim2.new(0, 120, 0, 120)
+DetImg.Position = UDim2.new(0.5, -60, 0, 20)
+DetImg.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 DetImg.Parent = DetailPage
 addCorner(DetImg)
 
 local DetName = Instance.new("TextLabel")
-DetName.Size = UDim2.new(1, -20, 0, 40)
-DetName.Position = UDim2.new(0, 10, 0, 115)
-DetName.TextSize = 14
+DetName.Size = UDim2.new(1, -40, 0, 30)
+DetName.Position = UDim2.new(0, 20, 0, 145)
+DetName.Font = Enum.Font.SourceSansBold
+DetName.TextSize = 16
 DetName.TextColor3 = Color3.fromRGB(255, 255, 255)
 DetName.TextWrapped = true
 DetName.BackgroundTransparency = 1
 DetName.Parent = DetailPage
 
-local CopyBtn = Instance.new("TextButton")
-CopyBtn.Size = UDim2.new(0.8, 0, 0, 30)
-CopyBtn.Position = UDim2.new(0.1, 0, 0, 160)
-CopyBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
-CopyBtn.Text = "COPY ID"
-CopyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-CopyBtn.Parent = DetailPage
-addCorner(CopyBtn)
+local DetCreator = Instance.new("TextLabel")
+DetCreator.Size = UDim2.new(0, 150, 0, 20)
+DetCreator.Position = UDim2.new(0, 20, 0, 175)
+DetCreator.TextSize = 13
+DetCreator.TextColor3 = Color3.fromRGB(180, 180, 180)
+DetCreator.TextXAlignment = Enum.TextXAlignment.Left
+DetCreator.BackgroundTransparency = 1
+DetCreator.Parent = DetailPage
 
-local BackBtn = Instance.new("TextButton")
-BackBtn.Size = UDim2.new(0.8, 0, 0, 25)
-BackBtn.Position = UDim2.new(0.1, 0, 0, 195)
-BackBtn.Text = "BACK"
-BackBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
-BackBtn.BackgroundTransparency = 1
-BackBtn.Parent = DetailPage
+-- Menu Titik Tiga & Dropdown
+local MenuBtn = Instance.new("TextButton")
+MenuBtn.Size = UDim2.new(0, 20, 0, 20)
+MenuBtn.Position = UDim2.new(1, -40, 0, 175)
+MenuBtn.Text = "≡"
+MenuBtn.Font = Enum.Font.SourceSansBold
+MenuBtn.TextSize = 20
+MenuBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
+MenuBtn.BackgroundTransparency = 1
+MenuBtn.Parent = DetailPage
+
+local Dropdown = Instance.new("TextButton")
+Dropdown.Size = UDim2.new(0, 80, 0, 25)
+Dropdown.Position = UDim2.new(1, -90, 0, 195)
+Dropdown.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+Dropdown.Text = "Copy ID"
+Dropdown.Font = Enum.Font.SourceSans
+Dropdown.TextSize = 13
+Dropdown.TextColor3 = Color3.fromRGB(255, 255, 255)
+Dropdown.Visible = false
+Dropdown.ZIndex = 10
+Dropdown.Parent = DetailPage
+addCorner(Dropdown, 4)
 
 -- Logic
 local currentId = ""
@@ -101,22 +154,35 @@ end
 
 local function showDetail(data)
     currentId = tostring(data.asset.id)
-    DetImg.Image = "rbxthumb://type=Asset&id="..currentId.."&w=150&h=150"
+    DetImg.Image = "rbxthumb://type=Asset&id="..currentId.."&w=420&h=420"
     DetName.Text = data.asset.name
+    DetCreator.Text = "by " .. data.creator.name
+    Dropdown.Visible = false
     ListPage.Visible = false
+    Title.Visible = false
+    Credit.Visible = false
+    Input.Visible = false
     DetailPage.Visible = true
 end
 
 BackBtn.MouseButton1Click:Connect(function()
     DetailPage.Visible = false
+    Title.Visible = true
+    Credit.Visible = true
+    Input.Visible = true
     ListPage.Visible = true
 end)
 
-CopyBtn.MouseButton1Click:Connect(function()
+MenuBtn.MouseButton1Click:Connect(function()
+    Dropdown.Visible = not Dropdown.Visible
+end)
+
+Dropdown.MouseButton1Click:Connect(function()
     setclipboard(currentId)
-    CopyBtn.Text = "COPIED!"
-    task.wait(0.5)
-    CopyBtn.Text = "COPY ID"
+    Dropdown.Text = "Copied!"
+    task.wait(1)
+    Dropdown.Text = "Copy ID"
+    Dropdown.Visible = false
 end)
 
 local function Search(kw)
@@ -130,16 +196,28 @@ local function Search(kw)
         if detRes and detRes.StatusCode == 200 then
             for _, data in pairs(HttpService:JSONDecode(detRes.Body).data) do
                 local Card = Instance.new("Frame")
-                Card.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+                Card.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
                 Card.Parent = ListPage
-                addCorner(Card)
+                addCorner(Card, 6)
                 
                 local Img = Instance.new("ImageLabel")
-                Img.Size = UDim2.new(1, -6, 1, -6)
-                Img.Position = UDim2.new(0, 3, 0, 3)
+                Img.Size = UDim2.new(1, -10, 0, 70)
+                Img.Position = UDim2.new(0, 5, 0, 5)
                 Img.Image = "rbxthumb://type=Asset&id="..data.asset.id.."&w=150&h=150"
-                Img.BackgroundTransparency = 1
+                Img.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
                 Img.Parent = Card
+                addCorner(Img, 4)
+                
+                local Info = Instance.new("TextLabel")
+                Info.Size = UDim2.new(1, -6, 0, 30)
+                Info.Position = UDim2.new(0, 3, 0, 78)
+                Info.Text = data.asset.name .. "\nID: " .. data.asset.id
+                Info.TextColor3 = Color3.fromRGB(255, 255, 255)
+                Info.TextSize = 9
+                Info.Font = Enum.Font.SourceSansBold
+                Info.TextWrapped = true
+                Info.BackgroundTransparency = 1
+                Info.Parent = Card
                 
                 local btn = Instance.new("TextButton")
                 btn.Size = UDim2.new(1, 0, 1, 0)
@@ -148,7 +226,7 @@ local function Search(kw)
                 btn.Parent = Card
                 btn.MouseButton1Click:Connect(function() showDetail(data) end)
             end
-            ListPage.CanvasSize = UDim2.new(0,0,0,Grid.AbsoluteContentSize.Y)
+            ListPage.CanvasSize = UDim2.new(0,0,0,Grid.AbsoluteContentSize.Y + 10)
         end
     end
 end
@@ -157,8 +235,6 @@ Input.FocusLost:Connect(function(e)
     if e and Input.Text ~= "" then
         local k = Input.Text
         Input.Text = ""
-        DetailPage.Visible = false
-        ListPage.Visible = true
         Search(k)
     end
 end)
