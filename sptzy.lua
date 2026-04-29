@@ -1,7 +1,7 @@
 local HttpService = game:GetService("HttpService")
 local CoreGui = game:GetService("CoreGui")
 
--- Membersihkan UI lama jika ada
+-- Pembersihan UI lama
 if CoreGui:FindFirstChild("SptzyyToolboxPro") then 
     CoreGui.SptzyyToolboxPro:Destroy() 
 end
@@ -51,7 +51,7 @@ Main.Draggable = true
 Main.Parent = ScreenGui
 addCorner(Main, 8)
 
--- Tombol Close (X)
+-- Close Button
 local CloseBtn = Instance.new("TextButton")
 CloseBtn.Size = UDim2.new(0, 25, 0, 25)
 CloseBtn.Position = UDim2.new(1, -30, 0, 5)
@@ -62,7 +62,7 @@ CloseBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
 CloseBtn.BackgroundTransparency = 1
 CloseBtn.Parent = Main
 
--- Judul
+-- Title Header
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -40, 0, 25)
 Title.Position = UDim2.new(0, 10, 0, 5)
@@ -75,9 +75,8 @@ Title.BackgroundTransparency = 1
 Title.Parent = Main
 
 -- ==========================================
--- SEARCH SECTION (SYMMETRICAL LAYOUT)
+-- SYMMETRICAL HEADER (NAV - INPUT - NAV)
 -- ==========================================
--- Panah Kiri (Samping Kiri Input)
 local PrevBtn = Instance.new("TextButton")
 PrevBtn.Size = UDim2.new(0, 25, 0, 25)
 PrevBtn.Position = UDim2.new(0, 10, 0, 35)
@@ -89,7 +88,6 @@ PrevBtn.Visible = false
 PrevBtn.Parent = Main
 addCorner(PrevBtn)
 
--- Input Box (Di Tengah)
 local Input = Instance.new("TextBox")
 Input.Size = UDim2.new(0, 210, 0, 25)
 Input.Position = UDim2.new(0, 45, 0, 35)
@@ -103,7 +101,6 @@ Input.ClearTextOnFocus = false
 Input.Parent = Main
 addCorner(Input, 4)
 
--- Panah Kanan (Samping Kanan Input)
 local NextBtn = Instance.new("TextButton")
 NextBtn.Size = UDim2.new(0, 25, 0, 25)
 NextBtn.Position = UDim2.new(0, 265, 0, 35)
@@ -115,7 +112,6 @@ NextBtn.Visible = false
 NextBtn.Parent = Main
 addCorner(NextBtn)
 
--- Indicator Text (Total & Page)
 local PageIndicator = Instance.new("TextLabel")
 PageIndicator.Size = UDim2.new(1, -20, 0, 15)
 PageIndicator.Position = UDim2.new(0, 10, 0, 62)
@@ -211,7 +207,7 @@ Dropdown.Parent = DetailPage
 addCorner(Dropdown, 4)
 
 -- ==========================================
--- LOGIC & API
+-- LOGIC FUNCTIONS
 -- ==========================================
 local function httpRequest(opt)
     local f = (syn and syn.request) or (http and http.request) or http_request or request
@@ -283,7 +279,6 @@ local function Search(kw, cursor, pageNum)
         currentPage = pageNum
         cursors[currentPage + 1] = body.nextPageCursor or ""
         
-        -- Update Navigasi Sesuai Hasil
         PrevBtn.Visible = (currentPage > 1)
         NextBtn.Visible = (body.nextPageCursor ~= nil and body.nextPageCursor ~= "")
         PageIndicator.Text = "PAGE: "..currentPage.."  |  RESULTS: "..(body.totalResults or "0")
@@ -302,7 +297,9 @@ local function Search(kw, cursor, pageNum)
     isFetching = false
 end
 
--- Events
+-- ==========================================
+-- EVENTS & CONNECTIONS
+-- ==========================================
 Input.FocusLost:Connect(function(enter)
     if enter and Input.Text ~= "" then
         currentKeyword = Input.Text
@@ -325,6 +322,21 @@ end)
 
 CloseBtn.MouseButton1Click:Connect(function() Main.Visible = false OpenBtn.Visible = true end)
 OpenBtn.MouseButton1Click:Connect(function() Main.Visible = true OpenBtn.Visible = false end)
-BackBtn.MouseButton1Click:Connect(function() DetailPage.Visible = false Input.Visible = true PrevBtn.Visible = (currentPage > 1) NextBtn.Visible = (cursors[currentPage+1] ~= "") PageIndicator.Visible = true ListPage.Visible = true end)
+
+BackBtn.MouseButton1Click:Connect(function() 
+    DetailPage.Visible = false 
+    Input.Visible = true 
+    PrevBtn.Visible = (currentPage > 1) 
+    NextBtn.Visible = (cursors[currentPage+1] ~= "") 
+    PageIndicator.Visible = true 
+    ListPage.Visible = true 
+end)
+
 MenuBtn.MouseButton1Click:Connect(function() Dropdown.Visible = not Dropdown.Visible end)
-Dropdown.MouseButton1Click:Connect(function() setclipboard(currentAssetId) Dropdown.Text = "Copied!" task.wait(1) Dropdown.Text = "Copy ID" Dropdown.Visible = false end)
+Dropdown.MouseButton1Click:Connect(function() 
+    setclipboard(currentAssetId) 
+    Dropdown.Text = "Copied!" 
+    task.wait(1) 
+    Dropdown.Text = "Copy ID" 
+    Dropdown.Visible = false 
+end)
