@@ -1,191 +1,199 @@
 local HttpService = game:GetService("HttpService")
 local CoreGui = game:GetService("CoreGui")
+local UserInputService = game:GetService("UserInputService")
 
--- Hapus GUI lama jika ada
-if CoreGui:FindFirstChild("KotakAlatMarketplace") then
-    CoreGui.KotakAlatMarketplace:Destroy()
+-- Bersihkan instance lama jika ada
+if CoreGui:FindFirstChild("RobloxToolboxCustom") then
+    CoreGui.RobloxToolboxCustom:Destroy()
 end
 
--- UI Setup
-local KotakAlat = Instance.new("ScreenGui")
-KotakAlat.Name = "KotakAlatMarketplace"
-KotakAlat.Parent = CoreGui
+-- ==========================================
+-- MAIN UI SETUP (STRUKTUR KOTAK ALAT)
+-- ==========================================
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "RobloxToolboxCustom"
+ScreenGui.Parent = CoreGui
 
--- Frame Utama (Draggable)
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 300, 0, 400)
-MainFrame.Position = UDim2.new(0.5, -150, 0.5, -200)
-MainFrame.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-MainFrame.BorderColor3 = Color3.fromRGB(0, 0, 0)
-MainFrame.BorderSizePixel = 2
+MainFrame.Size = UDim2.new(0, 300, 0, 480) -- Ukuran vertikal seperti Toolbox
+MainFrame.Position = UDim2.new(0.5, -150, 0.5, -240)
+MainFrame.BackgroundColor3 = Color3.fromRGB(45, 45, 45) -- Warna gelap Studio
+MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
 MainFrame.Draggable = true
-MainFrame.Parent = KotakAlat
+MainFrame.Parent = ScreenGui
 
--- Header (Bar Judul)
-local Header = Instance.new("Frame")
-Header.Size = UDim2.new(1, 0, 0, 25)
-Header.BackgroundColor3 = Color3.fromRGB(240, 240, 240)
-Header.BorderColor3 = Color3.fromRGB(0, 0, 0)
-Header.Parent = MainFrame
+-- Corner pembulatan sedikit (khas Modern Studio)
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0, 4)
+MainCorner.Parent = MainFrame
 
-local Title = Instance.new("TextLabel")
-Title.Text = "Kotak Alat"
-Title.Size = UDim2.new(1, -30, 1, 0)
-Title.Position = UDim2.new(0, 5, 0, 0)
-Title.BackgroundTransparency = 1
-Title.Font = Enum.Font.SourceSans
-Title.TextSize = 14
-Title.TextXAlignment = Enum.TextXAlignment.Left
-Title.Parent = Header
+-- ==========================================
+-- TOP BAR (KATEGORI TAB)
+-- ==========================================
+local TabBar = Instance.new("Frame")
+TabBar.Size = UDim2.new(1, 0, 0, 35)
+TabBar.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+TabBar.BorderSizePixel = 0
+TabBar.Parent = MainFrame
 
-local CloseBtn = Instance.new("TextButton")
-CloseBtn.Text = "X"
-CloseBtn.Size = UDim2.new(0, 25, 0, 25)
-CloseBtn.Position = UDim2.new(1, -25, 0, 0)
-CloseBtn.BackgroundColor3 = Color3.fromRGB(255, 100, 100)
-CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-CloseBtn.BorderSizePixel = 0
-CloseBtn.Parent = Header
-CloseBtn.MouseButton1Click:Connect(function() KotakAlat:Destroy() end)
+local TabList = Instance.new("UIListLayout")
+TabList.FillDirection = Enum.FillDirection.Horizontal
+TabList.SortOrder = Enum.SortOrder.LayoutOrder
+TabList.Parent = TabBar
 
--- Area Pencarian (Input)
-local SearchContainer = Instance.new("Frame")
-SearchContainer.Size = UDim2.new(1, -10, 0, 30)
-SearchContainer.Position = UDim2.new(0, 5, 0, 30)
-SearchContainer.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-SearchContainer.BorderColor3 = Color3.fromRGB(200, 200, 200)
-SearchContainer.Parent = MainFrame
+local currentCategory = 10 -- Default: Models
+
+local function CreateTab(name, id)
+    local Tab = Instance.new("TextButton")
+    Tab.Size = UDim2.new(0.25, 0, 1, 0)
+    Tab.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    Tab.BorderSizePixel = 0
+    Tab.Text = name
+    Tab.TextColor3 = (currentCategory == id) and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(150, 150, 150)
+    Tab.Font = Enum.Font.SourceSansBold
+    Tab.TextSize = 13
+    Tab.Parent = TabBar
+    
+    Tab.MouseButton1Click:Connect(function()
+        currentCategory = id
+        for _, v in pairs(TabBar:GetChildren()) do
+            if v:IsA("TextButton") then v.TextColor3 = Color3.fromRGB(150, 150, 150) end
+        end
+        Tab.TextColor3 = Color3.fromRGB(255, 255, 255)
+    end)
+end
+
+CreateTab("Models", 10)
+CreateTab("Images", 11)
+CreateTab("Audio", 13)
+CreateTab("Meshes", 40)
+
+-- ==========================================
+-- SEARCH BAR (INPUT)
+-- ==========================================
+local SearchFrame = Instance.new("Frame")
+SearchFrame.Size = UDim2.new(1, -20, 0, 30)
+SearchFrame.Position = UDim2.new(0, 10, 0, 45)
+SearchFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+SearchFrame.BorderSizePixel = 1
+SearchFrame.BorderColor3 = Color3.fromRGB(60, 60, 60)
+SearchFrame.Parent = MainFrame
 
 local InputBox = Instance.new("TextBox")
-InputBox.Size = UDim2.new(1, -50, 1, 0)
-InputBox.PlaceholderText = "Cari di Marketplace..."
-InputBox.Text = ""
-InputBox.Font = Enum.Font.SourceSans
-InputBox.TextSize = 14
+InputBox.Size = UDim2.new(1, -35, 1, 0)
+InputBox.Position = UDim2.new(0, 5, 0, 0)
 InputBox.BackgroundTransparency = 1
-InputBox.Parent = SearchContainer
+InputBox.PlaceholderText = "Search..."
+InputBox.Text = ""
+InputBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+InputBox.TextXAlignment = Enum.TextXAlignment.Left
+InputBox.ClearTextOnFocus = false
+InputBox.Parent = SearchFrame
 
-local SearchBtn = Instance.new("TextButton")
-SearchBtn.Text = "Cari"
-SearchBtn.Size = UDim2.new(0, 45, 1, 0)
-SearchBtn.Position = UDim2.new(1, -45, 0, 0)
-SearchBtn.BackgroundColor3 = Color3.fromRGB(240, 240, 240)
-SearchBtn.BorderSizePixel = 1
-SearchBtn.Parent = SearchContainer
+local SearchIcon = Instance.new("TextButton")
+SearchIcon.Size = UDim2.new(0, 30, 1, 0)
+SearchIcon.Position = UDim2.new(1, -30, 0, 0)
+SearchIcon.BackgroundTransparency = 1
+SearchIcon.Text = "🔍"
+SearchIcon.TextColor3 = Color3.fromRGB(200, 200, 200)
+SearchIcon.Parent = SearchFrame
 
--- Scroll Area (Hasil)
+-- ==========================================
+-- SCROLLING CONTENT
+-- ==========================================
 local ScrollFrame = Instance.new("ScrollingFrame")
-ScrollFrame.Size = UDim2.new(1, -10, 1, -100)
-ScrollFrame.Position = UDim2.new(0, 5, 0, 65)
-ScrollFrame.BackgroundColor3 = Color3.fromRGB(250, 250, 250)
-ScrollFrame.BorderColor3 = Color3.fromRGB(200, 200, 200)
-ScrollFrame.ScrollBarThickness = 6
+ScrollFrame.Size = UDim2.new(1, -10, 1, -90)
+ScrollFrame.Position = UDim2.new(0, 5, 0, 85)
+ScrollFrame.BackgroundTransparency = 1
+ScrollFrame.ScrollBarThickness = 4
+ScrollFrame.ScrollBarImageColor3 = Color3.fromRGB(80, 80, 80)
 ScrollFrame.Parent = MainFrame
 
-local UIList = Instance.new("UIListLayout")
-UIList.Parent = ScrollFrame
-UIList.Padding = UDim.new(0, 2)
+local Grid = Instance.new("UIGridLayout")
+Grid.CellSize = UDim2.new(0, 135, 0, 160)
+Grid.CellPadding = UDim2.new(0, 10, 0, 10)
+Grid.HorizontalAlignment = Enum.HorizontalAlignment.Center
+Grid.Parent = ScrollFrame
 
--- Tombol Kategori (Bawah)
-local TabFrame = Instance.new("Frame")
-TabFrame.Size = UDim2.new(1, 0, 0, 25)
-TabFrame.Position = UDim2.new(0, 0, 1, -25)
-TabFrame.BackgroundColor3 = Color3.fromRGB(240, 240, 240)
-TabFrame.Parent = MainFrame
-
-local function createTab(name, pos, typeId)
-    local btn = Instance.new("TextButton")
-    btn.Text = name
-    btn.Size = UDim2.new(0.25, 0, 1, 0)
-    btn.Position = UDim2.new(pos, 0, 0, 0)
-    btn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    btn.BorderSizePixel = 1
-    btn.Font = Enum.Font.SourceSans
-    btn.TextSize = 12
-    btn.Parent = TabFrame
-    return btn
-end
-
-local tabModel = createTab("Model", 0, 10)
-local tabAudio = createTab("Suara", 0.25, 13)
-local tabDecal = createTab("Gambar", 0.5, 11)
-local tabMesh  = createTab("Jala", 0.75, 40)
-
--- Fungsi Helper Request
+-- ==========================================
+-- LOGIC & DATA FETCHING
+-- ==========================================
 local function httpRequest(options)
     local req = (syn and syn.request) or (http and http.request) or http_request or request
-    if req then return req(options) end
-    return nil
+    return req(options)
 end
 
--- Fungsi Render Item
-local function createAssetItem(id, name, creator)
-    local ItemFrame = Instance.new("Frame")
-    ItemFrame.Size = UDim2.new(1, -10, 0, 60)
-    ItemFrame.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    ItemFrame.BorderColor3 = Color3.fromRGB(230, 230, 230)
+local function CreateAssetCard(id, name, creator)
+    local Card = Instance.new("Frame")
+    Card.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
+    Card.BorderSizePixel = 0
+    Card.Parent = ScrollFrame
     
-    local Thumb = Instance.new("ImageLabel")
-    Thumb.Size = UDim2.new(0, 50, 0, 50)
-    Thumb.Position = UDim2.new(0, 5, 0, 5)
-    Thumb.Image = "rbxthumb://type=Asset&id=" .. id .. "&w=150&h=150"
-    Thumb.Parent = ItemFrame
-    
-    local NameLbl = Instance.new("TextLabel")
-    NameLbl.Text = name
-    NameLbl.Size = UDim2.new(1, -110, 0, 20)
-    NameLbl.Position = UDim2.new(0, 60, 0, 5)
-    NameLbl.Font = Enum.Font.SourceSansBold
-    NameLbl.TextSize = 14
-    NameLbl.TextXAlignment = Enum.TextXAlignment.Left
-    NameLbl.BackgroundTransparency = 1
-    NameLbl.Parent = ItemFrame
-    
-    local CreatorLbl = Instance.new("TextLabel")
-    CreatorLbl.Text = "Oleh: " .. creator
-    CreatorLbl.Size = UDim2.new(1, -110, 0, 15)
-    CreatorLbl.Position = UDim2.new(0, 60, 0, 25)
-    CreatorLbl.Font = Enum.Font.SourceSans
-    CreatorLbl.TextSize = 12
-    CreatorLbl.TextColor3 = Color3.fromRGB(100, 100, 100)
-    CreatorLbl.TextXAlignment = Enum.TextXAlignment.Left
-    CreatorLbl.BackgroundTransparency = 1
-    CreatorLbl.Parent = ItemFrame
-    
+    local Corner = Instance.new("UICorner")
+    Corner.CornerRadius = UDim.new(0, 4)
+    Corner.Parent = Card
+
+    local Image = Instance.new("ImageLabel")
+    Image.Size = UDim2.new(1, -10, 0, 100)
+    Image.Position = UDim2.new(0, 5, 0, 5)
+    Image.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    Image.Image = "rbxthumb://type=Asset&id=" .. id .. "&w=150&h=150"
+    Image.BorderSizePixel = 0
+    Image.Parent = Card
+
+    local NameLabel = Instance.new("TextLabel")
+    NameLabel.Size = UDim2.new(1, -10, 0, 30)
+    NameLabel.Position = UDim2.new(0, 5, 0, 105)
+    NameLabel.BackgroundTransparency = 1
+    NameLabel.Text = name
+    NameLabel.TextColor3 = Color3.fromRGB(230, 230, 230)
+    NameLabel.TextSize = 12
+    NameLabel.TextWrapped = true
+    NameLabel.Font = Enum.Font.SourceSans
+    NameLabel.TextXAlignment = Enum.TextXAlignment.Left
+    NameLabel.Parent = Card
+
+    local CreatorLabel = Instance.new("TextLabel")
+    CreatorLabel.Size = UDim2.new(1, -10, 0, 15)
+    CreatorLabel.Position = UDim2.new(0, 5, 0, 135)
+    CreatorLabel.BackgroundTransparency = 1
+    CreatorLabel.Text = "by " .. creator
+    CreatorLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+    CreatorLabel.TextSize = 10
+    CreatorLabel.TextXAlignment = Enum.TextXAlignment.Left
+    CreatorLabel.Parent = Card
+
     local CopyBtn = Instance.new("TextButton")
-    CopyBtn.Text = "Salin ID"
-    CopyBtn.Size = UDim2.new(0, 45, 0, 30)
-    CopyBtn.Position = UDim2.new(1, -50, 0, 15)
-    CopyBtn.BackgroundColor3 = Color3.fromRGB(240, 240, 240)
-    CopyBtn.TextSize = 10
-    CopyBtn.Parent = ItemFrame
+    CopyBtn.Size = UDim2.new(1, 0, 1, 0)
+    CopyBtn.BackgroundTransparency = 1
+    CopyBtn.Text = ""
+    CopyBtn.Parent = Card
     
     CopyBtn.MouseButton1Click:Connect(function()
         setclipboard(tostring(id))
-        CopyBtn.Text = "Salin!"
-        task.wait(1)
-        CopyBtn.Text = "Salin ID"
+        local oldColor = Card.BackgroundColor3
+        Card.BackgroundColor3 = Color3.fromRGB(0, 255, 100)
+        task.wait(0.2)
+        Card.BackgroundColor3 = oldColor
     end)
-    
-    ItemFrame.Parent = ScrollFrame
-    ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, UIList.AbsoluteContentSize.Y)
 end
 
--- Logika Pencarian
-local currentCategory = 10
-
-local function searchMarketplace(keyword)
+local function Search(keyword)
+    -- Bersihkan hasil lama
     for _, v in pairs(ScrollFrame:GetChildren()) do
         if v:IsA("Frame") then v:Destroy() end
     end
     
     local url = "https://apis.roblox.com/toolbox-service/v1/marketplace/" .. currentCategory .. "?limit=30&keyword=" .. HttpService:UrlEncode(keyword)
     
-    local res = httpRequest({Url = url, Method = "GET"})
-    if res and res.StatusCode == 200 then
-        local data = HttpService:JSONDecode(res.Body).data
+    local success, response = pcall(function()
+        return httpRequest({Url = url, Method = "GET"})
+    end)
+    
+    if success and response.StatusCode == 200 then
+        local data = HttpService:JSONDecode(response.Body).data
         local ids = {}
         for _, item in pairs(data) do table.insert(ids, tostring(item.id)) end
         
@@ -195,36 +203,24 @@ local function searchMarketplace(keyword)
         if detailRes and detailRes.StatusCode == 200 then
             local details = HttpService:JSONDecode(detailRes.Body).data
             for _, item in pairs(details) do
-                createAssetItem(item.asset.id, item.asset.name, item.creator.name)
+                CreateAssetCard(item.asset.id, item.asset.name, item.creator.name)
             end
+            ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, Grid.AbsoluteContentSize.Y + 20)
         end
     end
 end
 
 -- Events
-SearchBtn.MouseButton1Click:Connect(function()
-    searchMarketplace(InputBox.Text)
-    InputBox.Text = ""
+SearchIcon.MouseButton1Click:Connect(function()
+    if InputBox.Text ~= "" then
+        Search(InputBox.Text)
+        InputBox.Text = "" -- Bersihkan input setelah klik cari
+    end
 end)
 
 InputBox.FocusLost:Connect(function(enter)
-    if enter then SearchBtn.MouseButton1Click:Fire() end
+    if enter and InputBox.Text ~= "" then
+        Search(InputBox.Text)
+        InputBox.Text = "" -- Bersihkan input setelah tekan enter
+    end
 end)
-
--- Ganti Kategori
-local function setCategory(id, btn)
-    currentCategory = id
-    tabModel.BackgroundColor3 = Color3.fromRGB(255,255,255)
-    tabAudio.BackgroundColor3 = Color3.fromRGB(255,255,255)
-    tabDecal.BackgroundColor3 = Color3.fromRGB(255,255,255)
-    tabMesh.BackgroundColor3 = Color3.fromRGB(255,255,255)
-    btn.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
-end
-
-tabModel.MouseButton1Click:Connect(function() setCategory(10, tabModel) end)
-tabAudio.MouseButton1Click:Connect(function() setCategory(13, tabAudio) end)
-tabDecal.MouseButton1Click:Connect(function() setCategory(11, tabDecal) end)
-tabMesh.MouseButton1Click:Connect(function() setCategory(40, tabMesh) end)
-
--- Inisialisasi
-setCategory(10, tabModel)
