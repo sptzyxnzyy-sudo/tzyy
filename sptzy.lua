@@ -13,6 +13,11 @@ local currentTrack = nil
 -- [[ DATABASE EMOTE ID (UPDATED) ]]
 local Emotes = {
     {name = "Mosh", id = "rbxassetid://96147994216119"},
+    {name = "Hey Ya Pindah", id = "rbxassetid://104338766814874"},
+    {name = "Tarian Bintang", id = "rbxassetid://123658509210480"},
+    {name = "Vibe Brasil", id = "rbxassetid://112528616743393"},
+    {name = "Pose Aura Mengambang", id = "rbxassetid://88318250668110"},
+    {name = "tarian hype", id = "rbxassetid://70594864096417"},
     {name = "GetSturdy", id = "rbxassetid://122884053950359"},
     {name = "RatDance", id = "rbxassetid://96490284184113"},
     {name = "GangnamStyle", id = "rbxassetid://131104967711844"},
