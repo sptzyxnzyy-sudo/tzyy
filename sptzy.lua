@@ -11,12 +11,13 @@ ScreenGui.Name = "SptzyyToolboxFinal"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = CoreGui
 
--- State Management (Logika Halaman & Data)
+-- State Management
 local cursors = { [1] = "" } 
 local currentPage = 1
 local currentKeyword = ""
 local isFetching = false
 local currentId = ""
+local searchMode = "10" -- 10: Model, 3: Audio
 
 local function addCorner(obj, r)
     local c = Instance.new("UICorner")
@@ -53,7 +54,6 @@ Main.Draggable = true
 Main.Parent = ScreenGui
 addCorner(Main, 8)
 
--- Tombol Close (X)
 local CloseBtn = Instance.new("TextButton")
 CloseBtn.Size = UDim2.new(0, 25, 0, 25)
 CloseBtn.Position = UDim2.new(1, -30, 0, 5)
@@ -65,7 +65,7 @@ CloseBtn.BackgroundTransparency = 1
 CloseBtn.Parent = Main
 
 -- ==========================================
--- CENTERED HEADER (JUDUL BERTINGKAT)
+-- CENTERED HEADER
 -- ==========================================
 local HeaderContainer = Instance.new("Frame")
 HeaderContainer.Size = UDim2.new(1, 0, 0, 60)
@@ -97,7 +97,7 @@ Credit.Parent = HeaderContainer
 local Version = Instance.new("TextLabel")
 Version.Size = UDim2.new(1, 0, 0, 10)
 Version.Position = UDim2.new(0, 0, 0, 45)
-Version.Text = "version 1.0"
+Version.Text = "version 1.2 (Multi-Mode)"
 Version.Font = Enum.Font.SourceSans
 Version.TextSize = 10
 Version.TextColor3 = Color3.fromRGB(100, 100, 100)
@@ -106,9 +106,8 @@ Version.BackgroundTransparency = 1
 Version.Parent = HeaderContainer
 
 -- ==========================================
--- SYMMETRICAL INPUT (<- INPUT ->)
+-- SYMMETRICAL INPUT (<- INPUT [MODE] ->)
 -- ==========================================
--- Tombol Prev (Kiri)
 local PrevBtn = Instance.new("TextButton")
 PrevBtn.Size = UDim2.new(0, 25, 0, 25)
 PrevBtn.Position = UDim2.new(0, 10, 0, 65)
@@ -120,9 +119,8 @@ PrevBtn.Visible = false
 PrevBtn.Parent = Main
 addCorner(PrevBtn)
 
--- Input Box (Tengah)
 local Input = Instance.new("TextBox")
-Input.Size = UDim2.new(0, 210, 0, 25)
+Input.Size = UDim2.new(0, 180, 0, 25)
 Input.Position = UDim2.new(0, 45, 0, 65)
 Input.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 Input.PlaceholderText = "Cari asset..."
@@ -134,7 +132,14 @@ Input.ClearTextOnFocus = false
 Input.Parent = Main
 addCorner(Input, 4)
 
--- Tombol Next (Kanan)
+local ModeBtn = Instance.new("ImageButton")
+ModeBtn.Size = UDim2.new(0, 25, 0, 25)
+ModeBtn.Position = UDim2.new(0, 230, 0, 65)
+ModeBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+ModeBtn.Image = "rbxassetid://10734950309"
+ModeBtn.Parent = Main
+addCorner(ModeBtn)
+
 local NextBtn = Instance.new("TextButton")
 NextBtn.Size = UDim2.new(0, 25, 0, 25)
 NextBtn.Position = UDim2.new(0, 265, 0, 65)
@@ -149,13 +154,32 @@ addCorner(NextBtn)
 local PageIndicator = Instance.new("TextLabel")
 PageIndicator.Size = UDim2.new(1, -20, 0, 15)
 PageIndicator.Position = UDim2.new(0, 10, 0, 92)
-PageIndicator.Text = ""
-PageIndicator.TextColor3 = Color3.fromRGB(150, 150, 150)
-PageIndicator.Font = Enum.Font.SourceSans
+PageIndicator.Text = "MODE: MODEL"
+PageIndicator.TextColor3 = Color3.fromRGB(0, 170, 255)
+PageIndicator.Font = Enum.Font.SourceSansBold
 PageIndicator.TextSize = 10
 PageIndicator.TextXAlignment = Enum.TextXAlignment.Center
 PageIndicator.BackgroundTransparency = 1
 PageIndicator.Parent = Main
+
+-- ==========================================
+-- LOGIC: SWITCH MODE
+-- ==========================================
+ModeBtn.MouseButton1Click:Connect(function()
+    if searchMode == "10" then
+        searchMode = "3"
+        PageIndicator.Text = "MODE: AUDIO"
+        PageIndicator.TextColor3 = Color3.fromRGB(255, 170, 0)
+        ModeBtn.BackgroundColor3 = Color3.fromRGB(255, 170, 0)
+        ModeBtn.Image = "rbxassetid://10734951121"
+    else
+        searchMode = "10"
+        PageIndicator.Text = "MODE: MODEL"
+        PageIndicator.TextColor3 = Color3.fromRGB(0, 170, 255)
+        ModeBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+        ModeBtn.Image = "rbxassetid://10734950309"
+    end
+end)
 
 -- ==========================================
 -- LIST PAGE & GRID
@@ -176,7 +200,7 @@ Grid.Parent = ListPage
 local WelcomeMsg = Instance.new("TextLabel")
 WelcomeMsg.Size = UDim2.new(1, -20, 0, 80)
 WelcomeMsg.Position = UDim2.new(0, 10, 0.2, 0)
-WelcomeMsg.Text = "Masukkan kata kunci di atas.\n\nGunakan panah untuk navigasi halaman."
+WelcomeMsg.Text = "Ketik keyword, lalu tekan Enter.\nTekan ikon biru/oranye untuk ganti mode."
 WelcomeMsg.Font = Enum.Font.SourceSansItalic
 WelcomeMsg.TextSize = 14
 WelcomeMsg.TextColor3 = Color3.fromRGB(100, 100, 100)
@@ -255,7 +279,7 @@ Dropdown.Parent = DetailPage
 addCorner(Dropdown, 4)
 
 -- ==========================================
--- API & SEARCH LOGIC
+-- API LOGIC
 -- ==========================================
 local function httpRequest(opt)
     local f = (syn and syn.request) or (http and http.request) or http_request or request
@@ -263,22 +287,25 @@ local function httpRequest(opt)
 end
 
 local function clearList()
-    for _, v in pairs(ListPage:GetChildren()) do
-        if v:IsA("Frame") then v:Destroy() end
-    end
+    for _, v in pairs(ListPage:GetChildren()) do if v:IsA("Frame") then v:Destroy() end end
 end
 
 local function showDetail(data)
     currentId = tostring(data.asset.id)
-    DetImg.Image = "rbxthumb://type=Asset&id="..currentId.."&w=420&h=420"
+    if searchMode == "3" then
+        DetImg.Image = "rbxassetid://10734951121"
+    else
+        DetImg.Image = "rbxthumb://type=Asset&id="..currentId.."&w=420&h=420"
+    end
     DetName.Text = data.asset.name
-    DetCreator.Text = "by " .. data.creator.name
+    DetCreator.Text = "by " .. (data.creator and data.creator.name or "Unknown")
     
     Dropdown.Visible = false
     ListPage.Visible = false
     HeaderContainer.Visible = false
     Input.Visible = false
     PrevBtn.Visible = false
+    ModeBtn.Visible = false
     NextBtn.Visible = false
     PageIndicator.Visible = false
     DetailPage.Visible = true
@@ -290,7 +317,7 @@ local function Search(kw, cursor, pageNum)
     clearList()
     WelcomeMsg.Visible = false
     
-    local url = "https://apis.roblox.com/toolbox-service/v1/marketplace/10?limit=30&keyword="..HttpService:UrlEncode(kw)
+    local url = "https://apis.roblox.com/toolbox-service/v1/marketplace/"..searchMode.."?limit=30&keyword="..HttpService:UrlEncode(kw)
     if cursor and cursor ~= "" then url = url.."&cursor="..cursor end
     
     local success, res = pcall(function() return httpRequest({Url = url, Method = "GET"}) end)
@@ -302,16 +329,11 @@ local function Search(kw, cursor, pageNum)
         
         PrevBtn.Visible = (currentPage > 1)
         NextBtn.Visible = (body.nextPageCursor ~= nil and body.nextPageCursor ~= "")
-        PageIndicator.Text = "PAGE: "..currentPage.."  |  RESULTS: "..(body.totalResults or "0")
-        PageIndicator.Visible = true
-
+        
         local ids = {}
         for _, v in pairs(body.data) do table.insert(ids, tostring(v.id)) end
         
-        if #ids == 0 then
-            WelcomeMsg.Text = "Asset tidak ditemukan."
-            WelcomeMsg.Visible = true
-        else
+        if #ids > 0 then
             local detRes = httpRequest({Url = "https://apis.roblox.com/toolbox-service/v1/items/details?assetIds="..table.concat(ids, ","), Method = "GET"})
             if detRes and detRes.StatusCode == 200 then
                 for _, data in pairs(HttpService:JSONDecode(detRes.Body).data) do
@@ -323,7 +345,7 @@ local function Search(kw, cursor, pageNum)
                     local Img = Instance.new("ImageLabel")
                     Img.Size = UDim2.new(1, -10, 0, 70)
                     Img.Position = UDim2.new(0, 5, 0, 5)
-                    Img.Image = "rbxthumb://type=Asset&id="..data.asset.id.."&w=150&h=150"
+                    Img.Image = (searchMode == "3") and "rbxassetid://10734951121" or "rbxthumb://type=Asset&id="..data.asset.id.."&w=150&h=150"
                     Img.BackgroundTransparency = 1
                     Img.Parent = Card
                     
@@ -332,7 +354,7 @@ local function Search(kw, cursor, pageNum)
                     Info.Position = UDim2.new(0, 3, 0, 78)
                     Info.Text = data.asset.name.."\nID: "..data.asset.id
                     Info.TextColor3 = Color3.fromRGB(255, 255, 255)
-                    Info.TextSize = 9
+                    Info.TextSize = 8
                     Info.Font = Enum.Font.SourceSansBold
                     Info.TextWrapped = true
                     Info.BackgroundTransparency = 1
@@ -346,6 +368,9 @@ local function Search(kw, cursor, pageNum)
                     btn.MouseButton1Click:Connect(function() showDetail(data) end)
                 end
             end
+        else
+            WelcomeMsg.Text = "Asset tidak ditemukan."
+            WelcomeMsg.Visible = true
         end
     end
     ListPage.CanvasPosition = Vector2.new(0,0)
@@ -354,46 +379,16 @@ local function Search(kw, cursor, pageNum)
 end
 
 -- ==========================================
--- BUTTON & INPUT CONNECTIONS
+-- CONNECTIONS
 -- ==========================================
 Input.FocusLost:Connect(function(enter)
-    if enter and Input.Text ~= "" then
-        currentKeyword = Input.Text
-        cursors = { [1] = "" } -- Reset navigasi saat cari baru
-        Search(currentKeyword, "", 1)
-    end
+    if enter and Input.Text ~= "" then currentKeyword = Input.Text; cursors = {[1]=""}; Search(currentKeyword, "", 1) end
 end)
 
-NextBtn.MouseButton1Click:Connect(function()
-    if not isFetching and cursors[currentPage + 1] ~= "" then
-        Search(currentKeyword, cursors[currentPage + 1], currentPage + 1)
-    end
-end)
-
-PrevBtn.MouseButton1Click:Connect(function()
-    if not isFetching and currentPage > 1 then
-        Search(currentKeyword, cursors[currentPage - 1], currentPage - 1)
-    end
-end)
-
-CloseBtn.MouseButton1Click:Connect(function() Main.Visible = false OpenBtn.Visible = true end)
-OpenBtn.MouseButton1Click:Connect(function() Main.Visible = true OpenBtn.Visible = false end)
-
-BackBtn.MouseButton1Click:Connect(function()
-    DetailPage.Visible = false
-    HeaderContainer.Visible = true
-    Input.Visible = true
-    PrevBtn.Visible = (currentPage > 1)
-    NextBtn.Visible = (cursors[currentPage+1] ~= "")
-    PageIndicator.Visible = true
-    ListPage.Visible = true
-end)
-
+NextBtn.MouseButton1Click:Connect(function() if not isFetching and cursors[currentPage+1] ~= "" then Search(currentKeyword, cursors[currentPage+1], currentPage+1) end end)
+PrevBtn.MouseButton1Click:Connect(function() if not isFetching and currentPage > 1 then Search(currentKeyword, cursors[currentPage-1], currentPage-1) end end)
+CloseBtn.MouseButton1Click:Connect(function() Main.Visible = false; OpenBtn.Visible = true end)
+OpenBtn.MouseButton1Click:Connect(function() Main.Visible = true; OpenBtn.Visible = false end)
+BackBtn.MouseButton1Click:Connect(function() DetailPage.Visible = false; HeaderContainer.Visible = true; Input.Visible = true; ModeBtn.Visible = true; ListPage.Visible = true; PageIndicator.Visible = true end)
 MenuBtn.MouseButton1Click:Connect(function() Dropdown.Visible = not Dropdown.Visible end)
-Dropdown.MouseButton1Click:Connect(function()
-    setclipboard(currentId)
-    Dropdown.Text = "Copied!"
-    task.wait(1)
-    Dropdown.Text = "Copy ID"
-    Dropdown.Visible = false
-end)
+Dropdown.MouseButton1Click:Connect(function() setclipboard(currentId); Dropdown.Text = "Copied!"; task.wait(1); Dropdown.Text = "Copy ID"; Dropdown.Visible = false end)
