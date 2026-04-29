@@ -1,111 +1,152 @@
 --[[
-    sptzyy developer sl - Emote Database Runner
-    Fitur: Full-Frame Loop, Stationary (Diam di tempat), Side-Compact UI
+    sptzyy developer sl - Emote Executor Pro
+    Logic: Animation ID System
+    Theme: Monochrome Dark
 ]]
 
 local UIS = game:GetService("UserInputService")
 local Players = game:GetService("Players")
 local Player = Players.LocalPlayer
 
-local isEmotePlaying = false
+local currentTrack = nil
 
--- [[ DATABASE EMOTE ]]
--- Masukkan semua frame hasil rekamanmu di sini
+-- [[ DATABASE EMOTE ID ]]
 local Emotes = {
-    ["Fantasi"] = {
-        [1]={['Waist']=CFrame.new(-0.001,0.2,0,1,0,0,0,1,0,0,0,1),['RightKnee']=CFrame.new(-0,-0.401,-0.001,1,0,0,0,1,0,0,0,1),['Neck']=CFrame.new(-0.001,0.8,0,1,0,0,0,1,0,0,0,1),['Root']=CFrame.new(0,-1,0,1,0,0,0,1,0,0,0,1),['LeftShoulder']=CFrame.new(-1,0.563,0,1,0,0,0,1,0,0,0,1),['RightElbow']=CFrame.new(-0.001,-0.335,0,1,0,0,0,1,0,0,0,1),['LeftElbow']=CFrame.new(0,-0.335,0,1,0,0,0,1,0,0,0,1),['RightHip']=CFrame.new(0.499,-0.2,-0.001,1,0,0,0,1,0,0,0,1),['LeftKnee']=CFrame.new(0,-0.402,-0.001,1,0,0,0,1,0,0,0,1),['RightAnkle']=CFrame.new(-0,-0.548,0,1,0,0,0,1,0,0,0,1),['RightShoulder']=CFrame.new(0.999,0.563,0,1,0,0,0,1,0,0,0,1),['LeftWrist']=CFrame.new(0,-0.501,0,1,0,0,0,1,0,0,0,1),['RightWrist']=CFrame.new(0,-0.501,-0.001,1,0,0,0,1,0,0,0,1),['LeftAnkle']=CFrame.new(-0.001,-0.548,-0.001,1,0,0,0,1,0,0,0,1),['LeftHip']=CFrame.new(-0.501,-0.2,-0,1,0,0,0,1,0,0,0,1)},
-        -- [2] = { ... }, [3] = { ... } dst
-    }
+    {name = "Mosh", id = "rbxassetid://96147994216119"},
+    {name = "KedatKedut", id = "rbxassetid://124487025832160"},
+    {name = "GetSturdy", id = "rbxassetid://122884053950359"},
+    {name = "RatDance", id = "rbxassetid://96490284184113"},
+    {name = "GangnamStyle", id = "rbxassetid://131104967711844"},
+    {name = "Popular", id = "rbxassetid://93062298566806"},
+    {name = "Baddie Hips", id = "rbxassetid://90802740360125"},
+    {name = "Caramelldansen", id = "rbxassetid://73785690856046"},
+    {name = "Aizen Pose", id = "rbxassetid://73878018081160"},
+    {name = "Floating Aura", id = "rbxassetid://133364897841008"}
 }
 
 -- [[ UI CONSTRUCTION ]]
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "Sptzyy_Runner"
+ScreenGui.Name = "Sptzyy_Executor_Fixed"
 ScreenGui.Parent = Player:WaitForChild("PlayerGui")
 ScreenGui.ResetOnSpawn = false
 
+-- Floating Icon (Draggable)
 local IconButton = Instance.new("TextButton")
-IconButton.Size = UDim2.new(0, 45, 0, 45)
-IconButton.Position = UDim2.new(0, 10, 0.5, -22)
-IconButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+IconButton.Size = UDim2.new(0, 50, 0, 50)
+IconButton.Position = UDim2.new(0, 10, 0.5, -25)
+IconButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 IconButton.Text = "🎬"
-IconButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+IconButton.TextSize = 24
 IconButton.Parent = ScreenGui
 Instance.new("UICorner", IconButton).CornerRadius = UDim.new(1, 0)
-Instance.new("UIStroke", IconButton).Color = Color3.fromRGB(0, 255, 150)
+local IconStroke = Instance.new("UIStroke", IconButton)
+IconStroke.Color = Color3.fromRGB(255, 255, 255)
+IconStroke.Thickness = 1.5
 
+-- Main Menu Frame
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 140, 0, 150)
-MainFrame.Position = UDim2.new(0, 65, 0.5, -75)
-MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+MainFrame.Size = UDim2.new(0, 170, 0, 240)
+MainFrame.Position = UDim2.new(0, 70, 0.5, -120)
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 MainFrame.Visible = false
 MainFrame.Parent = ScreenGui
-Instance.new("UICorner", MainFrame)
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
+local MainStroke = Instance.new("UIStroke", MainFrame)
+MainStroke.Color = Color3.fromRGB(60, 60, 60)
 
+-- Scrolling Area
 local Scroll = Instance.new("ScrollingFrame")
-Scroll.Size = UDim2.new(0.9, 0, 0.65, 0)
-Scroll.Position = UDim2.new(0.05, 0, 0.05, 0)
+Scroll.Size = UDim2.new(1, -16, 1, -60)
+Scroll.Position = UDim2.new(0, 8, 0, 10)
 Scroll.BackgroundTransparency = 1
+Scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
 Scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
-Scroll.ScrollBarThickness = 0
+Scroll.ScrollBarThickness = 2
+Scroll.ScrollBarImageColor3 = Color3.fromRGB(255, 255, 255)
 Scroll.Parent = MainFrame
-Instance.new("UIListLayout", Scroll).Padding = UDim.new(0, 5)
+local Layout = Instance.new("UIListLayout", Scroll)
+Layout.Padding = UDim.new(0, 5)
 
--- [[ LOGIKA RUNNER (MENJALANKAN DATABASE) ]]
-local function RunEmoteFromDatabase(name)
-    if isEmotePlaying then isEmotePlaying = false task.wait(0.1) end
+-- [[ DRAGGABLE LOGIC ]]
+local dragging, dragStart, startPos
+IconButton.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = IconButton.Position
+    end
+end)
+IconButton.InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement) then
+        local delta = input.Position - dragStart
+        IconButton.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+UIS.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = false
+    end
+end)
+
+-- [[ CORE EMOTE LOGIC ]]
+local function StopEmote()
+    if currentTrack then
+        currentTrack:Stop()
+        currentTrack = nil
+    end
+end
+
+local function PlayEmote(id)
+    StopEmote()
+    local char = Player.Character
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
     
-    local frames = Emotes[name]
-    if not frames or #frames == 0 then return end
-    
-    isEmotePlaying = true
-    
-    task.spawn(function()
-        local currentFrame = 1
+    if hum then
+        local anim = Instance.new("Animation")
+        anim.AnimationId = id
         
-        while isEmotePlaying do
-            local data = frames[currentFrame]
-            local char = Player.Character
-            
-            if char then
-                -- Terapkan setiap Motor6D yang ada di database ke avatar
-                for partName, cframeValue in pairs(data) do
-                    local joint = char:FindFirstChild(partName, true)
-                    if joint and joint:IsA("Motor6D") then
-                        joint.C0 = cframeValue
-                    end
-                end
-            end
-            
-            -- Pindah ke frame berikutnya, jika habis balik ke frame 1
-            currentFrame = (currentFrame % #frames) + 1
-            
-            -- Kecepatan putar (0.05 - 0.1 pas untuk gerakan menari)
-            task.wait(0.08) 
+        local success, track = pcall(function() return hum:LoadAnimation(anim) end)
+        if success then
+            track.Looped = true
+            track:Play()
+            currentTrack = track
         end
+    end
+end
+
+-- Generate Buttons from Database
+for _, emote in ipairs(Emotes) do
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, 0, 0, 32)
+    btn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    btn.Text = "  " .. emote.name
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.Font = Enum.Font.Gotham
+    btn.TextSize = 11
+    btn.TextXAlignment = Enum.TextXAlignment.Left
+    btn.Parent = Scroll
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
+    
+    btn.MouseButton1Click:Connect(function()
+        PlayEmote(emote.id)
     end)
 end
 
--- Generate Button
-for emoteName, _ in pairs(Emotes) do
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, 0, 0, 30)
-    btn.Text = emoteName
-    btn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    btn.Parent = Scroll
-    Instance.new("UICorner", btn)
-    btn.MouseButton1Click:Connect(function() RunEmoteFromDatabase(emoteName) end)
-end
-
+-- Stop Button (Highlight Putih)
 local StopBtn = Instance.new("TextButton")
-StopBtn.Size = UDim2.new(0.9, 0, 0, 30)
-StopBtn.Position = UDim2.new(0.05, 0, 0.75, 0)
-StopBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-StopBtn.Text = "STOP"
-StopBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+StopBtn.Size = UDim2.new(1, -16, 0, 35)
+StopBtn.Position = UDim2.new(0, 8, 1, -45)
+StopBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+StopBtn.Text = "STOP EMOTE"
+StopBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
+StopBtn.Font = Enum.Font.GothamBold
+StopBtn.TextSize = 12
 StopBtn.Parent = MainFrame
-Instance.new("UICorner", StopBtn)
-StopBtn.MouseButton1Click:Connect(function() isEmotePlaying = false end)
+Instance.new("UICorner", StopBtn).CornerRadius = UDim.new(0, 6)
 
-IconButton.MouseButton1Click:Connect(function() MainFrame.Visible = not MainFrame.Visible end)
+StopBtn.MouseButton1Click:Connect(StopEmote)
+
+-- Toggle Menu
+IconButton.MouseButton1Click:Connect(function()
+    MainFrame.Visible = not MainFrame.Visible
+end)
