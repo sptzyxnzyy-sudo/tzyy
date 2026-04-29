@@ -1,11 +1,13 @@
+SC DELTA TOBLOX AUDIO DAN MODEL V2
+
+
 local HttpService = game:GetService("HttpService")
 local CoreGui = game:GetService("CoreGui")
-local SoundService = game:GetService("SoundService")
 
--- Cleanup UI & Sound Lama
-if CoreGui:FindFirstChild("SptzyyToolboxFinal") then CoreGui.SptzyyToolboxFinal:Destroy() end
-local oldSound = SoundService:FindFirstChild("SptzyyPreview")
-if oldSound then oldSound:Destroy() end
+-- Membersihkan UI lama jika ada
+if CoreGui:FindFirstChild("SptzyyToolboxFinal") then 
+    CoreGui.SptzyyToolboxFinal:Destroy() 
+end
 
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "SptzyyToolboxFinal"
@@ -20,11 +22,6 @@ local isFetching = false
 local currentId = ""
 local searchMode = "10" -- 10: Model, 3: Audio
 
--- Preview Sound Setup
-local PreviewSound = Instance.new("Sound")
-PreviewSound.Name = "SptzyyPreview"
-PreviewSound.Parent = SoundService
-
 local function addCorner(obj, r)
     local c = Instance.new("UICorner")
     c.CornerRadius = UDim.new(0, r or 4)
@@ -32,9 +29,10 @@ local function addCorner(obj, r)
 end
 
 -- ==========================================
--- OPEN BUTTON
+-- OPEN BUTTON (Icon Store)
 -- ==========================================
 local OpenBtn = Instance.new("ImageButton")
+OpenBtn.Name = "OpenButton"
 OpenBtn.Size = UDim2.new(0, 45, 0, 45)
 OpenBtn.Position = UDim2.new(0, 10, 0.5, -22)
 OpenBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
@@ -49,6 +47,7 @@ addCorner(OpenBtn, 10)
 -- MAIN FRAME (300x300)
 -- ==========================================
 local Main = Instance.new("Frame")
+Main.Name = "MainFrame"
 Main.Size = UDim2.new(0, 300, 0, 300)
 Main.Position = UDim2.new(0.5, -150, 0.5, -150)
 Main.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
@@ -68,7 +67,9 @@ CloseBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
 CloseBtn.BackgroundTransparency = 1
 CloseBtn.Parent = Main
 
--- HEADER & CREDIT
+-- ==========================================
+-- CENTERED HEADER
+-- ==========================================
 local HeaderContainer = Instance.new("Frame")
 HeaderContainer.Size = UDim2.new(1, 0, 0, 60)
 HeaderContainer.BackgroundTransparency = 1
@@ -81,6 +82,7 @@ Title.Text = "SEARCH TOOLBOX"
 Title.Font = Enum.Font.SourceSansBold
 Title.TextSize = 18
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextXAlignment = Enum.TextXAlignment.Center
 Title.BackgroundTransparency = 1
 Title.Parent = HeaderContainer
 
@@ -91,16 +93,31 @@ Credit.Text = "by @sptzyy"
 Credit.Font = Enum.Font.SourceSans
 Credit.TextSize = 13
 Credit.TextColor3 = Color3.fromRGB(180, 180, 180)
+Credit.TextXAlignment = Enum.TextXAlignment.Center
 Credit.BackgroundTransparency = 1
 Credit.Parent = HeaderContainer
 
--- SYMMETRICAL INPUT AREA
+local Version = Instance.new("TextLabel")
+Version.Size = UDim2.new(1, 0, 0, 10)
+Version.Position = UDim2.new(0, 0, 0, 45)
+Version.Text = "version 1.2 (Multi-Mode)"
+Version.Font = Enum.Font.SourceSans
+Version.TextSize = 10
+Version.TextColor3 = Color3.fromRGB(100, 100, 100)
+Version.TextXAlignment = Enum.TextXAlignment.Center
+Version.BackgroundTransparency = 1
+Version.Parent = HeaderContainer
+
+-- ==========================================
+-- SYMMETRICAL INPUT (<- INPUT [MODE] ->)
+-- ==========================================
 local PrevBtn = Instance.new("TextButton")
 PrevBtn.Size = UDim2.new(0, 25, 0, 25)
 PrevBtn.Position = UDim2.new(0, 10, 0, 65)
 PrevBtn.Text = "<"
-PrevBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+PrevBtn.Font = Enum.Font.SourceSansBold
 PrevBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+PrevBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
 PrevBtn.Visible = false
 PrevBtn.Parent = Main
 addCorner(PrevBtn)
@@ -113,6 +130,8 @@ Input.PlaceholderText = "Cari asset..."
 Input.Text = ""
 Input.TextColor3 = Color3.fromRGB(255, 255, 255)
 Input.Font = Enum.Font.SourceSans
+Input.TextSize = 13
+Input.ClearTextOnFocus = false
 Input.Parent = Main
 addCorner(Input, 4)
 
@@ -128,23 +147,46 @@ local NextBtn = Instance.new("TextButton")
 NextBtn.Size = UDim2.new(0, 25, 0, 25)
 NextBtn.Position = UDim2.new(0, 265, 0, 65)
 NextBtn.Text = ">"
-NextBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+NextBtn.Font = Enum.Font.SourceSansBold
 NextBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+NextBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
 NextBtn.Visible = false
 NextBtn.Parent = Main
 addCorner(NextBtn)
 
 local PageIndicator = Instance.new("TextLabel")
-PageIndicator.Size = UDim2.new(1, 0, 0, 15)
-PageIndicator.Position = UDim2.new(0, 0, 0, 92)
+PageIndicator.Size = UDim2.new(1, -20, 0, 15)
+PageIndicator.Position = UDim2.new(0, 10, 0, 92)
 PageIndicator.Text = "MODE: MODEL"
 PageIndicator.TextColor3 = Color3.fromRGB(0, 170, 255)
 PageIndicator.Font = Enum.Font.SourceSansBold
 PageIndicator.TextSize = 10
+PageIndicator.TextXAlignment = Enum.TextXAlignment.Center
 PageIndicator.BackgroundTransparency = 1
 PageIndicator.Parent = Main
 
--- LIST & GRID
+-- ==========================================
+-- LOGIC: SWITCH MODE
+-- ==========================================
+ModeBtn.MouseButton1Click:Connect(function()
+    if searchMode == "10" then
+        searchMode = "3"
+        PageIndicator.Text = "MODE: AUDIO"
+        PageIndicator.TextColor3 = Color3.fromRGB(255, 170, 0)
+        ModeBtn.BackgroundColor3 = Color3.fromRGB(255, 170, 0)
+        ModeBtn.Image = "rbxassetid://10734951121"
+    else
+        searchMode = "10"
+        PageIndicator.Text = "MODE: MODEL"
+        PageIndicator.TextColor3 = Color3.fromRGB(0, 170, 255)
+        ModeBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+        ModeBtn.Image = "rbxassetid://10734950309"
+    end
+end)
+
+-- ==========================================
+-- LIST PAGE & GRID
+-- ==========================================
 local ListPage = Instance.new("ScrollingFrame")
 ListPage.Size = UDim2.new(1, -10, 1, -120)
 ListPage.Position = UDim2.new(0, 5, 0, 110)
@@ -161,13 +203,17 @@ Grid.Parent = ListPage
 local WelcomeMsg = Instance.new("TextLabel")
 WelcomeMsg.Size = UDim2.new(1, -20, 0, 80)
 WelcomeMsg.Position = UDim2.new(0, 10, 0.2, 0)
-WelcomeMsg.Text = "Ketik keyword, lalu tekan Enter."
+WelcomeMsg.Text = "Ketik keyword, lalu tekan Enter.\nTekan ikon biru/oranye untuk ganti mode."
 WelcomeMsg.Font = Enum.Font.SourceSansItalic
+WelcomeMsg.TextSize = 14
 WelcomeMsg.TextColor3 = Color3.fromRGB(100, 100, 100)
+WelcomeMsg.TextWrapped = true
 WelcomeMsg.BackgroundTransparency = 1
 WelcomeMsg.Parent = ListPage
 
+-- ==========================================
 -- DETAIL PAGE
+-- ==========================================
 local DetailPage = Instance.new("Frame")
 DetailPage.Size = UDim2.new(1, 0, 1, -35)
 DetailPage.Position = UDim2.new(0, 0, 0, 35)
@@ -194,63 +240,70 @@ DetImg.Parent = DetailPage
 addCorner(DetImg)
 
 local DetName = Instance.new("TextLabel")
-DetName.Size = UDim2.new(1, -40, 0, 45)
-DetName.Position = UDim2.new(0, 20, 0, 140)
+DetName.Size = UDim2.new(1, -40, 0, 35)
+DetName.Position = UDim2.new(0, 20, 0, 145)
 DetName.Font = Enum.Font.SourceSansBold
+DetName.TextSize = 15
 DetName.TextColor3 = Color3.fromRGB(255, 255, 255)
 DetName.TextWrapped = true
 DetName.BackgroundTransparency = 1
 DetName.Parent = DetailPage
 
--- DETAIL ACTIONS (NEW)
-local ActionFrame = Instance.new("Frame")
-ActionFrame.Size = UDim2.new(1, 0, 0, 30)
-ActionFrame.Position = UDim2.new(0, 0, 0, 190)
-ActionFrame.BackgroundTransparency = 1
-ActionFrame.Parent = DetailPage
+local DetCreator = Instance.new("TextLabel")
+DetCreator.Size = UDim2.new(0, 160, 0, 20)
+DetCreator.Position = UDim2.new(0, 20, 0, 180)
+DetCreator.TextSize = 12
+DetCreator.TextColor3 = Color3.fromRGB(180, 180, 180)
+DetCreator.TextXAlignment = Enum.TextXAlignment.Left
+DetCreator.BackgroundTransparency = 1
+DetCreator.Parent = DetailPage
 
-local ActionLayout = Instance.new("UIListLayout")
-ActionLayout.FillDirection = Enum.FillDirection.Horizontal
-ActionLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-ActionLayout.Padding = UDim.new(0, 10)
-ActionLayout.Parent = ActionFrame
+local MenuBtn = Instance.new("TextButton")
+MenuBtn.Size = UDim2.new(0, 25, 0, 25)
+MenuBtn.Position = UDim2.new(1, -40, 0, 178)
+MenuBtn.Text = "≡"
+MenuBtn.Font = Enum.Font.SourceSansBold
+MenuBtn.TextSize = 22
+MenuBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
+MenuBtn.BackgroundTransparency = 1
+MenuBtn.Parent = DetailPage
 
-local function createBtn(txt, color)
-    local b = Instance.new("TextButton")
-    b.Size = UDim2.new(0, 80, 0, 25)
-    b.BackgroundColor3 = color
-    b.Text = txt
-    b.TextColor3 = Color3.fromRGB(255, 255, 255)
-    b.Font = Enum.Font.SourceSansBold
-    b.Parent = ActionFrame
-    addCorner(b, 4)
-    return b
-end
-
-local CopyBtn = createBtn("Copy ID", Color3.fromRGB(45, 45, 45))
-local PlayBtn = createBtn("Play", Color3.fromRGB(0, 170, 100))
+local Dropdown = Instance.new("TextButton")
+Dropdown.Size = UDim2.new(0, 80, 0, 25)
+Dropdown.Position = UDim2.new(1, -90, 0, 205)
+Dropdown.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+Dropdown.Text = "Copy ID"
+Dropdown.Font = Enum.Font.SourceSans
+Dropdown.TextSize = 13
+Dropdown.TextColor3 = Color3.fromRGB(255, 255, 255)
+Dropdown.Visible = false
+Dropdown.ZIndex = 10
+Dropdown.Parent = DetailPage
+addCorner(Dropdown, 4)
 
 -- ==========================================
--- LOGIC
+-- API LOGIC
 -- ==========================================
 local function httpRequest(opt)
     local f = (syn and syn.request) or (http and http.request) or http_request or request
     return f(opt)
 end
 
+local function clearList()
+    for _, v in pairs(ListPage:GetChildren()) do if v:IsA("Frame") then v:Destroy() end end
+end
+
 local function showDetail(data)
     currentId = tostring(data.asset.id)
-    PreviewSound:Stop()
-    
     if searchMode == "3" then
         DetImg.Image = "rbxassetid://10734951121"
-        PlayBtn.Visible = true
     else
         DetImg.Image = "rbxthumb://type=Asset&id="..currentId.."&w=420&h=420"
-        PlayBtn.Visible = false
     end
-    
     DetName.Text = data.asset.name
+    DetCreator.Text = "by " .. (data.creator and data.creator.name or "Unknown")
+    
+    Dropdown.Visible = false
     ListPage.Visible = false
     HeaderContainer.Visible = false
     Input.Visible = false
@@ -264,10 +317,8 @@ end
 local function Search(kw, cursor, pageNum)
     if isFetching then return end
     isFetching = true
-    WelcomeMsg.Text = "Searching..."
-    WelcomeMsg.Visible = true
-    
-    for _, v in pairs(ListPage:GetChildren()) do if v:IsA("Frame") then v:Destroy() end end
+    clearList()
+    WelcomeMsg.Visible = false
     
     local url = "https://apis.roblox.com/toolbox-service/v1/marketplace/"..searchMode.."?limit=30&keyword="..HttpService:UrlEncode(kw)
     if cursor and cursor ~= "" then url = url.."&cursor="..cursor end
@@ -288,7 +339,6 @@ local function Search(kw, cursor, pageNum)
         if #ids > 0 then
             local detRes = httpRequest({Url = "https://apis.roblox.com/toolbox-service/v1/items/details?assetIds="..table.concat(ids, ","), Method = "GET"})
             if detRes and detRes.StatusCode == 200 then
-                WelcomeMsg.Visible = false
                 for _, data in pairs(HttpService:JSONDecode(detRes.Body).data) do
                     local Card = Instance.new("Frame")
                     Card.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
@@ -302,16 +352,16 @@ local function Search(kw, cursor, pageNum)
                     Img.BackgroundTransparency = 1
                     Img.Parent = Card
                     
-                    local Ttl = Instance.new("TextLabel")
-                    Ttl.Size = UDim2.new(1, -6, 0, 25)
-                    Ttl.Position = UDim2.new(0, 3, 0, 78)
-                    Ttl.Text = data.asset.name
-                    Ttl.TextColor3 = Color3.fromRGB(255, 255, 255)
-                    Ttl.TextSize = 8
-                    Ttl.Font = Enum.Font.SourceSansBold
-                    Ttl.TextWrapped = true
-                    Ttl.BackgroundTransparency = 1
-                    Ttl.Parent = Card
+                    local Info = Instance.new("TextLabel")
+                    Info.Size = UDim2.new(1, -6, 0, 30)
+                    Info.Position = UDim2.new(0, 3, 0, 78)
+                    Info.Text = data.asset.name.."\nID: "..data.asset.id
+                    Info.TextColor3 = Color3.fromRGB(255, 255, 255)
+                    Info.TextSize = 8
+                    Info.Font = Enum.Font.SourceSansBold
+                    Info.TextWrapped = true
+                    Info.BackgroundTransparency = 1
+                    Info.Parent = Card
                     
                     local btn = Instance.new("TextButton")
                     btn.Size = UDim2.new(1, 0, 1, 0)
@@ -322,45 +372,26 @@ local function Search(kw, cursor, pageNum)
                 end
             end
         else
-            WelcomeMsg.Text = "No results found."
+            WelcomeMsg.Text = "Asset tidak ditemukan."
+            WelcomeMsg.Visible = true
         end
     end
     ListPage.CanvasPosition = Vector2.new(0,0)
-    ListPage.CanvasSize = UDim2.new(0, 0, 0, Grid.AbsoluteContentSize.Y + 10)
+    ListPage.CanvasSize = UDim2.new(0,0,0,Grid.AbsoluteContentSize.Y + 10)
     isFetching = false
 end
 
 -- ==========================================
 -- CONNECTIONS
 -- ==========================================
-ModeBtn.MouseButton1Click:Connect(function()
-    if searchMode == "10" then
-        searchMode = "3"; PageIndicator.Text = "MODE: AUDIO"; PageIndicator.TextColor3 = Color3.fromRGB(255, 170, 0)
-        ModeBtn.BackgroundColor3 = Color3.fromRGB(255, 170, 0); ModeBtn.Image = "rbxassetid://10734951121"
-    else
-        searchMode = "10"; PageIndicator.Text = "MODE: MODEL"; PageIndicator.TextColor3 = Color3.fromRGB(0, 170, 255)
-        ModeBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 255); ModeBtn.Image = "rbxassetid://10734950309"
-    end
+Input.FocusLost:Connect(function(enter)
+    if enter and Input.Text ~= "" then currentKeyword = Input.Text; cursors = {[1]=""}; Search(currentKeyword, "", 1) end
 end)
 
-Input.FocusLost:Connect(function(e) if e and Input.Text ~= "" then currentKeyword = Input.Text; cursors={[1]=""}; Search(currentKeyword, "", 1) end end)
-NextBtn.MouseButton1Click:Connect(function() Search(currentKeyword, cursors[currentPage+1], currentPage+1) end)
-PrevBtn.MouseButton1Click:Connect(function() Search(currentKeyword, cursors[currentPage-1], currentPage-1) end)
-CloseBtn.MouseButton1Click:Connect(function() Main.Visible = false; OpenBtn.Visible = true; PreviewSound:Stop() end)
+NextBtn.MouseButton1Click:Connect(function() if not isFetching and cursors[currentPage+1] ~= "" then Search(currentKeyword, cursors[currentPage+1], currentPage+1) end end)
+PrevBtn.MouseButton1Click:Connect(function() if not isFetching and currentPage > 1 then Search(currentKeyword, cursors[currentPage-1], currentPage-1) end end)
+CloseBtn.MouseButton1Click:Connect(function() Main.Visible = false; OpenBtn.Visible = true end)
 OpenBtn.MouseButton1Click:Connect(function() Main.Visible = true; OpenBtn.Visible = false end)
-BackBtn.MouseButton1Click:Connect(function() DetailPage.Visible = false; HeaderContainer.Visible = true; Input.Visible = true; ModeBtn.Visible = true; ListPage.Visible = true; PageIndicator.Visible = true; PreviewSound:Stop() end)
-
-CopyBtn.MouseButton1Click:Connect(function() setclipboard(currentId); CopyBtn.Text = "Copied!"; task.wait(1); CopyBtn.Text = "Copy ID" end)
-
-PlayBtn.MouseButton1Click:Connect(function()
-    if PlayBtn.Text == "Play" then
-        PreviewSound.SoundId = "rbxassetid://"..currentId
-        PreviewSound:Play()
-        PlayBtn.Text = "Stop"
-        PlayBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
-    else
-        PreviewSound:Stop()
-        PlayBtn.Text = "Play"
-        PlayBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 100)
-    end
-end)
+BackBtn.MouseButton1Click:Connect(function() DetailPage.Visible = false; HeaderContainer.Visible = true; Input.Visible = true; ModeBtn.Visible = true; ListPage.Visible = true; PageIndicator.Visible = true end)
+MenuBtn.MouseButton1Click:Connect(function() Dropdown.Visible = not Dropdown.Visible end)
+Dropdown.MouseButton1Click:Connect(function() setclipboard(currentId); Dropdown.Text = "Copied!"; task.wait(1); Dropdown.Text = "Copy ID"; Dropdown.Visible = false end)
