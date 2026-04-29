@@ -69,7 +69,7 @@ CloseBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
 CloseBtn.BackgroundTransparency = 1
 CloseBtn.Parent = Main
 
--- HEADER & STATS (Total & Page Display)
+-- HEADER & STATS
 local Header = Instance.new("Frame")
 Header.Size = UDim2.new(1, 0, 0, 60)
 Header.BackgroundTransparency = 1
@@ -232,8 +232,7 @@ local function createDropBtn(text, pos, color)
     b.BackgroundColor3 = color or Color3.fromRGB(60, 60, 60)
     b.Text = text
     b.TextColor3 = Color3.fromRGB(255, 255, 255)
-    b.Font = Enum.Font.SourceSansBold
-    b.TextSize = 12
+    b.Font = Enum.Font.SourceSans
     b.Parent = DropFrame
     addCorner(b, 4)
     return b
@@ -260,7 +259,6 @@ local function showDetail(data)
         PlayBtn.Visible = true
         StopBtn.Visible = true
         DropFrame.Size = UDim2.new(0, 100, 0, 90)
-        CopyBtn.Position = UDim2.new(0, 5, 0, 60)
     else
         DetImg.Image = "rbxthumb://type=Asset&id="..currentId.."&w=420&h=420"
         PlayBtn.Visible = false
@@ -285,8 +283,7 @@ local function Search(kw, cursor, pageNum)
     if isFetching then return end
     isFetching = true
     for _, v in pairs(ListPage:GetChildren()) do if v:IsA("Frame") then v:Destroy() end end
-    WelcomeMsg.Text = "Mencari..."
-    WelcomeMsg.Visible = true
+    WelcomeMsg.Visible = false
     
     local url = "https://apis.roblox.com/toolbox-service/v1/marketplace/"..searchMode.."?limit=30&keyword="..HttpService:UrlEncode(kw)
     if cursor and cursor ~= "" then url = url.."&cursor="..cursor end
@@ -298,12 +295,9 @@ local function Search(kw, cursor, pageNum)
         currentPage = pageNum
         cursors[currentPage + 1] = body.nextPageCursor or ""
         
-        -- Update Total Result & Page
-        StatsLabel.Text = "Total: "..(body.totalResults or "0").." | Page: "..currentPage
-        
+        StatsLabel.Text = "Total: "..(body.totalResults or "N/A").." | Page: "..currentPage
         PrevBtn.Visible = (currentPage > 1)
         NextBtn.Visible = (body.nextPageCursor ~= nil and body.nextPageCursor ~= "")
-        WelcomeMsg.Visible = false
         
         local ids = {}
         for _, v in pairs(body.data) do table.insert(ids, tostring(v.id)) end
@@ -320,21 +314,9 @@ local function Search(kw, cursor, pageNum)
                     local Img = Instance.new("ImageLabel")
                     Img.Size = UDim2.new(1, -10, 0, 70)
                     Img.Position = UDim2.new(0, 5, 0, 5)
-                    -- Menampilkan Speaker jika Audio, Thumbnail jika Model
                     Img.Image = (searchMode == "3") and AUDIO_ICON or "rbxthumb://type=Asset&id="..data.asset.id.."&w=150&h=150"
                     Img.BackgroundTransparency = 1
                     Img.Parent = Card
-                    
-                    local Info = Instance.new("TextLabel")
-                    Info.Size = UDim2.new(1, -6, 0, 25)
-                    Info.Position = UDim2.new(0, 3, 0, 78)
-                    Info.Text = data.asset.name
-                    Info.TextColor3 = Color3.fromRGB(255, 255, 255)
-                    Info.TextSize = 8
-                    Info.Font = Enum.Font.SourceSansBold
-                    Info.TextWrapped = true
-                    Info.BackgroundTransparency = 1
-                    Info.Parent = Card
                     
                     local btn = Instance.new("TextButton")
                     btn.Size = UDim2.new(1, 0, 1, 0)
@@ -344,19 +326,13 @@ local function Search(kw, cursor, pageNum)
                     btn.MouseButton1Click:Connect(function() showDetail(data) end)
                 end
             end
-        else
-            WelcomeMsg.Text = "Asset tidak ditemukan."
-            WelcomeMsg.Visible = true
         end
     end
-    ListPage.CanvasPosition = Vector2.new(0,0)
     ListPage.CanvasSize = UDim2.new(0,0,0,Grid.AbsoluteContentSize.Y + 10)
     isFetching = false
 end
 
--- ==========================================
 -- CONNECTIONS
--- ==========================================
 ModeBtn.MouseButton1Click:Connect(function()
     if searchMode == "10" then
         searchMode = "3"; PageIndicator.Text = "MODE: AUDIO"; PageIndicator.TextColor3 = Color3.fromRGB(255, 170, 0); ModeBtn.BackgroundColor3 = Color3.fromRGB(255, 170, 0); ModeBtn.Image = AUDIO_ICON
@@ -366,8 +342,8 @@ ModeBtn.MouseButton1Click:Connect(function()
 end)
 
 Input.FocusLost:Connect(function(e) if e and Input.Text ~= "" then currentKeyword = Input.Text; cursors = {[1]=""}; Search(currentKeyword, "", 1) end end)
-NextBtn.MouseButton1Click:Connect(function() if not isFetching then Search(currentKeyword, cursors[currentPage+1], currentPage+1) end end)
-PrevBtn.MouseButton1Click:Connect(function() if not isFetching then Search(currentKeyword, cursors[currentPage-1], currentPage-1) end end)
+NextBtn.MouseButton1Click:Connect(function() Search(currentKeyword, cursors[currentPage+1], currentPage+1) end)
+PrevBtn.MouseButton1Click:Connect(function() Search(currentKeyword, cursors[currentPage-1], currentPage-1) end)
 CloseBtn.MouseButton1Click:Connect(function() Main.Visible = false; OpenBtn.Visible = true; PreviewSound:Stop() end)
 OpenBtn.MouseButton1Click:Connect(function() Main.Visible = true; OpenBtn.Visible = false end)
 BackBtn.MouseButton1Click:Connect(function() DetailPage.Visible = false; Header.Visible = true; Input.Visible = true; ModeBtn.Visible = true; ListPage.Visible = true; PageIndicator.Visible = true; PreviewSound:Stop() end)
