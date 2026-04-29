@@ -9,7 +9,7 @@ ScreenGui.Parent = CoreGui
 
 -- Main Frame (300x300)
 local Main = Instance.new("Frame")
-Main.Size = UDim2.new(0, 300, 0, 300)
+Main.Size = UDim2.new(0, 200, 0, 200)
 Main.Position = UDim2.new(0.5, -150, 0.5, -150)
 Main.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 Main.BorderSizePixel = 0
@@ -53,10 +53,11 @@ Input.Size = UDim2.new(1, -20, 0, 25)
 Input.Position = UDim2.new(0, 10, 0, 45)
 Input.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 Input.PlaceholderText = "Cari asset..."
-Input.Text = ""
+Input.Text = "" -- Teks akan tetap ada di sini setelah pencarian
 Input.TextColor3 = Color3.fromRGB(255, 255, 255)
 Input.Font = Enum.Font.SourceSans
 Input.TextSize = 13
+Input.ClearTextOnFocus = false -- Mencegah teks terhapus otomatis saat diklik
 Input.Parent = Main
 addCorner(Input, 4)
 
@@ -75,6 +76,18 @@ Grid.CellPadding = UDim2.new(0, 3, 0, 5)
 Grid.HorizontalAlignment = Enum.HorizontalAlignment.Center
 Grid.Parent = ListPage
 
+-- Pesan Instruksi
+local WelcomeMsg = Instance.new("TextLabel")
+WelcomeMsg.Size = UDim2.new(1, -20, 1, 0)
+WelcomeMsg.Position = UDim2.new(0, 10, 0, 0)
+WelcomeMsg.Text = "Masukkan kata kunci dan tekan Enter.\n\nKlik gambar untuk detail & Copy ID."
+WelcomeMsg.Font = Enum.Font.SourceSansItalic
+WelcomeMsg.TextSize = 14
+WelcomeMsg.TextColor3 = Color3.fromRGB(120, 120, 120)
+WelcomeMsg.TextWrapped = true
+WelcomeMsg.BackgroundTransparency = 1
+WelcomeMsg.Parent = ListPage
+
 -- Detail Page
 local DetailPage = Instance.new("Frame")
 DetailPage.Size = UDim2.new(1, 0, 1, -40)
@@ -84,7 +97,6 @@ DetailPage.Visible = false
 DetailPage.Parent = Main
 addCorner(DetailPage, 8)
 
--- Back Button (Panah Sudut Kiri Atas)
 local BackBtn = Instance.new("TextButton")
 BackBtn.Size = UDim2.new(0, 30, 0, 30)
 BackBtn.Position = UDim2.new(0, 5, 0, 5)
@@ -121,7 +133,6 @@ DetCreator.TextXAlignment = Enum.TextXAlignment.Left
 DetCreator.BackgroundTransparency = 1
 DetCreator.Parent = DetailPage
 
--- Menu Titik Tiga & Dropdown
 local MenuBtn = Instance.new("TextButton")
 MenuBtn.Size = UDim2.new(0, 20, 0, 20)
 MenuBtn.Position = UDim2.new(1, -40, 0, 175)
@@ -150,6 +161,12 @@ local currentId = ""
 local function httpRequest(opt)
     local f = (syn and syn.request) or (http and http.request) or http_request or request
     return f(opt)
+end
+
+local function clearList()
+    for _, v in pairs(ListPage:GetChildren()) do
+        if v:IsA("Frame") then v:Destroy() end
+    end
 end
 
 local function showDetail(data)
@@ -186,12 +203,32 @@ Dropdown.MouseButton1Click:Connect(function()
 end)
 
 local function Search(kw)
-    for _, v in pairs(ListPage:GetChildren()) do if v:IsA("Frame") then v:Destroy() end end
-    local res = httpRequest({Url = "https://apis.roblox.com/toolbox-service/v1/marketplace/10?limit=30&keyword="..HttpService:UrlEncode(kw), Method = "GET"})
-    if res and res.StatusCode == 200 then
+    clearList()
+    
+    if kw == "" then
+        WelcomeMsg.Text = "Silahkan masukkan kata kunci di kolom atas untuk mencari asset.\n\nKlik gambar untuk detail & Copy ID."
+        WelcomeMsg.Visible = true
+        ListPage.CanvasSize = UDim2.new(0,0,0,0)
+        return
+    end
+    
+    WelcomeMsg.Visible = false
+    
+    local success, res = pcall(function()
+        return httpRequest({Url = "https://apis.roblox.com/toolbox-service/v1/marketplace/10?limit=30&keyword="..HttpService:UrlEncode(kw), Method = "GET"})
+    end)
+    
+    if success and res and res.StatusCode == 200 then
         local items = HttpService:JSONDecode(res.Body).data
         local ids = {}
         for _, v in pairs(items) do table.insert(ids, tostring(v.id)) end
+        
+        if #ids == 0 then
+            WelcomeMsg.Text = "Asset tidak ditemukan untuk kata kunci '"..kw.."'"
+            WelcomeMsg.Visible = true
+            return
+        end
+        
         local detRes = httpRequest({Url = "https://apis.roblox.com/toolbox-service/v1/items/details?assetIds="..table.concat(ids, ","), Method = "GET"})
         if detRes and detRes.StatusCode == 200 then
             for _, data in pairs(HttpService:JSONDecode(detRes.Body).data) do
@@ -228,13 +265,15 @@ local function Search(kw)
             end
             ListPage.CanvasSize = UDim2.new(0,0,0,Grid.AbsoluteContentSize.Y + 10)
         end
+    else
+        WelcomeMsg.Text = "Terjadi kesalahan saat mengambil data. Silahkan coba lagi."
+        WelcomeMsg.Visible = true
     end
 end
 
-Input.FocusLost:Connect(function(e)
-    if e and Input.Text ~= "" then
-        local k = Input.Text
-        Input.Text = ""
-        Search(k)
+Input.FocusLost:Connect(function(enterPressed)
+    if enterPressed then
+        Search(Input.Text)
+        -- Teks di 'Input.Text' tidak dihapus agar bisa diedit
     end
 end)
