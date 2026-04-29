@@ -10,18 +10,16 @@ local Player = Players.LocalPlayer
 
 local currentTrack = nil
 
--- [[ DATABASE EMOTE ID ]]
+-- [[ DATABASE EMOTE ID (UPDATED) ]]
 local Emotes = {
     {name = "Mosh", id = "rbxassetid://96147994216119"},
-    {name = "KedatKedut", id = "rbxassetid://124487025832160"},
     {name = "GetSturdy", id = "rbxassetid://122884053950359"},
     {name = "RatDance", id = "rbxassetid://96490284184113"},
     {name = "GangnamStyle", id = "rbxassetid://131104967711844"},
     {name = "Popular", id = "rbxassetid://93062298566806"},
     {name = "Baddie Hips", id = "rbxassetid://90802740360125"},
     {name = "Caramelldansen", id = "rbxassetid://73785690856046"},
-    {name = "Aizen Pose", id = "rbxassetid://73878018081160"},
-    {name = "Floating Aura", id = "rbxassetid://133364897841008"}
+    {name = "Aizen Pose", id = "rbxassetid://73878018081160"}
 }
 
 -- [[ UI CONSTRUCTION ]]
