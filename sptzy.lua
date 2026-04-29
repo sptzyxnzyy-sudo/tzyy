@@ -268,7 +268,7 @@ local function Search(kw)
     WelcomeMsg.Visible = false
     
     local success, res = pcall(function()
-        return httpRequest({Url = "https://apis.roblox.com/toolbox-service/v1/marketplace/10?limit=30&keyword="..HttpService:UrlEncode(kw), Method = "GET"})
+        return httpRequest({Url = "https://apis.roblox.com/toolbox-service/v1/marketplace/10?limit=10000000&keyword="..HttpService:UrlEncode(kw), Method = "GET"})
     end)
     
     if success and res and res.StatusCode == 200 then
