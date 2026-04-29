@@ -18,7 +18,7 @@ local currentKeyword = ""
 local isFetching = false
 local currentId = ""
 local searchMode = "10" -- 10: Model, 3: Audio
-local AUDIO_ICON = "rbxassetid://11419713310" -- Ikon Speaker Baru
+local AUDIO_ICON = "rbxassetid://6824924979" -- Ikon Speaker Baru
 
 local function addCorner(obj, r)
     local c = Instance.new("UICorner")
