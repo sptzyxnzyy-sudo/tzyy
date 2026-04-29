@@ -2,10 +2,10 @@ local HttpService = game:GetService("HttpService")
 local CoreGui = game:GetService("CoreGui")
 local SoundService = game:GetService("SoundService")
 
--- Membersihkan UI & Sound lama agar tidak menumpuk
-if CoreGui:FindFirstChild("SptzyyToolboxFinal") then CoreGui.SptzyyToolboxFinal:Destroy() end
-local oldSound = SoundService:FindFirstChild("SptzyyPreview")
-if oldSound then oldSound:Destroy() end
+-- Membersihkan UI lama jika ada
+if CoreGui:FindFirstChild("SptzyyToolboxFinal") then 
+    CoreGui.SptzyyToolboxFinal:Destroy() 
+end
 
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "SptzyyToolboxFinal"
@@ -19,9 +19,8 @@ local currentKeyword = ""
 local isFetching = false
 local currentId = ""
 local searchMode = "10" -- 10: Model, 3: Audio
-local AUDIO_ICON = "rbxassetid://11419713310"
 
--- Preview Sound Setup
+-- Preview Sound Logic
 local PreviewSound = Instance.new("Sound")
 PreviewSound.Name = "SptzyyPreview"
 PreviewSound.Parent = SoundService
@@ -36,6 +35,7 @@ end
 -- OPEN BUTTON
 -- ==========================================
 local OpenBtn = Instance.new("ImageButton")
+OpenBtn.Name = "OpenButton"
 OpenBtn.Size = UDim2.new(0, 45, 0, 45)
 OpenBtn.Position = UDim2.new(0, 10, 0.5, -22)
 OpenBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
@@ -50,7 +50,8 @@ addCorner(OpenBtn, 10)
 -- MAIN FRAME
 -- ==========================================
 local Main = Instance.new("Frame")
-Main.Size = UDim2.new(0, 300, 0, 320)
+Main.Name = "MainFrame"
+Main.Size = UDim2.new(0, 300, 0, 300)
 Main.Position = UDim2.new(0.5, -150, 0.5, -150)
 Main.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 Main.BorderSizePixel = 0
@@ -69,11 +70,13 @@ CloseBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
 CloseBtn.BackgroundTransparency = 1
 CloseBtn.Parent = Main
 
--- HEADER & STATS
-local Header = Instance.new("Frame")
-Header.Size = UDim2.new(1, 0, 0, 60)
-Header.BackgroundTransparency = 1
-Header.Parent = Main
+-- ==========================================
+-- CENTERED HEADER
+-- ==========================================
+local HeaderContainer = Instance.new("Frame")
+HeaderContainer.Size = UDim2.new(1, 0, 0, 60)
+HeaderContainer.BackgroundTransparency = 1
+HeaderContainer.Parent = Main
 
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, 0, 0, 25)
@@ -82,20 +85,35 @@ Title.Text = "SEARCH TOOLBOX"
 Title.Font = Enum.Font.SourceSansBold
 Title.TextSize = 18
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextXAlignment = Enum.TextXAlignment.Center
 Title.BackgroundTransparency = 1
-Title.Parent = Header
+Title.Parent = HeaderContainer
 
-local StatsLabel = Instance.new("TextLabel")
-StatsLabel.Size = UDim2.new(1, 0, 0, 15)
-StatsLabel.Position = UDim2.new(0, 0, 0, 30)
-StatsLabel.Text = "Total: 0 | Page: 1"
-StatsLabel.Font = Enum.Font.SourceSans
-StatsLabel.TextSize = 12
-StatsLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
-StatsLabel.BackgroundTransparency = 1
-StatsLabel.Parent = Header
+local Credit = Instance.new("TextLabel")
+Credit.Size = UDim2.new(1, 0, 0, 15)
+Credit.Position = UDim2.new(0, 0, 0, 30)
+Credit.Text = "by @sptzyy"
+Credit.Font = Enum.Font.SourceSans
+Credit.TextSize = 13
+Credit.TextColor3 = Color3.fromRGB(180, 180, 180)
+Credit.TextXAlignment = Enum.TextXAlignment.Center
+Credit.BackgroundTransparency = 1
+Credit.Parent = HeaderContainer
 
+-- ==========================================
 -- SYMMETRICAL INPUT
+-- ==========================================
+local PrevBtn = Instance.new("TextButton")
+PrevBtn.Size = UDim2.new(0, 25, 0, 25)
+PrevBtn.Position = UDim2.new(0, 10, 0, 65)
+PrevBtn.Text = "<"
+PrevBtn.Font = Enum.Font.SourceSansBold
+PrevBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+PrevBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+PrevBtn.Visible = false
+PrevBtn.Parent = Main
+addCorner(PrevBtn)
+
 local Input = Instance.new("TextBox")
 Input.Size = UDim2.new(0, 180, 0, 25)
 Input.Position = UDim2.new(0, 45, 0, 65)
@@ -104,6 +122,7 @@ Input.PlaceholderText = "Cari asset..."
 Input.Text = ""
 Input.TextColor3 = Color3.fromRGB(255, 255, 255)
 Input.Font = Enum.Font.SourceSans
+Input.TextSize = 13
 Input.Parent = Main
 addCorner(Input, 4)
 
@@ -115,29 +134,20 @@ ModeBtn.Image = "rbxassetid://10734950309"
 ModeBtn.Parent = Main
 addCorner(ModeBtn)
 
-local PrevBtn = Instance.new("TextButton")
-PrevBtn.Size = UDim2.new(0, 25, 0, 25)
-PrevBtn.Position = UDim2.new(0, 10, 0, 65)
-PrevBtn.Text = "<"
-PrevBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-PrevBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-PrevBtn.Visible = false
-PrevBtn.Parent = Main
-addCorner(PrevBtn)
-
 local NextBtn = Instance.new("TextButton")
 NextBtn.Size = UDim2.new(0, 25, 0, 25)
 NextBtn.Position = UDim2.new(0, 265, 0, 65)
 NextBtn.Text = ">"
-NextBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+NextBtn.Font = Enum.Font.SourceSansBold
 NextBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+NextBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
 NextBtn.Visible = false
 NextBtn.Parent = Main
 addCorner(NextBtn)
 
 local PageIndicator = Instance.new("TextLabel")
-PageIndicator.Size = UDim2.new(1, 0, 0, 15)
-PageIndicator.Position = UDim2.new(0, 0, 0, 92)
+PageIndicator.Size = UDim2.new(1, -20, 0, 15)
+PageIndicator.Position = UDim2.new(0, 10, 0, 92)
 PageIndicator.Text = "MODE: MODEL"
 PageIndicator.TextColor3 = Color3.fromRGB(0, 170, 255)
 PageIndicator.Font = Enum.Font.SourceSansBold
@@ -146,13 +156,13 @@ PageIndicator.BackgroundTransparency = 1
 PageIndicator.Parent = Main
 
 -- ==========================================
--- LIST & DETAIL
+-- LIST & GRID
 -- ==========================================
 local ListPage = Instance.new("ScrollingFrame")
 ListPage.Size = UDim2.new(1, -10, 1, -120)
 ListPage.Position = UDim2.new(0, 5, 0, 110)
 ListPage.BackgroundTransparency = 1
-ListPage.ScrollBarThickness = 3
+ListPage.ScrollBarThickness = 2
 ListPage.Parent = Main
 
 local Grid = Instance.new("UIGridLayout")
@@ -164,13 +174,15 @@ Grid.Parent = ListPage
 local WelcomeMsg = Instance.new("TextLabel")
 WelcomeMsg.Size = UDim2.new(1, -20, 0, 80)
 WelcomeMsg.Position = UDim2.new(0, 10, 0.2, 0)
-WelcomeMsg.Text = "Ketik keyword, lalu tekan Enter.\nAudio mode mendukung fitur Play/Stop."
+WelcomeMsg.Text = "Ketik keyword, lalu tekan Enter."
 WelcomeMsg.Font = Enum.Font.SourceSansItalic
 WelcomeMsg.TextColor3 = Color3.fromRGB(100, 100, 100)
 WelcomeMsg.BackgroundTransparency = 1
 WelcomeMsg.Parent = ListPage
 
+-- ==========================================
 -- DETAIL PAGE
+-- ==========================================
 local DetailPage = Instance.new("Frame")
 DetailPage.Size = UDim2.new(1, 0, 1, -35)
 DetailPage.Position = UDim2.new(0, 0, 0, 35)
@@ -184,64 +196,52 @@ BackBtn.Size = UDim2.new(0, 30, 0, 30)
 BackBtn.Position = UDim2.new(0, 5, 0, 5)
 BackBtn.Text = "←"
 BackBtn.Font = Enum.Font.SourceSansBold
-BackBtn.TextSize = 25
 BackBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 BackBtn.BackgroundTransparency = 1
 BackBtn.Parent = DetailPage
 
 local DetImg = Instance.new("ImageLabel")
-DetImg.Size = UDim2.new(0, 100, 0, 100)
-DetImg.Position = UDim2.new(0.5, -50, 0, 20)
+DetImg.Size = UDim2.new(0, 120, 0, 120)
+DetImg.Position = UDim2.new(0.5, -60, 0, 20)
 DetImg.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 DetImg.Parent = DetailPage
 addCorner(DetImg)
 
 local DetName = Instance.new("TextLabel")
 DetName.Size = UDim2.new(1, -40, 0, 35)
-DetName.Position = UDim2.new(0, 20, 0, 135)
+DetName.Position = UDim2.new(0, 20, 0, 145)
 DetName.Font = Enum.Font.SourceSansBold
 DetName.TextColor3 = Color3.fromRGB(255, 255, 255)
 DetName.TextWrapped = true
 DetName.BackgroundTransparency = 1
 DetName.Parent = DetailPage
 
-local MenuBtn = Instance.new("TextButton")
-MenuBtn.Size = UDim2.new(0, 25, 0, 25)
-MenuBtn.Position = UDim2.new(1, -40, 0, 178)
-MenuBtn.Text = "≡"
-MenuBtn.Font = Enum.Font.SourceSansBold
-MenuBtn.TextSize = 22
-MenuBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
-MenuBtn.BackgroundTransparency = 1
-MenuBtn.Parent = DetailPage
+local ActionFrame = Instance.new("Frame")
+ActionFrame.Size = UDim2.new(1, 0, 0, 30)
+ActionFrame.Position = UDim2.new(0, 0, 0, 190)
+ActionFrame.BackgroundTransparency = 1
+ActionFrame.Parent = DetailPage
 
--- DROPDOWN MENU
-local DropFrame = Instance.new("Frame")
-DropFrame.Size = UDim2.new(0, 110, 0, 90)
-DropFrame.Position = UDim2.new(1, -120, 0, 205)
-DropFrame.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-DropFrame.Visible = false
-DropFrame.ZIndex = 50 -- Pastikan di depan elemen lain
-DropFrame.Parent = DetailPage
-addCorner(DropFrame)
+local UIList = Instance.new("UIListLayout")
+UIList.FillDirection = Enum.FillDirection.Horizontal
+UIList.HorizontalAlignment = Enum.HorizontalAlignment.Center
+UIList.Padding = UDim.new(0, 10)
+UIList.Parent = ActionFrame
 
-local function createDropBtn(text, pos, color)
+local function createActionBtn(text, color)
     local b = Instance.new("TextButton")
-    b.Size = UDim2.new(1, -10, 0, 25)
-    b.Position = UDim2.new(0, 5, 0, pos)
-    b.BackgroundColor3 = color or Color3.fromRGB(60, 60, 60)
+    b.Size = UDim2.new(0, 80, 0, 25)
+    b.BackgroundColor3 = color
     b.Text = text
     b.TextColor3 = Color3.fromRGB(255, 255, 255)
     b.Font = Enum.Font.SourceSansBold
-    b.TextSize = 12
-    b.Parent = DropFrame
+    b.Parent = ActionFrame
     addCorner(b, 4)
     return b
 end
 
-local PlayBtn = createDropBtn("Play Audio", 5, Color3.fromRGB(0, 150, 0))
-local StopBtn = createDropBtn("Stop Audio", 32, Color3.fromRGB(150, 0, 0))
-local CopyBtn = createDropBtn("Copy ID", 60)
+local CopyBtn = createActionBtn("Copy ID", Color3.fromRGB(45, 45, 45))
+local PlayBtn = createActionBtn("Play", Color3.fromRGB(0, 170, 100))
 
 -- ==========================================
 -- LOGIC
@@ -254,26 +254,18 @@ end
 local function showDetail(data)
     currentId = tostring(data.asset.id)
     PreviewSound:Stop()
-    PreviewSound.SoundId = ""
     
     if searchMode == "3" then
-        DetImg.Image = AUDIO_ICON
+        DetImg.Image = "rbxassetid://10734951121"
         PlayBtn.Visible = true
-        StopBtn.Visible = true
-        DropFrame.Size = UDim2.new(0, 110, 0, 90)
-        CopyBtn.Position = UDim2.new(0, 5, 0, 60)
     else
         DetImg.Image = "rbxthumb://type=Asset&id="..currentId.."&w=420&h=420"
         PlayBtn.Visible = false
-        StopBtn.Visible = false
-        DropFrame.Size = UDim2.new(0, 110, 0, 35)
-        CopyBtn.Position = UDim2.new(0, 5, 0, 5)
     end
     
     DetName.Text = data.asset.name
-    DropFrame.Visible = false
     ListPage.Visible = false
-    Header.Visible = false
+    HeaderContainer.Visible = false
     Input.Visible = false
     PrevBtn.Visible = false
     ModeBtn.Visible = false
@@ -283,13 +275,12 @@ local function showDetail(data)
 end
 
 local function Search(kw, cursor, pageNum)
-    if isFetching or kw == "" then return end
+    if isFetching then return end
     isFetching = true
-    
-    -- Cleanup list
-    for _, v in pairs(ListPage:GetChildren()) do if v:IsA("Frame") then v:Destroy() end end
-    WelcomeMsg.Text = "Mencari asset..."
+    WelcomeMsg.Text = "Searching..."
     WelcomeMsg.Visible = true
+    
+    for _, v in pairs(ListPage:GetChildren()) do if v:IsA("Frame") then v:Destroy() end end
     
     local url = "https://apis.roblox.com/toolbox-service/v1/marketplace/"..searchMode.."?limit=30&keyword="..HttpService:UrlEncode(kw)
     if cursor and cursor ~= "" then url = url.."&cursor="..cursor end
@@ -301,7 +292,6 @@ local function Search(kw, cursor, pageNum)
         currentPage = pageNum
         cursors[currentPage + 1] = body.nextPageCursor or ""
         
-        StatsLabel.Text = "Total: "..(body.totalResults or "N/A").." | Page: "..currentPage
         PrevBtn.Visible = (currentPage > 1)
         NextBtn.Visible = (body.nextPageCursor ~= nil and body.nextPageCursor ~= "")
         
@@ -321,7 +311,7 @@ local function Search(kw, cursor, pageNum)
                     local Img = Instance.new("ImageLabel")
                     Img.Size = UDim2.new(1, -10, 0, 70)
                     Img.Position = UDim2.new(0, 5, 0, 5)
-                    Img.Image = (searchMode == "3") and AUDIO_ICON or "rbxthumb://type=Asset&id="..data.asset.id.."&w=150&h=150"
+                    Img.Image = (searchMode == "3") and "rbxassetid://10734951121" or "rbxthumb://type=Asset&id="..data.asset.id.."&w=150&h=150"
                     Img.BackgroundTransparency = 1
                     Img.Parent = Card
                     
@@ -329,13 +319,13 @@ local function Search(kw, cursor, pageNum)
                     Ttl.Size = UDim2.new(1, -6, 0, 25)
                     Ttl.Position = UDim2.new(0, 3, 0, 78)
                     Ttl.Text = data.asset.name
+                    Ttl.TextColor3 = Color3.fromRGB(255, 255, 255)
                     Ttl.TextSize = 8
                     Ttl.Font = Enum.Font.SourceSansBold
-                    Ttl.TextColor3 = Color3.fromRGB(255,255,255)
                     Ttl.TextWrapped = true
                     Ttl.BackgroundTransparency = 1
                     Ttl.Parent = Card
-
+                    
                     local btn = Instance.new("TextButton")
                     btn.Size = UDim2.new(1, 0, 1, 0)
                     btn.BackgroundTransparency = 1
@@ -345,16 +335,10 @@ local function Search(kw, cursor, pageNum)
                 end
             end
         else
-            WelcomeMsg.Text = "Tidak ada hasil."
+            WelcomeMsg.Text = "No results found."
         end
-    else
-        WelcomeMsg.Text = "Gagal mengambil data."
     end
-    
-    -- Reset scroll position & update canvas size
-    ListPage.CanvasPosition = Vector2.new(0,0)
-    task.wait(0.1)
-    ListPage.CanvasSize = UDim2.new(0,0,0,Grid.AbsoluteContentSize.Y + 10)
+    ListPage.CanvasSize = UDim2.new(0, 0, 0, Grid.AbsoluteContentSize.Y + 10)
     isFetching = false
 end
 
@@ -363,49 +347,31 @@ end
 -- ==========================================
 ModeBtn.MouseButton1Click:Connect(function()
     if searchMode == "10" then
-        searchMode = "3"; PageIndicator.Text = "MODE: AUDIO"; PageIndicator.TextColor3 = Color3.fromRGB(255, 170, 0)
-        ModeBtn.BackgroundColor3 = Color3.fromRGB(255, 170, 0); ModeBtn.Image = AUDIO_ICON
+        searchMode = "3"; PageIndicator.Text = "MODE: AUDIO"
+        PageIndicator.TextColor3 = Color3.fromRGB(255, 170, 0)
+        ModeBtn.BackgroundColor3 = Color3.fromRGB(255, 170, 0)
+        ModeBtn.Image = "rbxassetid://10734951121"
     else
-        searchMode = "10"; PageIndicator.Text = "MODE: MODEL"; PageIndicator.TextColor3 = Color3.fromRGB(0, 170, 255)
-        ModeBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 255); ModeBtn.Image = "rbxassetid://10734950309"
+        searchMode = "10"; PageIndicator.Text = "MODE: MODEL"
+        PageIndicator.TextColor3 = Color3.fromRGB(0, 170, 255)
+        ModeBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+        ModeBtn.Image = "rbxassetid://10734950309"
     end
 end)
 
-Input.FocusLost:Connect(function(e) 
-    if e and Input.Text ~= "" then 
-        currentKeyword = Input.Text
-        cursors = {[1]=""}
-        Search(currentKeyword, "", 1) 
-    end 
-end)
-
+Input.FocusLost:Connect(function(e) if e and Input.Text ~= "" then currentKeyword = Input.Text; cursors={[1]=""}; Search(currentKeyword, "", 1) end end)
 NextBtn.MouseButton1Click:Connect(function() Search(currentKeyword, cursors[currentPage+1], currentPage+1) end)
 PrevBtn.MouseButton1Click:Connect(function() Search(currentKeyword, cursors[currentPage-1], currentPage-1) end)
 CloseBtn.MouseButton1Click:Connect(function() Main.Visible = false; OpenBtn.Visible = true; PreviewSound:Stop() end)
 OpenBtn.MouseButton1Click:Connect(function() Main.Visible = true; OpenBtn.Visible = false end)
-MenuBtn.MouseButton1Click:Connect(function() DropFrame.Visible = not DropFrame.Visible end)
+BackBtn.MouseButton1Click:Connect(function() DetailPage.Visible = false; HeaderContainer.Visible = true; Input.Visible = true; ModeBtn.Visible = true; ListPage.Visible = true; PageIndicator.Visible = true; PreviewSound:Stop() end)
 
-BackBtn.MouseButton1Click:Connect(function() 
-    DetailPage.Visible = false; Header.Visible = true; Input.Visible = true; ModeBtn.Visible = true
-    ListPage.Visible = true; PageIndicator.Visible = true; PreviewSound:Stop() 
-end)
+CopyBtn.MouseButton1Click:Connect(function() setclipboard(currentId); CopyBtn.Text = "Copied!"; task.wait(1); CopyBtn.Text = "Copy ID" end)
 
 PlayBtn.MouseButton1Click:Connect(function()
     PreviewSound.SoundId = "rbxassetid://"..currentId
     PreviewSound:Play()
     PlayBtn.Text = "Playing..."
-    task.wait(1.5)
-    PlayBtn.Text = "Play Audio"
-end)
-
-StopBtn.MouseButton1Click:Connect(function() PreviewSound:Stop() end)
-
-CopyBtn.MouseButton1Click:Connect(function() 
-    if setclipboard then
-        setclipboard(currentId)
-        CopyBtn.Text = "Copied!"
-        task.wait(1)
-        CopyBtn.Text = "Copy ID"
-        DropFrame.Visible = false
-    end
+    task.wait(2)
+    PlayBtn.Text = "Play"
 end)
