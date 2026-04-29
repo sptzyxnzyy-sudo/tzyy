@@ -64,23 +64,52 @@ CloseBtn.BackgroundTransparency = 1
 CloseBtn.Parent = Main
 
 -- ==========================================
--- HEADER & SYMMETRICAL INPUT
+-- CENTERED HEADER SECTION
 -- ==========================================
+local HeaderContainer = Instance.new("Frame")
+HeaderContainer.Size = UDim2.new(1, 0, 0, 60)
+HeaderContainer.BackgroundTransparency = 1
+HeaderContainer.Parent = Main
+
 local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1, -60, 0, 25)
-Title.Position = UDim2.new(0, 10, 0, 5)
+Title.Size = UDim2.new(1, 0, 0, 25)
+Title.Position = UDim2.new(0, 0, 0, 10)
 Title.Text = "SEARCH TOOLBOX"
 Title.Font = Enum.Font.SourceSansBold
-Title.TextSize = 16
+Title.TextSize = 18
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.TextXAlignment = Enum.TextXAlignment.Center
 Title.BackgroundTransparency = 1
-Title.Parent = Main
+Title.Parent = HeaderContainer
 
--- Panah Kiri
+local Credit = Instance.new("TextLabel")
+Credit.Size = UDim2.new(1, 0, 0, 15)
+Credit.Position = UDim2.new(0, 0, 0, 30)
+Credit.Text = "by @sptzyy"
+Credit.Font = Enum.Font.SourceSans
+Credit.TextSize = 13
+Credit.TextColor3 = Color3.fromRGB(180, 180, 180)
+Credit.TextXAlignment = Enum.TextXAlignment.Center
+Credit.BackgroundTransparency = 1
+Credit.Parent = HeaderContainer
+
+local Version = Instance.new("TextLabel")
+Version.Size = UDim2.new(1, 0, 0, 10)
+Version.Position = UDim2.new(0, 0, 0, 45)
+Version.Text = "version 1.0"
+Version.Font = Enum.Font.SourceSans
+Version.TextSize = 10
+Version.TextColor3 = Color3.fromRGB(100, 100, 100)
+Version.TextXAlignment = Enum.TextXAlignment.Center
+Version.BackgroundTransparency = 1
+Version.Parent = HeaderContainer
+
+-- ==========================================
+-- SYMMETRICAL SEARCH BAR (<- INPUT ->)
+-- ==========================================
 local PrevBtn = Instance.new("TextButton")
 PrevBtn.Size = UDim2.new(0, 25, 0, 25)
-PrevBtn.Position = UDim2.new(0, 10, 0, 35)
+PrevBtn.Position = UDim2.new(0, 10, 0, 65)
 PrevBtn.Text = "<"
 PrevBtn.Font = Enum.Font.SourceSansBold
 PrevBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -89,10 +118,9 @@ PrevBtn.Visible = false
 PrevBtn.Parent = Main
 addCorner(PrevBtn)
 
--- Input Box (Tengah)
 local Input = Instance.new("TextBox")
 Input.Size = UDim2.new(0, 210, 0, 25)
-Input.Position = UDim2.new(0, 45, 0, 35)
+Input.Position = UDim2.new(0, 45, 0, 65)
 Input.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 Input.PlaceholderText = "Cari asset..."
 Input.Text = ""
@@ -103,10 +131,9 @@ Input.ClearTextOnFocus = false
 Input.Parent = Main
 addCorner(Input, 4)
 
--- Panah Kanan
 local NextBtn = Instance.new("TextButton")
 NextBtn.Size = UDim2.new(0, 25, 0, 25)
-NextBtn.Position = UDim2.new(0, 265, 0, 35)
+NextBtn.Position = UDim2.new(0, 265, 0, 65)
 NextBtn.Text = ">"
 NextBtn.Font = Enum.Font.SourceSansBold
 NextBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -117,7 +144,7 @@ addCorner(NextBtn)
 
 local PageIndicator = Instance.new("TextLabel")
 PageIndicator.Size = UDim2.new(1, -20, 0, 15)
-PageIndicator.Position = UDim2.new(0, 10, 0, 62)
+PageIndicator.Position = UDim2.new(0, 10, 0, 92)
 PageIndicator.Text = ""
 PageIndicator.TextColor3 = Color3.fromRGB(150, 150, 150)
 PageIndicator.Font = Enum.Font.SourceSans
@@ -127,11 +154,11 @@ PageIndicator.BackgroundTransparency = 1
 PageIndicator.Parent = Main
 
 -- ==========================================
--- LIST PAGE (GRID 3 KOLOM)
+-- LIST PAGE
 -- ==========================================
 local ListPage = Instance.new("ScrollingFrame")
-ListPage.Size = UDim2.new(1, -10, 1, -95)
-ListPage.Position = UDim2.new(0, 5, 0, 80)
+ListPage.Size = UDim2.new(1, -10, 1, -120)
+ListPage.Position = UDim2.new(0, 5, 0, 110)
 ListPage.BackgroundTransparency = 1
 ListPage.ScrollBarThickness = 2
 ListPage.Parent = Main
@@ -144,7 +171,7 @@ Grid.Parent = ListPage
 
 local WelcomeMsg = Instance.new("TextLabel")
 WelcomeMsg.Size = UDim2.new(1, -20, 0, 80)
-WelcomeMsg.Position = UDim2.new(0, 10, 0.3, 0)
+WelcomeMsg.Position = UDim2.new(0, 10, 0.2, 0)
 WelcomeMsg.Text = "Masukkan kata kunci di atas.\n\nGunakan panah untuk pindah halaman."
 WelcomeMsg.Font = Enum.Font.SourceSansItalic
 WelcomeMsg.TextSize = 14
@@ -224,7 +251,7 @@ Dropdown.Parent = DetailPage
 addCorner(Dropdown, 4)
 
 -- ==========================================
--- CORE LOGIC
+-- LOGIC
 -- ==========================================
 local function httpRequest(opt)
     local f = (syn and syn.request) or (http and http.request) or http_request or request
@@ -245,7 +272,7 @@ local function showDetail(data)
     
     Dropdown.Visible = false
     ListPage.Visible = false
-    Title.Visible = false
+    HeaderContainer.Visible = false
     Input.Visible = false
     PrevBtn.Visible = false
     NextBtn.Visible = false
@@ -269,7 +296,6 @@ local function Search(kw, cursor, pageNum)
         currentPage = pageNum
         cursors[currentPage + 1] = body.nextPageCursor or ""
         
-        -- Update Navigasi
         PrevBtn.Visible = (currentPage > 1)
         NextBtn.Visible = (body.nextPageCursor ~= nil and body.nextPageCursor ~= "")
         PageIndicator.Text = "PAGE: "..currentPage.."  |  RESULTS: "..(body.totalResults or "0")
@@ -351,7 +377,7 @@ OpenBtn.MouseButton1Click:Connect(function() Main.Visible = true OpenBtn.Visible
 
 BackBtn.MouseButton1Click:Connect(function()
     DetailPage.Visible = false
-    Title.Visible = true
+    HeaderContainer.Visible = true
     Input.Visible = true
     PrevBtn.Visible = (currentPage > 1)
     NextBtn.Visible = (cursors[currentPage+1] ~= "")
