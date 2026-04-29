@@ -11,7 +11,7 @@ ScreenGui.Name = "SptzyyToolboxFinal"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = CoreGui
 
--- State Management (Logika Halaman)
+-- State Management (Logika Halaman & Data)
 local cursors = { [1] = "" } 
 local currentPage = 1
 local currentKeyword = ""
@@ -53,6 +53,7 @@ Main.Draggable = true
 Main.Parent = ScreenGui
 addCorner(Main, 8)
 
+-- Tombol Close (X)
 local CloseBtn = Instance.new("TextButton")
 CloseBtn.Size = UDim2.new(0, 25, 0, 25)
 CloseBtn.Position = UDim2.new(1, -30, 0, 5)
@@ -64,7 +65,7 @@ CloseBtn.BackgroundTransparency = 1
 CloseBtn.Parent = Main
 
 -- ==========================================
--- CENTERED HEADER SECTION
+-- CENTERED HEADER (JUDUL BERTINGKAT)
 -- ==========================================
 local HeaderContainer = Instance.new("Frame")
 HeaderContainer.Size = UDim2.new(1, 0, 0, 60)
@@ -105,8 +106,9 @@ Version.BackgroundTransparency = 1
 Version.Parent = HeaderContainer
 
 -- ==========================================
--- SYMMETRICAL SEARCH BAR (<- INPUT ->)
+-- SYMMETRICAL INPUT (<- INPUT ->)
 -- ==========================================
+-- Tombol Prev (Kiri)
 local PrevBtn = Instance.new("TextButton")
 PrevBtn.Size = UDim2.new(0, 25, 0, 25)
 PrevBtn.Position = UDim2.new(0, 10, 0, 65)
@@ -118,6 +120,7 @@ PrevBtn.Visible = false
 PrevBtn.Parent = Main
 addCorner(PrevBtn)
 
+-- Input Box (Tengah)
 local Input = Instance.new("TextBox")
 Input.Size = UDim2.new(0, 210, 0, 25)
 Input.Position = UDim2.new(0, 45, 0, 65)
@@ -131,6 +134,7 @@ Input.ClearTextOnFocus = false
 Input.Parent = Main
 addCorner(Input, 4)
 
+-- Tombol Next (Kanan)
 local NextBtn = Instance.new("TextButton")
 NextBtn.Size = UDim2.new(0, 25, 0, 25)
 NextBtn.Position = UDim2.new(0, 265, 0, 65)
@@ -154,7 +158,7 @@ PageIndicator.BackgroundTransparency = 1
 PageIndicator.Parent = Main
 
 -- ==========================================
--- LIST PAGE
+-- LIST PAGE & GRID
 -- ==========================================
 local ListPage = Instance.new("ScrollingFrame")
 ListPage.Size = UDim2.new(1, -10, 1, -120)
@@ -172,7 +176,7 @@ Grid.Parent = ListPage
 local WelcomeMsg = Instance.new("TextLabel")
 WelcomeMsg.Size = UDim2.new(1, -20, 0, 80)
 WelcomeMsg.Position = UDim2.new(0, 10, 0.2, 0)
-WelcomeMsg.Text = "Masukkan kata kunci di atas.\n\nGunakan panah untuk pindah halaman."
+WelcomeMsg.Text = "Masukkan kata kunci di atas.\n\nGunakan panah untuk navigasi halaman."
 WelcomeMsg.Font = Enum.Font.SourceSansItalic
 WelcomeMsg.TextSize = 14
 WelcomeMsg.TextColor3 = Color3.fromRGB(100, 100, 100)
@@ -251,7 +255,7 @@ Dropdown.Parent = DetailPage
 addCorner(Dropdown, 4)
 
 -- ==========================================
--- LOGIC
+-- API & SEARCH LOGIC
 -- ==========================================
 local function httpRequest(opt)
     local f = (syn and syn.request) or (http and http.request) or http_request or request
@@ -350,12 +354,12 @@ local function Search(kw, cursor, pageNum)
 end
 
 -- ==========================================
--- CONNECTIONS
+-- BUTTON & INPUT CONNECTIONS
 -- ==========================================
 Input.FocusLost:Connect(function(enter)
     if enter and Input.Text ~= "" then
         currentKeyword = Input.Text
-        cursors = { [1] = "" }
+        cursors = { [1] = "" } -- Reset navigasi saat cari baru
         Search(currentKeyword, "", 1)
     end
 end)
@@ -386,7 +390,6 @@ BackBtn.MouseButton1Click:Connect(function()
 end)
 
 MenuBtn.MouseButton1Click:Connect(function() Dropdown.Visible = not Dropdown.Visible end)
-
 Dropdown.MouseButton1Click:Connect(function()
     setclipboard(currentId)
     Dropdown.Text = "Copied!"
