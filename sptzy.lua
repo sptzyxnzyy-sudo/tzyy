@@ -1,226 +1,164 @@
 local HttpService = game:GetService("HttpService")
 local CoreGui = game:GetService("CoreGui")
-local UserInputService = game:GetService("UserInputService")
 
--- Bersihkan instance lama jika ada
-if CoreGui:FindFirstChild("RobloxToolboxCustom") then
-    CoreGui.RobloxToolboxCustom:Destroy()
-end
+if CoreGui:FindFirstChild("MiniToolbox") then CoreGui.MiniToolbox:Destroy() end
 
--- ==========================================
--- MAIN UI SETUP (STRUKTUR KOTAK ALAT)
--- ==========================================
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "RobloxToolboxCustom"
+ScreenGui.Name = "MiniToolbox"
 ScreenGui.Parent = CoreGui
 
-local MainFrame = Instance.new("Frame")
-MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 300, 0, 480) -- Ukuran vertikal seperti Toolbox
-MainFrame.Position = UDim2.new(0.5, -150, 0.5, -240)
-MainFrame.BackgroundColor3 = Color3.fromRGB(45, 45, 45) -- Warna gelap Studio
-MainFrame.BorderSizePixel = 0
-MainFrame.Active = true
-MainFrame.Draggable = true
-MainFrame.Parent = ScreenGui
+-- Main Frame (300x300)
+local Main = Instance.new("Frame")
+Main.Size = UDim2.new(0, 300, 0, 300)
+Main.Position = UDim2.new(0.5, -150, 0.5, -150)
+Main.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+Main.BorderSizePixel = 0
+Main.Active = true
+Main.Draggable = true
+Main.Parent = ScreenGui
 
--- Corner pembulatan sedikit (khas Modern Studio)
-local MainCorner = Instance.new("UICorner")
-MainCorner.CornerRadius = UDim.new(0, 4)
-MainCorner.Parent = MainFrame
-
--- ==========================================
--- TOP BAR (KATEGORI TAB)
--- ==========================================
-local TabBar = Instance.new("Frame")
-TabBar.Size = UDim2.new(1, 0, 0, 35)
-TabBar.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-TabBar.BorderSizePixel = 0
-TabBar.Parent = MainFrame
-
-local TabList = Instance.new("UIListLayout")
-TabList.FillDirection = Enum.FillDirection.Horizontal
-TabList.SortOrder = Enum.SortOrder.LayoutOrder
-TabList.Parent = TabBar
-
-local currentCategory = 10 -- Default: Models
-
-local function CreateTab(name, id)
-    local Tab = Instance.new("TextButton")
-    Tab.Size = UDim2.new(0.25, 0, 1, 0)
-    Tab.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-    Tab.BorderSizePixel = 0
-    Tab.Text = name
-    Tab.TextColor3 = (currentCategory == id) and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(150, 150, 150)
-    Tab.Font = Enum.Font.SourceSansBold
-    Tab.TextSize = 13
-    Tab.Parent = TabBar
-    
-    Tab.MouseButton1Click:Connect(function()
-        currentCategory = id
-        for _, v in pairs(TabBar:GetChildren()) do
-            if v:IsA("TextButton") then v.TextColor3 = Color3.fromRGB(150, 150, 150) end
-        end
-        Tab.TextColor3 = Color3.fromRGB(255, 255, 255)
-    end)
+local function addCorner(obj, r)
+    local c = Instance.new("UICorner")
+    c.CornerRadius = UDim.new(0, r or 4)
+    c.Parent = obj
 end
+addCorner(Main, 6)
 
-CreateTab("Models", 10)
-CreateTab("Images", 11)
-CreateTab("Audio", 13)
-CreateTab("Meshes", 40)
+-- Search Input (Tetap di Atas)
+local Input = Instance.new("TextBox")
+Input.Size = UDim2.new(1, -20, 0, 30)
+Input.Position = UDim2.new(0, 10, 0, 10)
+Input.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+Input.PlaceholderText = "Cari asset..."
+Input.Text = ""
+Input.TextColor3 = Color3.fromRGB(255, 255, 255)
+Input.Font = Enum.Font.SourceSans
+Input.TextSize = 14
+Input.Parent = Main
+addCorner(Input)
 
--- ==========================================
--- SEARCH BAR (INPUT)
--- ==========================================
-local SearchFrame = Instance.new("Frame")
-SearchFrame.Size = UDim2.new(1, -20, 0, 30)
-SearchFrame.Position = UDim2.new(0, 10, 0, 45)
-SearchFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-SearchFrame.BorderSizePixel = 1
-SearchFrame.BorderColor3 = Color3.fromRGB(60, 60, 60)
-SearchFrame.Parent = MainFrame
-
-local InputBox = Instance.new("TextBox")
-InputBox.Size = UDim2.new(1, -35, 1, 0)
-InputBox.Position = UDim2.new(0, 5, 0, 0)
-InputBox.BackgroundTransparency = 1
-InputBox.PlaceholderText = "Search..."
-InputBox.Text = ""
-InputBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-InputBox.TextXAlignment = Enum.TextXAlignment.Left
-InputBox.ClearTextOnFocus = false
-InputBox.Parent = SearchFrame
-
-local SearchIcon = Instance.new("TextButton")
-SearchIcon.Size = UDim2.new(0, 30, 1, 0)
-SearchIcon.Position = UDim2.new(1, -30, 0, 0)
-SearchIcon.BackgroundTransparency = 1
-SearchIcon.Text = "🔍"
-SearchIcon.TextColor3 = Color3.fromRGB(200, 200, 200)
-SearchIcon.Parent = SearchFrame
-
--- ==========================================
--- SCROLLING CONTENT
--- ==========================================
-local ScrollFrame = Instance.new("ScrollingFrame")
-ScrollFrame.Size = UDim2.new(1, -10, 1, -90)
-ScrollFrame.Position = UDim2.new(0, 5, 0, 85)
-ScrollFrame.BackgroundTransparency = 1
-ScrollFrame.ScrollBarThickness = 4
-ScrollFrame.ScrollBarImageColor3 = Color3.fromRGB(80, 80, 80)
-ScrollFrame.Parent = MainFrame
+-- Container Pages
+local ListPage = Instance.new("ScrollingFrame")
+ListPage.Size = UDim2.new(1, -10, 1, -55)
+ListPage.Position = UDim2.new(0, 5, 0, 50)
+ListPage.BackgroundTransparency = 1
+ListPage.ScrollBarThickness = 3
+ListPage.Parent = Main
 
 local Grid = Instance.new("UIGridLayout")
-Grid.CellSize = UDim2.new(0, 135, 0, 160)
-Grid.CellPadding = UDim2.new(0, 10, 0, 10)
+Grid.CellSize = UDim2.new(0, 90, 0, 90) -- Fit 3 kolom di 300px
+Grid.CellPadding = UDim2.new(0, 4, 0, 4)
 Grid.HorizontalAlignment = Enum.HorizontalAlignment.Center
-Grid.Parent = ScrollFrame
+Grid.Parent = ListPage
 
--- ==========================================
--- LOGIC & DATA FETCHING
--- ==========================================
-local function httpRequest(options)
-    local req = (syn and syn.request) or (http and http.request) or http_request or request
-    return req(options)
+local DetailPage = Instance.new("Frame")
+DetailPage.Size = ListPage.Size
+DetailPage.Position = ListPage.Position
+DetailPage.BackgroundColor3 = Main.BackgroundColor3
+DetailPage.Visible = false
+DetailPage.Parent = Main
+
+-- Detail Components
+local DetImg = Instance.new("ImageLabel")
+DetImg.Size = UDim2.new(0, 100, 0, 100)
+DetImg.Position = UDim2.new(0.5, -50, 0, 10)
+DetImg.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+DetImg.Parent = DetailPage
+addCorner(DetImg)
+
+local DetName = Instance.new("TextLabel")
+DetName.Size = UDim2.new(1, -20, 0, 40)
+DetName.Position = UDim2.new(0, 10, 0, 115)
+DetName.TextSize = 14
+DetName.TextColor3 = Color3.fromRGB(255, 255, 255)
+DetName.TextWrapped = true
+DetName.BackgroundTransparency = 1
+DetName.Parent = DetailPage
+
+local CopyBtn = Instance.new("TextButton")
+CopyBtn.Size = UDim2.new(0.8, 0, 0, 30)
+CopyBtn.Position = UDim2.new(0.1, 0, 0, 160)
+CopyBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+CopyBtn.Text = "COPY ID"
+CopyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+CopyBtn.Parent = DetailPage
+addCorner(CopyBtn)
+
+local BackBtn = Instance.new("TextButton")
+BackBtn.Size = UDim2.new(0.8, 0, 0, 25)
+BackBtn.Position = UDim2.new(0.1, 0, 0, 195)
+BackBtn.Text = "BACK"
+BackBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
+BackBtn.BackgroundTransparency = 1
+BackBtn.Parent = DetailPage
+
+-- Logic
+local currentId = ""
+local function httpRequest(opt)
+    local f = (syn and syn.request) or (http and http.request) or http_request or request
+    return f(opt)
 end
 
-local function CreateAssetCard(id, name, creator)
-    local Card = Instance.new("Frame")
-    Card.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
-    Card.BorderSizePixel = 0
-    Card.Parent = ScrollFrame
-    
-    local Corner = Instance.new("UICorner")
-    Corner.CornerRadius = UDim.new(0, 4)
-    Corner.Parent = Card
-
-    local Image = Instance.new("ImageLabel")
-    Image.Size = UDim2.new(1, -10, 0, 100)
-    Image.Position = UDim2.new(0, 5, 0, 5)
-    Image.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-    Image.Image = "rbxthumb://type=Asset&id=" .. id .. "&w=150&h=150"
-    Image.BorderSizePixel = 0
-    Image.Parent = Card
-
-    local NameLabel = Instance.new("TextLabel")
-    NameLabel.Size = UDim2.new(1, -10, 0, 30)
-    NameLabel.Position = UDim2.new(0, 5, 0, 105)
-    NameLabel.BackgroundTransparency = 1
-    NameLabel.Text = name
-    NameLabel.TextColor3 = Color3.fromRGB(230, 230, 230)
-    NameLabel.TextSize = 12
-    NameLabel.TextWrapped = true
-    NameLabel.Font = Enum.Font.SourceSans
-    NameLabel.TextXAlignment = Enum.TextXAlignment.Left
-    NameLabel.Parent = Card
-
-    local CreatorLabel = Instance.new("TextLabel")
-    CreatorLabel.Size = UDim2.new(1, -10, 0, 15)
-    CreatorLabel.Position = UDim2.new(0, 5, 0, 135)
-    CreatorLabel.BackgroundTransparency = 1
-    CreatorLabel.Text = "by " .. creator
-    CreatorLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
-    CreatorLabel.TextSize = 10
-    CreatorLabel.TextXAlignment = Enum.TextXAlignment.Left
-    CreatorLabel.Parent = Card
-
-    local CopyBtn = Instance.new("TextButton")
-    CopyBtn.Size = UDim2.new(1, 0, 1, 0)
-    CopyBtn.BackgroundTransparency = 1
-    CopyBtn.Text = ""
-    CopyBtn.Parent = Card
-    
-    CopyBtn.MouseButton1Click:Connect(function()
-        setclipboard(tostring(id))
-        local oldColor = Card.BackgroundColor3
-        Card.BackgroundColor3 = Color3.fromRGB(0, 255, 100)
-        task.wait(0.2)
-        Card.BackgroundColor3 = oldColor
-    end)
+local function showDetail(data)
+    currentId = tostring(data.asset.id)
+    DetImg.Image = "rbxthumb://type=Asset&id="..currentId.."&w=150&h=150"
+    DetName.Text = data.asset.name
+    ListPage.Visible = false
+    DetailPage.Visible = true
 end
 
-local function Search(keyword)
-    -- Bersihkan hasil lama
-    for _, v in pairs(ScrollFrame:GetChildren()) do
-        if v:IsA("Frame") then v:Destroy() end
-    end
-    
-    local url = "https://apis.roblox.com/toolbox-service/v1/marketplace/" .. currentCategory .. "?limit=30&keyword=" .. HttpService:UrlEncode(keyword)
-    
-    local success, response = pcall(function()
-        return httpRequest({Url = url, Method = "GET"})
-    end)
-    
-    if success and response.StatusCode == 200 then
-        local data = HttpService:JSONDecode(response.Body).data
+BackBtn.MouseButton1Click:Connect(function()
+    DetailPage.Visible = false
+    ListPage.Visible = true
+end)
+
+CopyBtn.MouseButton1Click:Connect(function()
+    setclipboard(currentId)
+    CopyBtn.Text = "COPIED!"
+    task.wait(0.5)
+    CopyBtn.Text = "COPY ID"
+end)
+
+local function Search(kw)
+    for _, v in pairs(ListPage:GetChildren()) do if v:IsA("Frame") then v:Destroy() end end
+    local res = httpRequest({Url = "https://apis.roblox.com/toolbox-service/v1/marketplace/10?limit=30&keyword="..HttpService:UrlEncode(kw), Method = "GET"})
+    if res and res.StatusCode == 200 then
+        local items = HttpService:JSONDecode(res.Body).data
         local ids = {}
-        for _, item in pairs(data) do table.insert(ids, tostring(item.id)) end
-        
-        local detailUrl = "https://apis.roblox.com/toolbox-service/v1/items/details?assetIds=" .. table.concat(ids, ",")
-        local detailRes = httpRequest({Url = detailUrl, Method = "GET"})
-        
-        if detailRes and detailRes.StatusCode == 200 then
-            local details = HttpService:JSONDecode(detailRes.Body).data
-            for _, item in pairs(details) do
-                CreateAssetCard(item.asset.id, item.asset.name, item.creator.name)
+        for _, v in pairs(items) do table.insert(ids, tostring(v.id)) end
+        local detRes = httpRequest({Url = "https://apis.roblox.com/toolbox-service/v1/items/details?assetIds="..table.concat(ids, ","), Method = "GET"})
+        if detRes and detRes.StatusCode == 200 then
+            for _, data in pairs(HttpService:JSONDecode(detRes.Body).data) do
+                local Card = Instance.new("Frame")
+                Card.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+                Card.Parent = ListPage
+                addCorner(Card)
+                
+                local Img = Instance.new("ImageLabel")
+                Img.Size = UDim2.new(1, -6, 1, -6)
+                Img.Position = UDim2.new(0, 3, 0, 3)
+                Img.Image = "rbxthumb://type=Asset&id="..data.asset.id.."&w=150&h=150"
+                Img.BackgroundTransparency = 1
+                Img.Parent = Card
+                
+                local btn = Instance.new("TextButton")
+                btn.Size = UDim2.new(1, 0, 1, 0)
+                btn.BackgroundTransparency = 1
+                btn.Text = ""
+                btn.Parent = Card
+                btn.MouseButton1Click:Connect(function() showDetail(data) end)
             end
-            ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, Grid.AbsoluteContentSize.Y + 20)
+            ListPage.CanvasSize = UDim2.new(0,0,0,Grid.AbsoluteContentSize.Y)
         end
     end
 end
 
--- Events
-SearchIcon.MouseButton1Click:Connect(function()
-    if InputBox.Text ~= "" then
-        Search(InputBox.Text)
-        InputBox.Text = "" -- Bersihkan input setelah klik cari
-    end
-end)
-
-InputBox.FocusLost:Connect(function(enter)
-    if enter and InputBox.Text ~= "" then
-        Search(InputBox.Text)
-        InputBox.Text = "" -- Bersihkan input setelah tekan enter
+Input.FocusLost:Connect(function(e)
+    if e and Input.Text ~= "" then
+        local k = Input.Text
+        Input.Text = ""
+        DetailPage.Visible = false
+        ListPage.Visible = true
+        Search(k)
     end
 end)
