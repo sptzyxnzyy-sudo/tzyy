@@ -18,6 +18,7 @@ local currentKeyword = ""
 local isFetching = false
 local currentId = ""
 local searchMode = "10" -- 10: Model, 3: Audio
+local AUDIO_ICON = "rbxassetid://11419713310" -- Ikon Speaker Baru
 
 local function addCorner(obj, r)
     local c = Instance.new("UICorner")
@@ -26,7 +27,7 @@ local function addCorner(obj, r)
 end
 
 -- ==========================================
--- OPEN BUTTON
+-- OPEN BUTTON (Icon Store)
 -- ==========================================
 local OpenBtn = Instance.new("ImageButton")
 OpenBtn.Name = "OpenButton"
@@ -41,7 +42,7 @@ OpenBtn.Parent = ScreenGui
 addCorner(OpenBtn, 10)
 
 -- ==========================================
--- MAIN FRAME
+-- MAIN FRAME (300x300)
 -- ==========================================
 local Main = Instance.new("Frame")
 Main.Name = "MainFrame"
@@ -65,7 +66,7 @@ CloseBtn.BackgroundTransparency = 1
 CloseBtn.Parent = Main
 
 -- ==========================================
--- HEADER
+-- CENTERED HEADER
 -- ==========================================
 local HeaderContainer = Instance.new("Frame")
 HeaderContainer.Size = UDim2.new(1, 0, 0, 60)
@@ -97,7 +98,7 @@ Credit.Parent = HeaderContainer
 local Version = Instance.new("TextLabel")
 Version.Size = UDim2.new(1, 0, 0, 10)
 Version.Position = UDim2.new(0, 0, 0, 45)
-Version.Text = "version 1.3 (Fixed Audio)"
+Version.Text = "version 1.4 (Speaker Icon)"
 Version.Font = Enum.Font.SourceSans
 Version.TextSize = 10
 Version.TextColor3 = Color3.fromRGB(100, 100, 100)
@@ -106,7 +107,7 @@ Version.BackgroundTransparency = 1
 Version.Parent = HeaderContainer
 
 -- ==========================================
--- INPUT & NAVIGATION
+-- SYMMETRICAL INPUT (<- INPUT [MODE] ->)
 -- ==========================================
 local PrevBtn = Instance.new("TextButton")
 PrevBtn.Size = UDim2.new(0, 25, 0, 25)
@@ -163,7 +164,7 @@ PageIndicator.BackgroundTransparency = 1
 PageIndicator.Parent = Main
 
 -- ==========================================
--- SWITCH MODE
+-- LOGIC: SWITCH MODE
 -- ==========================================
 ModeBtn.MouseButton1Click:Connect(function()
     if searchMode == "10" then
@@ -171,18 +172,18 @@ ModeBtn.MouseButton1Click:Connect(function()
         PageIndicator.Text = "MODE: AUDIO"
         PageIndicator.TextColor3 = Color3.fromRGB(255, 170, 0)
         ModeBtn.BackgroundColor3 = Color3.fromRGB(255, 170, 0)
-        ModeBtn.Image = "rbxassetid://10734951121" -- Ikon Musik
+        ModeBtn.Image = AUDIO_ICON
     else
         searchMode = "10"
         PageIndicator.Text = "MODE: MODEL"
         PageIndicator.TextColor3 = Color3.fromRGB(0, 170, 255)
         ModeBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
-        ModeBtn.Image = "rbxassetid://10734950309" -- Ikon Box
+        ModeBtn.Image = "rbxassetid://10734950309"
     end
 end)
 
 -- ==========================================
--- LIST & DETAIL
+-- LIST PAGE & GRID
 -- ==========================================
 local ListPage = Instance.new("ScrollingFrame")
 ListPage.Size = UDim2.new(1, -10, 1, -120)
@@ -200,7 +201,7 @@ Grid.Parent = ListPage
 local WelcomeMsg = Instance.new("TextLabel")
 WelcomeMsg.Size = UDim2.new(1, -20, 0, 80)
 WelcomeMsg.Position = UDim2.new(0, 10, 0.2, 0)
-WelcomeMsg.Text = "Ketik keyword, lalu tekan Enter.\nMode Audio akan menggunakan ikon Musik."
+WelcomeMsg.Text = "Cari aset pilihanmu di sini.\nIkon speaker akan muncul untuk mode Audio."
 WelcomeMsg.Font = Enum.Font.SourceSansItalic
 WelcomeMsg.TextSize = 14
 WelcomeMsg.TextColor3 = Color3.fromRGB(100, 100, 100)
@@ -208,6 +209,9 @@ WelcomeMsg.TextWrapped = true
 WelcomeMsg.BackgroundTransparency = 1
 WelcomeMsg.Parent = ListPage
 
+-- ==========================================
+-- DETAIL PAGE
+-- ==========================================
 local DetailPage = Instance.new("Frame")
 DetailPage.Size = UDim2.new(1, 0, 1, -35)
 DetailPage.Position = UDim2.new(0, 0, 0, 35)
@@ -227,8 +231,8 @@ BackBtn.BackgroundTransparency = 1
 BackBtn.Parent = DetailPage
 
 local DetImg = Instance.new("ImageLabel")
-DetImg.Size = UDim2.new(0, 120, 0, 120)
-DetImg.Position = UDim2.new(0.5, -60, 0, 20)
+DetImg.Size = UDim2.new(0, 100, 0, 100)
+DetImg.Position = UDim2.new(0.5, -50, 0, 20)
 DetImg.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 DetImg.Parent = DetailPage
 addCorner(DetImg)
@@ -276,7 +280,7 @@ Dropdown.Parent = DetailPage
 addCorner(Dropdown, 4)
 
 -- ==========================================
--- LOGIC API
+-- API LOGIC
 -- ==========================================
 local function httpRequest(opt)
     local f = (syn and syn.request) or (http and http.request) or http_request or request
@@ -289,14 +293,11 @@ end
 
 local function showDetail(data)
     currentId = tostring(data.asset.id)
-    
-    -- FIX: Cek searchMode untuk gambar detail
-    if tostring(searchMode) == "3" then
-        DetImg.Image = "rbxassetid://10734951121"
+    if searchMode == "3" then
+        DetImg.Image = AUDIO_ICON
     else
         DetImg.Image = "rbxthumb://type=Asset&id="..currentId.."&w=420&h=420"
     end
-    
     DetName.Text = data.asset.name
     DetCreator.Text = "by " .. (data.creator and data.creator.name or "Unknown")
     
@@ -345,14 +346,8 @@ local function Search(kw, cursor, pageNum)
                     local Img = Instance.new("ImageLabel")
                     Img.Size = UDim2.new(1, -10, 0, 70)
                     Img.Position = UDim2.new(0, 5, 0, 5)
-                    
-                    -- FIX: Cek searchMode untuk gambar di list
-                    if tostring(searchMode) == "3" then
-                        Img.Image = "rbxassetid://10734951121"
-                    else
-                        Img.Image = "rbxthumb://type=Asset&id="..data.asset.id.."&w=150&h=150"
-                    end
-                    
+                    -- Logika Ganti Gambar Speaker
+                    Img.Image = (searchMode == "3") and AUDIO_ICON or "rbxthumb://type=Asset&id="..data.asset.id.."&w=150&h=150"
                     Img.BackgroundTransparency = 1
                     Img.Parent = Card
                     
