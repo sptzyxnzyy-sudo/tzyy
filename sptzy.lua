@@ -1,155 +1,179 @@
---[[
-    sptzyy developer sl - Emote Executor Pro
-    Logic: Animation ID System
-    Theme: Monochrome Dark
-]]
+-- Global Config & Services
+local HttpService = game:GetService("HttpService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
 
-local UIS = game:GetService("UserInputService")
-local Players = game:GetService("Players")
-local Player = Players.LocalPlayer
+-- Fungsi Helper: Request (Support berbagai executor)
+local function httpRequest(options)
+    local fn = syn and syn.request or http_request or request or HTTPrequest
+    if fn then
+        return fn(options)
+    else
+        warn("Executor tidak mendukung HTTP Request!")
+        return nil
+    end
+end
 
-local currentTrack = nil
-
--- [[ DATABASE EMOTE ID (UPDATED) ]]
-local Emotes = {
-    {name = "Mosh", id = "rbxassetid://96147994216119"},
-    {name = "Hey Ya Pindah", id = "rbxassetid://104338766814874"},
-    {name = "Tarian Bintang", id = "rbxassetid://123658509210480"},
-    {name = "Vibe Brasil", id = "rbxassetid://112528616743393"},
-    {name = "Pose Aura Mengambang", id = "rbxassetid://88318250668110"},
-    {name = "tarian hype", id = "rbxassetid://70594864096417"},
-    {name = "GetSturdy", id = "rbxassetid://122884053950359"},
-    {name = "RatDance", id = "rbxassetid://96490284184113"},
-    {name = "GangnamStyle", id = "rbxassetid://131104967711844"},
-    {name = "Popular", id = "rbxassetid://93062298566806"},
-    {name = "Baddie Hips", id = "rbxassetid://90802740360125"},
-    {name = "Caramelldansen", id = "rbxassetid://73785690856046"},
-    {name = "Aizen Pose", id = "rbxassetid://73878018081160"}
-}
-
--- [[ UI CONSTRUCTION ]]
+-- UI Setup
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "Sptzyy_Executor_Fixed"
-ScreenGui.Parent = Player:WaitForChild("PlayerGui")
-ScreenGui.ResetOnSpawn = false
+ScreenGui.Name = "RobloxMarketplaceExplorer"
+ScreenGui.Parent = game:GetService("CoreGui")
 
--- Floating Icon (Draggable)
-local IconButton = Instance.new("TextButton")
-IconButton.Size = UDim2.new(0, 50, 0, 50)
-IconButton.Position = UDim2.new(0, 10, 0.5, -25)
-IconButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-IconButton.Text = "🎬"
-IconButton.TextSize = 24
-IconButton.Parent = ScreenGui
-Instance.new("UICorner", IconButton).CornerRadius = UDim.new(1, 0)
-local IconStroke = Instance.new("UIStroke", IconButton)
-IconStroke.Color = Color3.fromRGB(255, 255, 255)
-IconStroke.Thickness = 1.5
-
--- Main Menu Frame
+-- Main Frame (Persegi Empat Kecil)
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 170, 0, 240)
-MainFrame.Position = UDim2.new(0, 70, 0.5, -120)
-MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-MainFrame.Visible = false
+MainFrame.Size = UDim2.new(0, 350, 0, 450)
+MainFrame.Position = UDim2.new(0.5, -175, 0.5, -225)
+MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true -- Support Geser
 MainFrame.Parent = ScreenGui
-Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
-local MainStroke = Instance.new("UIStroke", MainFrame)
-MainStroke.Color = Color3.fromRGB(60, 60, 60)
 
--- Scrolling Area
-local Scroll = Instance.new("ScrollingFrame")
-Scroll.Size = UDim2.new(1, -16, 1, -60)
-Scroll.Position = UDim2.new(0, 8, 0, 10)
-Scroll.BackgroundTransparency = 1
-Scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
-Scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
-Scroll.ScrollBarThickness = 2
-Scroll.ScrollBarImageColor3 = Color3.fromRGB(255, 255, 255)
-Scroll.Parent = MainFrame
-local Layout = Instance.new("UIListLayout", Scroll)
-Layout.Padding = UDim.new(0, 5)
+-- Corner UI
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 8)
+UICorner.Parent = MainFrame
 
--- [[ DRAGGABLE LOGIC ]]
-local dragging, dragStart, startPos
-IconButton.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = true
-        dragStart = input.Position
-        startPos = IconButton.Position
-    end
-end)
-IconButton.InputChanged:Connect(function(input)
-    if dragging and (input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement) then
-        local delta = input.Position - dragStart
-        IconButton.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-    end
-end)
-UIS.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = false
-    end
-end)
+-- Title
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.BackgroundTransparency = 1
+Title.Text = "Marketplace Explorer"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.Font = Enum.Font.SourceSansBold
+Title.TextSize = 18
+Title.Parent = MainFrame
 
--- [[ CORE EMOTE LOGIC ]]
-local function StopEmote()
-    if currentTrack then
-        currentTrack:Stop()
-        currentTrack = nil
-    end
-end
+-- Scrolling Frame (Hasil Pencarian)
+local ScrollFrame = Instance.new("ScrollingFrame")
+ScrollFrame.Size = UDim2.new(0.9, 0, 0.7, 0)
+ScrollFrame.Position = UDim2.new(0.05, 0, 0.1, 0)
+ScrollFrame.BackgroundTransparency = 1
+ScrollFrame.ScrollBarThickness = 4
+ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+ScrollFrame.Parent = MainFrame
 
-local function PlayEmote(id)
-    StopEmote()
-    local char = Player.Character
-    local hum = char and char:FindFirstChildOfClass("Humanoid")
+local UIListLayout = Instance.new("UIListLayout")
+UIListLayout.Parent = ScrollFrame
+UIListLayout.Padding = UDim.new(0, 5)
+
+-- Input Area (Di bawah)
+local InputBox = Instance.new("TextBox")
+InputBox.Size = UDim2.new(0.7, 0, 0, 35)
+InputBox.Position = UDim2.new(0.05, 0, 0.85, 0)
+InputBox.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+InputBox.PlaceholderText = "Cari keyword (warung, kursi...)"
+InputBox.Text = ""
+InputBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+InputBox.Parent = MainFrame
+
+local SearchBtn = Instance.new("TextButton")
+SearchBtn.Size = UDim2.new(0.2, 0, 0, 35)
+SearchBtn.Position = UDim2.new(0.76, 0, 0.85, 0)
+SearchBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+SearchBtn.Text = "Cari"
+SearchBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+SearchBtn.Parent = MainFrame
+
+-- Function: Create Item Card
+local function createItemCard(id, name, creator)
+    local Card = Instance.new("Frame")
+    Card.Size = UDim2.new(1, -10, 0, 70)
+    Card.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
     
-    if hum then
-        local anim = Instance.new("Animation")
-        anim.AnimationId = id
-        
-        local success, track = pcall(function() return hum:LoadAnimation(anim) end)
-        if success then
-            track.Looped = true
-            track:Play()
-            currentTrack = track
-        end
-    end
-end
-
--- Generate Buttons from Database
-for _, emote in ipairs(Emotes) do
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, 0, 0, 32)
-    btn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    btn.Text = "  " .. emote.name
-    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    btn.Font = Enum.Font.Gotham
-    btn.TextSize = 11
-    btn.TextXAlignment = Enum.TextXAlignment.Left
-    btn.Parent = Scroll
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
+    local Icon = Instance.new("ImageLabel")
+    Icon.Size = UDim2.new(0, 60, 0, 60)
+    Icon.Position = UDim2.new(0, 5, 0.5, -30)
+    -- Thumbnail URL Generator
+    Icon.Image = "rbxthumb://type=Asset&id=" .. id .. "&w=150&h=150"
+    Icon.Parent = Card
     
-    btn.MouseButton1Click:Connect(function()
-        PlayEmote(emote.id)
+    local NameLabel = Instance.new("TextLabel")
+    NameLabel.Size = UDim2.new(0.6, 0, 0.5, 0)
+    NameLabel.Position = UDim2.new(0, 75, 0.1, 0)
+    NameLabel.Text = name
+    NameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    NameLabel.TextXAlignment = Enum.TextXAlignment.Left
+    NameLabel.BackgroundTransparency = 1
+    NameLabel.Parent = Card
+
+    local CreatorLabel = Instance.new("TextLabel")
+    CreatorLabel.Size = UDim2.new(0.6, 0, 0.3, 0)
+    CreatorLabel.Position = UDim2.new(0, 75, 0.6, 0)
+    CreatorLabel.Text = "By: " .. creator
+    CreatorLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
+    CreatorLabel.TextXAlignment = Enum.TextXAlignment.Left
+    CreatorLabel.BackgroundTransparency = 1
+    CreatorLabel.Parent = Card
+
+    local CopyBtn = Instance.new("TextButton")
+    CopyBtn.Size = UDim2.new(0, 50, 0, 30)
+    CopyBtn.Position = UDim2.new(1, -55, 0.5, -15)
+    CopyBtn.Text = "Copy ID"
+    CopyBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    CopyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    CopyBtn.Parent = Card
+    
+    CopyBtn.MouseButton1Click:Connect(function()
+        setclipboard(tostring(id))
+        CopyBtn.Text = "Done!"
+        task.wait(1)
+        CopyBtn.Text = "Copy ID"
     end)
+
+    Card.Parent = ScrollFrame
+    ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, UIListLayout.AbsoluteContentSize.Y)
 end
 
--- Stop Button (Highlight Putih)
-local StopBtn = Instance.new("TextButton")
-StopBtn.Size = UDim2.new(1, -16, 0, 35)
-StopBtn.Position = UDim2.new(0, 8, 1, -45)
-StopBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-StopBtn.Text = "STOP EMOTE"
-StopBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
-StopBtn.Font = Enum.Font.GothamBold
-StopBtn.TextSize = 12
-StopBtn.Parent = MainFrame
-Instance.new("UICorner", StopBtn).CornerRadius = UDim.new(0, 6)
+-- Logic: Fetch Data
+local function fetchData(keyword)
+    -- Bersihkan hasil lama
+    for _, child in pairs(ScrollFrame:GetChildren()) do
+        if child:IsA("Frame") then child:Destroy() end
+    end
+    
+    local baseUrl = "https://apis.roblox.com/toolbox-service/v1/marketplace/10"
+    local searchUrl = baseUrl .. "?limit=30&keyword=" .. HttpService:UrlEncode(keyword) .. "&includeOnlyVerifiedCreators=true"
+    
+    local response = httpRequest({
+        Url = searchUrl,
+        Method = "GET"
+    })
+    
+    if response and response.StatusCode == 200 then
+        local data = HttpService:JSONDecode(response.Body).data
+        local ids = {}
+        for _, item in pairs(data) do
+            table.insert(ids, tostring(item.id))
+        end
+        
+        -- Get Detail
+        local detailUrl = "https://apis.roblox.com/toolbox-service/v1/items/details?assetIds=" .. table.concat(ids, ",")
+        local detailRes = httpRequest({Url = detailUrl, Method = "GET"})
+        
+        if detailRes and detailRes.StatusCode == 200 then
+            local details = HttpService:JSONDecode(detailRes.Body).data
+            for _, item in pairs(details) do
+                createItemCard(item.asset.id, item.asset.name, item.creator.name)
+            end
+        end
+    else
+        print("Gagal mengambil data.")
+    end
+end
 
-StopBtn.MouseButton1Click:Connect(StopEmote)
+-- Event Search
+SearchBtn.MouseButton1Click:Connect(function()
+    local kw = InputBox.Text
+    if kw ~= "" then
+        fetchData(kw)
+        InputBox.Text = "" -- Bersihkan input setelah klik
+    end
+end)
 
--- Toggle Menu
-IconButton.MouseButton1Click:Connect(function()
-    MainFrame.Visible = not MainFrame.Visible
+-- Support 'Enter' key untuk search
+InputBox.FocusLost:Connect(function(enterPressed)
+    if enterPressed then
+        SearchBtn.MouseButton1Click:Fire()
+    end
 end)
