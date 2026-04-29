@@ -44,7 +44,7 @@ addCorner(OpenBtn, 10)
 -- ==========================================
 local Main = Instance.new("Frame")
 Main.Name = "MainFrame"
-Main.Size = UDim2.new(0, 200, 0, 200)
+Main.Size = UDim2.new(0, 100, 0, 100)
 Main.Position = UDim2.new(0.5, -150, 0.5, -150)
 Main.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 Main.BorderSizePixel = 0
