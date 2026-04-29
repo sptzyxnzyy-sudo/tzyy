@@ -1,6 +1,3 @@
-SC DELTA TOBLOX AUDIO DAN MODEL V2
-
-
 local HttpService = game:GetService("HttpService")
 local CoreGui = game:GetService("CoreGui")
 
