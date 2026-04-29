@@ -11,13 +11,13 @@ ScreenGui.Name = "SptzyyToolboxFinal"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = CoreGui
 
--- State Management (Logika Halaman & Data)
+-- State Management
 local cursors = { [1] = "" } 
 local currentPage = 1
 local currentKeyword = ""
 local isFetching = false
 local currentId = ""
-local searchMode = "10" -- Default: 10 (Model). Audio adalah 3.
+local searchMode = "10" -- 10: Model, 3: Audio
 
 local function addCorner(obj, r)
     local c = Instance.new("UICorner")
@@ -45,7 +45,7 @@ addCorner(OpenBtn, 10)
 -- ==========================================
 local Main = Instance.new("Frame")
 Main.Name = "MainFrame"
-Main.Size = UDim2.new(0, 300, 0, 300) -- Ukuran tetap 300x300 sesuai struktur asli
+Main.Size = UDim2.new(0, 300, 0, 300)
 Main.Position = UDim2.new(0.5, -150, 0.5, -150)
 Main.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 Main.BorderSizePixel = 0
@@ -54,7 +54,6 @@ Main.Draggable = true
 Main.Parent = ScreenGui
 addCorner(Main, 8)
 
--- Tombol Close (X)
 local CloseBtn = Instance.new("TextButton")
 CloseBtn.Size = UDim2.new(0, 25, 0, 25)
 CloseBtn.Position = UDim2.new(1, -30, 0, 5)
@@ -133,12 +132,11 @@ Input.ClearTextOnFocus = false
 Input.Parent = Main
 addCorner(Input, 4)
 
--- Fitur Baru: Tombol Ganti Mode (Model/Audio)
 local ModeBtn = Instance.new("ImageButton")
 ModeBtn.Size = UDim2.new(0, 25, 0, 25)
 ModeBtn.Position = UDim2.new(0, 230, 0, 65)
-ModeBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 255) -- Warna Model
-ModeBtn.Image = "rbxassetid://10734950309" -- Icon Model
+ModeBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+ModeBtn.Image = "rbxassetid://10734950309"
 ModeBtn.Parent = Main
 addCorner(ModeBtn)
 
@@ -173,13 +171,13 @@ ModeBtn.MouseButton1Click:Connect(function()
         PageIndicator.Text = "MODE: AUDIO"
         PageIndicator.TextColor3 = Color3.fromRGB(255, 170, 0)
         ModeBtn.BackgroundColor3 = Color3.fromRGB(255, 170, 0)
-        ModeBtn.Image = "rbxassetid://10734951121" -- Icon Musik
+        ModeBtn.Image = "rbxassetid://10734951121"
     else
         searchMode = "10"
         PageIndicator.Text = "MODE: MODEL"
         PageIndicator.TextColor3 = Color3.fromRGB(0, 170, 255)
         ModeBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
-        ModeBtn.Image = "rbxassetid://10734950309" -- Icon Model
+        ModeBtn.Image = "rbxassetid://10734950309"
     end
 end)
 
@@ -202,7 +200,7 @@ Grid.Parent = ListPage
 local WelcomeMsg = Instance.new("TextLabel")
 WelcomeMsg.Size = UDim2.new(1, -20, 0, 80)
 WelcomeMsg.Position = UDim2.new(0, 10, 0.2, 0)
-WelcomeMsg.Text = "Pilih mode (Model/Audio), ketik kata kunci, lalu tekan Enter."
+WelcomeMsg.Text = "Ketik keyword, lalu tekan Enter.\nTekan ikon biru/oranye untuk ganti mode."
 WelcomeMsg.Font = Enum.Font.SourceSansItalic
 WelcomeMsg.TextSize = 14
 WelcomeMsg.TextColor3 = Color3.fromRGB(100, 100, 100)
@@ -281,7 +279,7 @@ Dropdown.Parent = DetailPage
 addCorner(Dropdown, 4)
 
 -- ==========================================
--- API & SEARCH LOGIC
+-- API LOGIC
 -- ==========================================
 local function httpRequest(opt)
     local f = (syn and syn.request) or (http and http.request) or http_request or request
@@ -289,21 +287,16 @@ local function httpRequest(opt)
 end
 
 local function clearList()
-    for _, v in pairs(ListPage:GetChildren()) do
-        if v:IsA("Frame") then v:Destroy() end
-    end
+    for _, v in pairs(ListPage:GetChildren()) do if v:IsA("Frame") then v:Destroy() end end
 end
 
 local function showDetail(data)
     currentId = tostring(data.asset.id)
-    
-    -- Gambar adaptif: Jika audio tampilkan ikon musik, jika model tampilkan thumbnail asset
     if searchMode == "3" then
         DetImg.Image = "rbxassetid://10734951121"
     else
         DetImg.Image = "rbxthumb://type=Asset&id="..currentId.."&w=420&h=420"
     end
-    
     DetName.Text = data.asset.name
     DetCreator.Text = "by " .. (data.creator and data.creator.name or "Unknown")
     
@@ -312,7 +305,7 @@ local function showDetail(data)
     HeaderContainer.Visible = false
     Input.Visible = false
     PrevBtn.Visible = false
-    ModeBtn.Visible = false -- Sembunyikan saat detail
+    ModeBtn.Visible = false
     NextBtn.Visible = false
     PageIndicator.Visible = false
     DetailPage.Visible = true
@@ -337,19 +330,10 @@ local function Search(kw, cursor, pageNum)
         PrevBtn.Visible = (currentPage > 1)
         NextBtn.Visible = (body.nextPageCursor ~= nil and body.nextPageCursor ~= "")
         
-        -- Indikator Mode di samping halaman
-        local labelMode = (searchMode == "10") and "MODELS" or "AUDIO"
-        PageIndicator.Text = "MODE: "..labelMode.." | PAGE: "..currentPage
-        PageIndicator.Visible = true
-
         local ids = {}
         for _, v in pairs(body.data) do table.insert(ids, tostring(v.id)) end
         
-        if #ids == 0 then
-            WelcomeMsg.Text = "Asset tidak ditemukan."
-            WelcomeMsg.Visible = true
-        else
-            -- Mengambil metadata detail asset
+        if #ids > 0 then
             local detRes = httpRequest({Url = "https://apis.roblox.com/toolbox-service/v1/items/details?assetIds="..table.concat(ids, ","), Method = "GET"})
             if detRes and detRes.StatusCode == 200 then
                 for _, data in pairs(HttpService:JSONDecode(detRes.Body).data) do
@@ -361,14 +345,7 @@ local function Search(kw, cursor, pageNum)
                     local Img = Instance.new("ImageLabel")
                     Img.Size = UDim2.new(1, -10, 0, 70)
                     Img.Position = UDim2.new(0, 5, 0, 5)
-                    
-                    -- Gambar adaptif di list
-                    if searchMode == "3" then
-                        Img.Image = "rbxassetid://10734951121" -- Ikon Musik
-                    else
-                        Img.Image = "rbxthumb://type=Asset&id="..data.asset.id.."&w=150&h=150"
-                    end
-                    
+                    Img.Image = (searchMode == "3") and "rbxassetid://10734951121" or "rbxthumb://type=Asset&id="..data.asset.id.."&w=150&h=150"
                     Img.BackgroundTransparency = 1
                     Img.Parent = Card
                     
@@ -391,6 +368,9 @@ local function Search(kw, cursor, pageNum)
                     btn.MouseButton1Click:Connect(function() showDetail(data) end)
                 end
             end
+        else
+            WelcomeMsg.Text = "Asset tidak ditemukan."
+            WelcomeMsg.Visible = true
         end
     end
     ListPage.CanvasPosition = Vector2.new(0,0)
@@ -399,47 +379,16 @@ local function Search(kw, cursor, pageNum)
 end
 
 -- ==========================================
--- BUTTON & INPUT CONNECTIONS
+-- CONNECTIONS
 -- ==========================================
 Input.FocusLost:Connect(function(enter)
-    if enter and Input.Text ~= "" then
-        currentKeyword = Input.Text
-        cursors = { [1] = "" }
-        Search(currentKeyword, "", 1)
-    end
+    if enter and Input.Text ~= "" then currentKeyword = Input.Text; cursors = {[1]=""}; Search(currentKeyword, "", 1) end
 end)
 
-NextBtn.MouseButton1Click:Connect(function()
-    if not isFetching and cursors[currentPage + 1] ~= "" then
-        Search(currentKeyword, cursors[currentPage + 1], currentPage + 1)
-    end
-end)
-
-PrevBtn.MouseButton1Click:Connect(function()
-    if not isFetching and currentPage > 1 then
-        Search(currentKeyword, cursors[currentPage - 1], currentPage - 1)
-    end
-end)
-
-CloseBtn.MouseButton1Click:Connect(function() Main.Visible = false OpenBtn.Visible = true end)
-OpenBtn.MouseButton1Click:Connect(function() Main.Visible = true OpenBtn.Visible = false end)
-
-BackBtn.MouseButton1Click:Connect(function()
-    DetailPage.Visible = false
-    HeaderContainer.Visible = true
-    Input.Visible = true
-    ModeBtn.Visible = true -- Tampilkan kembali
-    PrevBtn.Visible = (currentPage > 1)
-    NextBtn.Visible = (cursors[currentPage+1] ~= "")
-    PageIndicator.Visible = true
-    ListPage.Visible = true
-end)
-
+NextBtn.MouseButton1Click:Connect(function() if not isFetching and cursors[currentPage+1] ~= "" then Search(currentKeyword, cursors[currentPage+1], currentPage+1) end end)
+PrevBtn.MouseButton1Click:Connect(function() if not isFetching and currentPage > 1 then Search(currentKeyword, cursors[currentPage-1], currentPage-1) end end)
+CloseBtn.MouseButton1Click:Connect(function() Main.Visible = false; OpenBtn.Visible = true end)
+OpenBtn.MouseButton1Click:Connect(function() Main.Visible = true; OpenBtn.Visible = false end)
+BackBtn.MouseButton1Click:Connect(function() DetailPage.Visible = false; HeaderContainer.Visible = true; Input.Visible = true; ModeBtn.Visible = true; ListPage.Visible = true; PageIndicator.Visible = true end)
 MenuBtn.MouseButton1Click:Connect(function() Dropdown.Visible = not Dropdown.Visible end)
-Dropdown.MouseButton1Click:Connect(function()
-    setclipboard(currentId)
-    Dropdown.Text = "Copied!"
-    task.wait(1)
-    Dropdown.Text = "Copy ID"
-    Dropdown.Visible = false
-end)
+Dropdown.MouseButton1Click:Connect(function() setclipboard(currentId); Dropdown.Text = "Copied!"; task.wait(1); Dropdown.Text = "Copy ID"; Dropdown.Visible = false end)
