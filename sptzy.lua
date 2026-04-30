@@ -7,7 +7,7 @@ local LocalPlayer = Players.LocalPlayer
 -- LOGIKA VERIFIKASI (BARU)
 -- ==========================================
 local isVerified = false
-local adminWhatsApp = "6281234567890" -- GANTI DENGAN NOMOR ANDA
+local adminWhatsApp = "6288742661145" -- GANTI DENGAN NOMOR ANDA
 
 local function checkUserVerification()
     local success, result = pcall(function()
