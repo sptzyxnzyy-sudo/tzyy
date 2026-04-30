@@ -36,7 +36,6 @@ Main.ClipsDescendants = true
 Main.Parent = ScreenGui
 addCorner(Main, 8)
 
--- Shadow/Border Glow sederhana
 local UIStroke = Instance.new("UIStroke")
 UIStroke.Color = Color3.fromRGB(0, 170, 255)
 UIStroke.Thickness = 1.5
@@ -49,7 +48,7 @@ local LoadingIcon = Instance.new("ImageLabel")
 LoadingIcon.Size = UDim2.new(0, 35, 0, 35)
 LoadingIcon.Position = UDim2.new(0.5, -17, 0.5, -17)
 LoadingIcon.BackgroundTransparency = 1
-LoadingIcon.Image = "rbxassetid://6031082988" -- Asset loading standar
+LoadingIcon.Image = "rbxassetid://6031082988"
 LoadingIcon.ImageColor3 = Color3.fromRGB(0, 170, 255)
 LoadingIcon.Visible = false
 LoadingIcon.ZIndex = 50
@@ -64,6 +63,7 @@ local function setLoader(state)
     else
         LoadingIcon.Visible = false
         rotateAnim:Stop()
+        LoadingIcon.Rotation = 0
     end
 end
 
@@ -111,7 +111,7 @@ Grid.HorizontalAlignment = Enum.HorizontalAlignment.Center
 Grid.Parent = ListPage
 
 -- ==========================================
--- LOGIC PENCARIAN
+-- LOGIC PENCARIAN (Dengan Delay 10 Detik)
 -- ==========================================
 local function httpRequest(opt)
     local f = (syn and syn.request) or (http and http.request) or http_request or request
@@ -121,12 +121,15 @@ end
 local function Search(kw)
     if isFetching then return end
     isFetching = true
+    
+    -- Bersihkan hasil lama dan aktifkan loader
+    for _, v in pairs(ListPage:GetChildren()) do if v:IsA("Frame") then v:Destroy() end end
     setLoader(true)
     
-    -- Bersihkan hasil lama
-    for _, v in pairs(ListPage:GetChildren()) do if v:IsA("Frame") then v:Destroy() end end
-    
     task.spawn(function()
+        -- Simulasi loading paksa selama 10 detik sesuai permintaan
+        task.wait(10)
+        
         local url = "https://apis.roblox.com/toolbox-service/v1/marketplace/10?limit=10&keyword="..HttpService:UrlEncode(kw)
         local success, res = pcall(function() return httpRequest({Url = url, Method = "GET"}) end)
         
