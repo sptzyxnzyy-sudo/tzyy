@@ -3,17 +3,21 @@ local CoreGui = game:GetService("CoreGui")
 local TweenService = game:GetService("TweenService")
 
 -- Membersihkan UI lama jika ada
-if CoreGui:FindFirstChild("SptzyyToolboxSmall") then 
-    CoreGui.SptzyyToolboxSmall:Destroy() 
+if CoreGui:FindFirstChild("SptzyyToolboxFinal") then 
+    CoreGui.SptzyyToolboxFinal:Destroy() 
 end
 
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "SptzyyToolboxSmall"
+ScreenGui.Name = "SptzyyToolboxFinal"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = CoreGui
 
 -- State Management
+local cursors = { [1] = "" } 
+local currentPage = 1
+local currentKeyword = ""
 local isFetching = false
+local searchMode = "10" -- 10: Model, 3: Audio
 
 local function addCorner(obj, r)
     local c = Instance.new("UICorner")
@@ -22,7 +26,7 @@ local function addCorner(obj, r)
 end
 
 -- ==========================================
--- MAIN FRAME (Ukuran 150x150)
+-- MAIN FRAME (150x150)
 -- ==========================================
 local Main = Instance.new("Frame")
 Main.Name = "MainFrame"
@@ -42,7 +46,7 @@ UIStroke.Thickness = 1.5
 UIStroke.Parent = Main
 
 -- ==========================================
--- LOADING ANIMATION (Ikon Berputar)
+-- LOADING ANIMATION
 -- ==========================================
 local LoadingIcon = Instance.new("ImageLabel")
 LoadingIcon.Size = UDim2.new(0, 35, 0, 35)
@@ -51,7 +55,7 @@ LoadingIcon.BackgroundTransparency = 1
 LoadingIcon.Image = "rbxassetid://6031082988"
 LoadingIcon.ImageColor3 = Color3.fromRGB(0, 170, 255)
 LoadingIcon.Visible = false
-LoadingIcon.ZIndex = 50
+LoadingIcon.ZIndex = 100
 LoadingIcon.Parent = Main
 
 local rotateAnim = TweenService:Create(LoadingIcon, TweenInfo.new(1, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, -1), {Rotation = 360})
@@ -68,127 +72,187 @@ local function setLoader(state)
 end
 
 -- ==========================================
--- HEADER & INPUT
+-- HEADER & CONTROLS
 -- ==========================================
 local CloseBtn = Instance.new("TextButton")
 CloseBtn.Size = UDim2.new(0, 20, 0, 20)
 CloseBtn.Position = UDim2.new(1, -22, 0, 2)
 CloseBtn.Text = "×"
-CloseBtn.Font = Enum.Font.SourceSansBold
-CloseBtn.TextSize = 18
 CloseBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
 CloseBtn.BackgroundTransparency = 1
 CloseBtn.Parent = Main
 
 local Input = Instance.new("TextBox")
-Input.Size = UDim2.new(1, -16, 0, 22)
-Input.Position = UDim2.new(0, 8, 0, 25)
+Input.Size = UDim2.new(1, -45, 0, 20)
+Input.Position = UDim2.new(0, 5, 0, 25)
 Input.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-Input.PlaceholderText = "Cari asset..."
-Input.PlaceholderColor3 = Color3.fromRGB(100, 100, 100)
+Input.PlaceholderText = "Search..."
 Input.Text = ""
-Input.TextColor3 = Color3.fromRGB(255, 255, 255)
-Input.Font = Enum.Font.SourceSans
-Input.TextSize = 12
+Input.TextColor3 = Color3.white
+Input.TextSize = 10
 Input.Parent = Main
 addCorner(Input, 4)
 
+local ModeBtn = Instance.new("ImageButton")
+ModeBtn.Size = UDim2.new(0, 20, 0, 20)
+ModeBtn.Position = UDim2.new(1, -35, 0, 25)
+ModeBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+ModeBtn.Image = "rbxassetid://10734950309" -- Model Icon
+ModeBtn.Parent = Main
+addCorner(ModeBtn)
+
+local NavFrame = Instance.new("Frame")
+NavFrame.Size = UDim2.new(1, 0, 0, 15)
+NavFrame.Position = UDim2.new(0, 0, 0, 47)
+NavFrame.BackgroundTransparency = 1
+NavFrame.Parent = Main
+
+local PrevBtn = Instance.new("TextButton")
+PrevBtn.Size = UDim2.new(0, 30, 1, 0)
+PrevBtn.Position = UDim2.new(0, 5, 0, 0)
+PrevBtn.Text = "<<"
+PrevBtn.TextSize = 10
+PrevBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+PrevBtn.TextColor3 = Color3.white
+PrevBtn.Visible = false
+PrevBtn.Parent = NavFrame
+addCorner(PrevBtn)
+
+local NextBtn = Instance.new("TextButton")
+NextBtn.Size = UDim2.new(0, 30, 1, 0)
+NextBtn.Position = UDim2.new(1, -35, 0, 0)
+NextBtn.Text = ">>"
+NextBtn.TextSize = 10
+NextBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+NextBtn.TextColor3 = Color3.white
+NextBtn.Visible = false
+NextBtn.Parent = NavFrame
+addCorner(NextBtn)
+
 -- ==========================================
--- HASIL PENCARIAN (Scrolling)
+-- LIST & GRID
 -- ==========================================
 local ListPage = Instance.new("ScrollingFrame")
-ListPage.Size = UDim2.new(1, -10, 1, -55)
-ListPage.Position = UDim2.new(0, 5, 0, 52)
+ListPage.Size = UDim2.new(1, -10, 1, -70)
+ListPage.Position = UDim2.new(0, 5, 0, 65)
 ListPage.BackgroundTransparency = 1
 ListPage.ScrollBarThickness = 2
-ListPage.CanvasSize = UDim2.new(0,0,0,0)
 ListPage.Parent = Main
 
 local Grid = Instance.new("UIGridLayout")
-Grid.CellSize = UDim2.new(0, 65, 0, 85)
+Grid.CellSize = UDim2.new(0, 65, 0, 75)
 Grid.CellPadding = UDim2.new(0, 5, 0, 5)
 Grid.HorizontalAlignment = Enum.HorizontalAlignment.Center
 Grid.Parent = ListPage
 
 -- ==========================================
--- LOGIC PENCARIAN (Dengan Delay 10 Detik)
+-- LOGIC
 -- ==========================================
 local function httpRequest(opt)
     local f = (syn and syn.request) or (http and http.request) or http_request or request
     return f(opt)
 end
 
-local function Search(kw)
+local function Search(kw, cursor, pageNum)
     if isFetching then return end
     isFetching = true
     
-    -- Bersihkan hasil lama dan aktifkan loader
     for _, v in pairs(ListPage:GetChildren()) do if v:IsA("Frame") then v:Destroy() end end
     setLoader(true)
     
     task.spawn(function()
-        -- Simulasi loading paksa selama 10 detik sesuai permintaan
+        -- Simulasi loading 10 detik
         task.wait(10)
         
-        local url = "https://apis.roblox.com/toolbox-service/v1/marketplace/10?limit=10&keyword="..HttpService:UrlEncode(kw)
+        local url = "https://apis.roblox.com/toolbox-service/v1/marketplace/"..searchMode.."?limit=10&keyword="..HttpService:UrlEncode(kw)
+        if cursor and cursor ~= "" then url = url.."&cursor="..cursor end
+        
         local success, res = pcall(function() return httpRequest({Url = url, Method = "GET"}) end)
         
         if success and res and res.StatusCode == 200 then
             local body = HttpService:JSONDecode(res.Body)
+            currentPage = pageNum
+            cursors[currentPage + 1] = body.nextPageCursor or ""
+            
+            PrevBtn.Visible = (currentPage > 1)
+            NextBtn.Visible = (body.nextPageCursor ~= nil and body.nextPageCursor ~= "")
+
             local ids = {}
             for _, v in pairs(body.data) do table.insert(ids, tostring(v.id)) end
             
             if #ids > 0 then
-                local detUrl = "https://apis.roblox.com/toolbox-service/v1/items/details?assetIds="..table.concat(ids, ",")
-                local detRes = httpRequest({Url = detUrl, Method = "GET"})
-                
+                local detRes = httpRequest({Url = "https://apis.roblox.com/toolbox-service/v1/items/details?assetIds="..table.concat(ids, ","), Method = "GET"})
                 if detRes and detRes.StatusCode == 200 then
                     for _, data in pairs(HttpService:JSONDecode(detRes.Body).data) do
                         local Card = Instance.new("Frame")
-                        Card.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+                        Card.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
                         Card.Parent = ListPage
                         addCorner(Card, 4)
                         
                         local Img = Instance.new("ImageLabel")
-                        Img.Size = UDim2.new(1, 0, 0, 60)
-                        Img.Image = "rbxthumb://type=Asset&id="..data.asset.id.."&w=150&h=150"
+                        Img.Size = UDim2.new(1, 0, 0, 50)
+                        Img.Image = (searchMode == "3") and "rbxassetid://10734951121" or "rbxthumb://type=Asset&id="..data.asset.id.."&w=150&h=150"
                         Img.BackgroundTransparency = 1
                         Img.Parent = Card
                         
-                        local CopyBtn = Instance.new("TextButton")
-                        CopyBtn.Size = UDim2.new(1, -4, 0, 18)
-                        CopyBtn.Position = UDim2.new(0, 2, 0, 63)
-                        CopyBtn.Text = "ID"
-                        CopyBtn.TextSize = 10
-                        CopyBtn.Font = Enum.Font.SourceSansBold
-                        CopyBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
-                        CopyBtn.TextColor3 = Color3.white
-                        CopyBtn.Parent = Card
-                        addCorner(CopyBtn, 3)
+                        local btn = Instance.new("TextButton")
+                        btn.Size = UDim2.new(1, -4, 0, 18)
+                        btn.Position = UDim2.new(0, 2, 0, 53)
+                        btn.Text = "Copy"
+                        btn.TextSize = 8
+                        btn.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
+                        btn.TextColor3 = Color3.white
+                        btn.Parent = Card
+                        addCorner(btn, 3)
                         
-                        CopyBtn.MouseButton1Click:Connect(function()
+                        btn.MouseButton1Click:Connect(function()
                             setclipboard(tostring(data.asset.id))
-                            CopyBtn.Text = "OK!"
-                            task.wait(1)
-                            CopyBtn.Text = "ID"
+                            btn.Text = "Saved"
+                            task.wait(0.5)
+                            btn.Text = "Copy"
                         end)
                     end
                 end
             end
         end
-        
-        ListPage.CanvasSize = UDim2.new(0, 0, 0, Grid.AbsoluteContentSize.Y + 10)
+        ListPage.CanvasSize = UDim2.new(0, 0, 0, Grid.AbsoluteContentSize.Y + 5)
         setLoader(false)
         isFetching = false
     end)
 end
 
 -- ==========================================
--- INPUT & CLOSE
+-- CONNECTIONS
 -- ==========================================
+ModeBtn.MouseButton1Click:Connect(function()
+    if searchMode == "10" then
+        searchMode = "3"
+        ModeBtn.BackgroundColor3 = Color3.fromRGB(255, 170, 0)
+        ModeBtn.Image = "rbxassetid://10734951121"
+    else
+        searchMode = "10"
+        ModeBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+        ModeBtn.Image = "rbxassetid://10734950309"
+    end
+end)
+
 Input.FocusLost:Connect(function(enter)
     if enter and Input.Text ~= "" then
-        Search(Input.Text)
+        currentKeyword = Input.Text
+        cursors = { [1] = "" }
+        Search(currentKeyword, "", 1)
+    end
+end)
+
+NextBtn.MouseButton1Click:Connect(function()
+    if not isFetching and cursors[currentPage + 1] ~= "" then
+        Search(currentKeyword, cursors[currentPage + 1], currentPage + 1)
+    end
+end)
+
+PrevBtn.MouseButton1Click:Connect(function()
+    if not isFetching and currentPage > 1 then
+        Search(currentKeyword, cursors[currentPage - 1], currentPage - 1)
     end
 end)
 
