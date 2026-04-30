@@ -11,7 +11,7 @@ local adminWhatsApp = "6288742661145" -- GANTI DENGAN NOMOR ANDA
 
 local function checkUserVerification()
     local success, result = pcall(function()
-        return game:HttpGet("https://raw.githubusercontent.com/sptzydev1/lisen/refs/heads/main/verif.txt")
+        return game:HttpGet("https://raw.githubusercontent.com/sptzydev1/lisen/refs/heads/main/verif.json")
     end)
     
     if success then
