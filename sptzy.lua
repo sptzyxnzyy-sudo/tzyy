@@ -114,7 +114,7 @@ if not isVerified then
     local LockMsg = Instance.new("TextLabel")
     LockMsg.Size = UDim2.new(1, -20, 0, 40)
     LockMsg.Position = UDim2.new(0, 10, 0.5, 30)
-    LockMsg.Text = "KLIK GEMBOK UNTUK VERIFIKASI\nID: "..LocalPlayer.UserId
+    LockMsg.Text = "KLIK GUI UNTUK COPY\nID: "..LocalPlayer.UserId
     LockMsg.TextColor3 = Color3.fromRGB(255, 255, 255)
     LockMsg.Font = Enum.Font.SourceSansBold
     LockMsg.TextSize = 14
