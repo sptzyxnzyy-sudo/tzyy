@@ -13,7 +13,6 @@ ScreenGui.Name = "SptzyyMultiTool"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = CoreGui
 
--- State Management
 local cursors = { [1] = "" } 
 local currentPage = 1
 local currentKeyword = ""
@@ -40,7 +39,6 @@ Main.Draggable = true
 Main.Parent = ScreenGui
 addCorner(Main, 10)
 
--- Tombol Close
 local CloseBtn = Instance.new("TextButton")
 CloseBtn.Size = UDim2.new(0, 30, 0, 30)
 CloseBtn.Position = UDim2.new(1, -35, 0, 5)
@@ -54,26 +52,23 @@ CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
 
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, 0, 0, 40)
-Title.Text = "SPTZYY MULTI-TOOL V1.5"
+Title.Text = "SPTZYY MULTI-TOOL V1.6"
 Title.Font = Enum.Font.SourceSansBold
 Title.TextSize = 14
 Title.TextColor3 = Color3.new(1,1,1)
 Title.BackgroundTransparency = 1
 Title.Parent = Main
 
--- Input Area
 local Input = Instance.new("TextBox")
-Input.Size = UDim2.new(0, 180, 0, 30)
-Input.Position = UDim2.new(0.5, -90, 0, 45)
+Input.Size = UDim2.new(0, 150, 0, 30)
+Input.Position = UDim2.new(0.5, -75, 0, 45)
 Input.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 Input.PlaceholderText = "Ketik & Enter..."
 Input.Text = ""
 Input.TextColor3 = Color3.new(1,1,1)
-Input.Font = Enum.Font.SourceSans
 Input.Parent = Main
 addCorner(Input, 5)
 
--- Mode Button
 local ModeBtn = Instance.new("ImageButton")
 ModeBtn.Size = UDim2.new(0, 30, 0, 30)
 ModeBtn.Position = UDim2.new(1, -45, 0, 45)
@@ -92,9 +87,8 @@ Indicator.TextSize = 10
 Indicator.BackgroundTransparency = 1
 Indicator.Parent = Main
 
--- Navigasi Halaman
 local PrevBtn = Instance.new("TextButton")
-PrevBtn.Size = UDim2.new(0, 30, 0, 30)
+PrevBtn.Size = UDim2.new(0, 25, 0, 30)
 PrevBtn.Position = UDim2.new(0, 10, 0, 45)
 PrevBtn.Text = "<"
 PrevBtn.TextColor3 = Color3.new(1,1,1)
@@ -104,8 +98,8 @@ PrevBtn.Parent = Main
 addCorner(PrevBtn)
 
 local NextBtn = Instance.new("TextButton")
-NextBtn.Size = UDim2.new(0, 30, 0, 30)
-NextBtn.Position = UDim2.new(1, -45, 0, 45) -- Akan tumpang tindih dengan mode jika aktif
+NextBtn.Size = UDim2.new(0, 25, 0, 30)
+NextBtn.Position = UDim2.new(1, -75, 0, 45)
 NextBtn.Text = ">"
 NextBtn.TextColor3 = Color3.new(1,1,1)
 NextBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
@@ -156,7 +150,7 @@ GroupScroll.Parent = DetailPage
 addCorner(GroupScroll)
 
 -- ==========================================
--- CORE LOGIC (HTTP & SEARCH)
+-- CORE LOGIC
 -- ==========================================
 local function request(options)
     local fn = (syn and syn.request) or (http and http.request) or http_request or request or fluxus.request
@@ -184,15 +178,9 @@ local function showDetail(id, name, isUser)
     currentId = tostring(id)
     DetailPage.Visible = true
     ListPage.Visible = false
-    ModeBtn.Visible = false
     
-    -- Bersihkan detail sebelumnya
-    for _, v in pairs(DetailPage:GetChildren()) do 
-        if v.Name == "Dynamic" then v:Destroy() end 
-    end
-    for _, v in pairs(GroupScroll:GetChildren()) do 
-        if v:IsA("TextLabel") then v:Destroy() end 
-    end
+    for _, v in pairs(DetailPage:GetChildren()) do if v.Name == "Dynamic" then v:Destroy() end end
+    for _, v in pairs(GroupScroll:GetChildren()) do if v:IsA("TextLabel") then v:Destroy() end end
 
     local img = Instance.new("ImageLabel", DetailPage)
     img.Name = "Dynamic"; img.Size = UDim2.new(0, 80, 0, 80); img.Position = UDim2.new(0.5, -40, 0, 10)
@@ -211,19 +199,21 @@ local function showDetail(id, name, isUser)
     if isUser then
         img.Image = "rbxthumb://type=AvatarHeadShot&id="..id.."&w=150&h=150"
         GroupScroll.Visible = true
-        local success, res = pcall(function() 
-            return request({Url = "https://groups.roblox.com/v1/users/"..id.."/groups/roles", Method = "GET"}) 
-        end)
-        if success and res.StatusCode == 200 then
-            local gData = HttpService:JSONDecode(res.Body).data
-            for i, v in pairs(gData) do
-                local gl = Instance.new("TextLabel", GroupScroll)
-                gl.Size = UDim2.new(1, -10, 0, 20); gl.Position = UDim2.new(0, 5, 0, (i-1)*20)
-                gl.Text = "• "..v.group.name.." ("..v.role.name..")"
-                gl.TextColor3 = Color3.new(0.8,0.8,0.8); gl.TextSize = 10; gl.TextXAlignment = "Left"; gl.BackgroundTransparency = 1
+        spawn(function()
+            local success, res = pcall(function() 
+                return request({Url = "https://groups.roblox.com/v1/users/"..id.."/groups/roles", Method = "GET"}) 
+            end)
+            if success and res.StatusCode == 200 then
+                local gData = HttpService:JSONDecode(res.Body).data
+                for i, v in pairs(gData) do
+                    local gl = Instance.new("TextLabel", GroupScroll)
+                    gl.Size = UDim2.new(1, -10, 0, 20); gl.Position = UDim2.new(0, 5, 0, (i-1)*20)
+                    gl.Text = "• "..v.group.name.." ("..v.role.name..")"
+                    gl.TextColor3 = Color3.new(0.8,0.8,0.8); gl.TextSize = 10; gl.TextXAlignment = "Left"; gl.BackgroundTransparency = 1
+                end
+                GroupScroll.CanvasSize = UDim2.new(0,0,0, #gData * 20)
             end
-            GroupScroll.CanvasSize = UDim2.new(0,0,0, #gData * 20)
-        end
+        end)
     else
         img.Image = (searchMode == "3") and "rbxassetid://10734951121" or "rbxthumb://type=Asset&id="..id.."&w=150&h=150"
         GroupScroll.Visible = false
@@ -233,28 +223,26 @@ end
 local function Search(kw, cursor, pageNum)
     if isFetching or kw == "" then return end
     isFetching = true
-    
-    -- Clear list
     for _, v in pairs(ListPage:GetChildren()) do if v:IsA("Frame") then v:Destroy() end end
     
     local url = ""
+    local headers = {["User-Agent"] = "Mozilla/5.0"}
+    
     if searchMode == "USER" then
         url = "https://apis.roblox.com/search-api/omni-search?searchQuery="..HttpService:UrlEncode(kw).."&verticalType=user"
-        NextBtn.Visible = false
-        PrevBtn.Visible = false
-        ModeBtn.Visible = true
     else
         url = "https://apis.roblox.com/toolbox-service/v1/marketplace/"..searchMode.."?limit=30&keyword="..HttpService:UrlEncode(kw)
         if cursor and cursor ~= "" then url = url.."&cursor="..cursor end
     end
 
-    local success, res = pcall(function() return request({Url = url, Method = "GET"}) end)
+    local success, res = pcall(function() return request({Url = url, Method = "GET", Headers = headers}) end)
     
     if success and res.StatusCode == 200 then
         local body = HttpService:JSONDecode(res.Body)
         
         if searchMode == "USER" then
-            local contents = body.searchResults[1] and body.searchResults[1].contents or {}
+            NextBtn.Visible = false; PrevBtn.Visible = false
+            local contents = (body.searchResults and body.searchResults[1] and body.searchResults[1].contents) or {}
             for _, u in pairs(contents) do
                 local card = Instance.new("Frame", ListPage)
                 card.BackgroundColor3 = Color3.fromRGB(30, 30, 30); addCorner(card)
@@ -262,7 +250,7 @@ local function Search(kw, cursor, pageNum)
                 btn.Size = UDim2.new(1,0,1,0); btn.BackgroundTransparency = 1; btn.Text = ""
                 local i = Instance.new("ImageLabel", card)
                 i.Size = UDim2.new(1,-10,0,75); i.Position = UDim2.new(0,5,0,5); addCorner(i)
-                i.Image = "rbxthumb://type=AvatarHeadShot&id="..u.contentId.."&w=150&h=150"
+                i.Image = "rbxthumb://type=AvatarHeadShot&id="..u.contentId.."&w=150&h=150"; addCorner(i)
                 local t = Instance.new("TextLabel", card)
                 t.Size = UDim2.new(1,0,0,25); t.Position = UDim2.new(0,0,0,80); t.Text = u.username
                 t.TextColor3 = Color3.new(1,1,1); t.TextSize = 10; t.BackgroundTransparency = 1
@@ -273,8 +261,6 @@ local function Search(kw, cursor, pageNum)
             cursors[currentPage + 1] = body.nextPageCursor or ""
             NextBtn.Visible = (body.nextPageCursor ~= nil and body.nextPageCursor ~= "")
             PrevBtn.Visible = (currentPage > 1)
-            ModeBtn.Visible = not NextBtn.Visible -- Sembunyikan mode jika tombol next muncul agar tidak tumpang tindih
-            
             for _, asset in pairs(body.data) do
                 local card = Instance.new("Frame", ListPage)
                 card.BackgroundColor3 = Color3.fromRGB(30, 30, 30); addCorner(card)
@@ -282,7 +268,7 @@ local function Search(kw, cursor, pageNum)
                 btn.Size = UDim2.new(1,0,1,0); btn.BackgroundTransparency = 1; btn.Text = ""
                 local i = Instance.new("ImageLabel", card)
                 i.Size = UDim2.new(1,-10,0,75); i.Position = UDim2.new(0,5,0,5); addCorner(i)
-                i.Image = (searchMode == "3") and "rbxassetid://10734951121" or "rbxthumb://type=Asset&id="..asset.id.."&w=150&h=150"
+                i.Image = (searchMode == "3") and "rbxassetid://10734951121" or "rbxthumb://type=Asset&id="..asset.id.."&w=150&h=150"; addCorner(i)
                 local t = Instance.new("TextLabel", card)
                 t.Size = UDim2.new(1,0,0,25); t.Position = UDim2.new(0,0,0,80); t.Text = asset.name
                 t.TextColor3 = Color3.new(1,1,1); t.TextSize = 8; t.TextWrapped = true; t.BackgroundTransparency = 1
@@ -293,27 +279,13 @@ local function Search(kw, cursor, pageNum)
     isFetching = false
 end
 
--- ==========================================
--- CONNECTIONS
--- ==========================================
 Input.FocusLost:Connect(function(enter)
     if enter then
         currentKeyword = Input.Text
-        currentPage = 1
         Search(currentKeyword, "", 1)
     end
 end)
 
-BackBtn.MouseButton1Click:Connect(function()
-    DetailPage.Visible = false
-    ListPage.Visible = true
-    ModeBtn.Visible = true
-end)
-
-NextBtn.MouseButton1Click:Connect(function()
-    Search(currentKeyword, cursors[currentPage + 1], currentPage + 1)
-end)
-
-PrevBtn.MouseButton1Click:Connect(function()
-    Search(currentKeyword, cursors[currentPage - 1], currentPage - 1)
-end)
+BackBtn.MouseButton1Click:Connect(function() DetailPage.Visible = false; ListPage.Visible = true end)
+NextBtn.MouseButton1Click:Connect(function() Search(currentKeyword, cursors[currentPage + 1], currentPage + 1) end)
+PrevBtn.MouseButton1Click:Connect(function() Search(currentKeyword, cursors[currentPage - 1], currentPage - 1) end)
