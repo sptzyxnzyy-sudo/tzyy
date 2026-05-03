@@ -1,16 +1,21 @@
+-- [[ DARK.CC PREMIUM EDITION ]]
+-- Optimized for: Delta, Fluxus, Codex, and PC Executors
+
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+-- // Services
 local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
--- // Configuration Window
+-- // Configuration
 local Window = Rayfield:CreateWindow({
-    Name = "🌑 Dark.cc | Premium Product",
-    LoadingTitle = "Securing Connection...",
-    LoadingSubtitle = "Created by @iceglock66",
+    Name = "🌑 Dark.cc | Universal Pro",
+    LoadingTitle = "Bypassing Security...",
+    LoadingSubtitle = "by @iceglock66",
     ConfigurationSaving = {
         Enabled = true,
-        FileName = "dark_cc_v2"
+        FileName = "dark_cc_v3"
     },
     Discord = {
         Enabled = false,
@@ -24,60 +29,60 @@ local Window = Rayfield:CreateWindow({
 local SelectedItem = nil
 local CachedProducts = {}
 
--- // Function: Ambil Data Produk
-local function UpdateProductList()
-    CachedProducts = {}
+-- // Function: Fetch Products (Safe Mode)
+local function FetchProducts()
     local success, result = pcall(function()
         return MarketplaceService:GetDeveloperProductsAsync()
     end)
     
-    if success then
-        for _, item in pairs(result:GetCurrentPage()) do
+    if success and result then
+        local names = {}
+        CachedProducts = {} -- Reset cache
+        local page = result:GetCurrentPage()
+        
+        for _, item in pairs(page) do
             table.insert(CachedProducts, {
-                Name = item.Name,
-                ID = item.ProductId,
-                Description = item.Description or "No Description",
-                Price = item.PriceInRobux or 0
+                Name = item.Name or "Unknown",
+                ID = item.ProductId or 0,
+                Price = item.PriceInRobux or 0,
+                Description = item.Description or "No Description"
             })
+            table.insert(names, item.Name or "Unknown")
         end
+        return names
     else
-        warn("Critical Error: Gagal mengambil data produk.")
+        return {"No Products Found"}
     end
-    
-    local names = {}
-    for _, item in ipairs(CachedProducts) do
-        table.insert(names, item.Name)
-    end
-    return #names > 0 and names or {"No Items Found"}
 end
 
--- // Function: Trigger Purchase (Simulasi)
-local function TriggerPurchase(id)
-    local s, e = pcall(function()
+-- // Function: Purchase Simulation (Executor Safe)
+local function AttemptPurchase(id)
+    if not id or id == 0 then return false end
+    local s, _ = pcall(function()
         MarketplaceService:SignalPromptProductPurchaseFinished(LocalPlayer.UserId, id, true)
     end)
-    return s, e
+    return s
 end
-
--- // Notifikasi Welcome
-Rayfield:Notify({
-    Title = "🚀 SYSTEM INJECTED",
-    Content = "Welcome, **" .. LocalPlayer.Name .. "**. Service is now active.",
-    Duration = 4.5,
-    Image = 11419713314,
-})
 
 -- // Main Tab
 local MainTab = Window:CreateTab("Automation", 4483362458)
 
-MainTab:CreateSection("Product Management")
+-- // Initial Notification
+Rayfield:Notify({
+    Title = "🚀 EXECUTOR READY",
+    Content = "Dark.cc has been loaded successfully for **" .. LocalPlayer.DisplayName .. "**",
+    Duration = 5,
+    Image = 4483362458,
+})
+
+MainTab:CreateSection("Target Settings")
 
 local Dropdown = MainTab:CreateDropdown({
-    Name = "Select Target Product",
-    Options = UpdateProductList(),
-    CurrentOption = {"Choose an item"},
+    Name = "Select Product",
+    Options = FetchProducts(),
+    CurrentOption = {"None Selected"},
     MultipleOptions = false,
-    Flag = "MainDropdown",
+    Flag = "ProductSelection",
     Callback = function(Option)
         local choice = Option[1]
         for _, item in ipairs(CachedProducts) do
@@ -90,65 +95,65 @@ local Dropdown = MainTab:CreateDropdown({
 })
 
 MainTab:CreateButton({
-    Name = "💸 Purchase Selected",
+    Name = "💎 Purchase Selected",
     Callback = function()
-        if not SelectedItem then
+        if SelectedItem then
+            local success = AttemptPurchase(SelectedItem.ID)
+            if success then
+                Rayfield:Notify({
+                    Title = "✅ SUCCESS",
+                    Content = "Transaction triggered for: **" .. SelectedItem.Name .. "**",
+                    Duration = 4,
+                    Image = 11419719540
+                })
+            end
+        else
             Rayfield:Notify({
-                Title = "⚠️ VOID",
-                Content = "Please select a product from the list first!",
+                Title = "⚠️ WARNING",
+                Content = "Please select an item first!",
                 Duration = 3,
-                Image = "rbxassetid://11419713314"
-            })
-            return
-        end
-
-        local success = TriggerPurchase(SelectedItem.ID)
-        if success then
-            Rayfield:Notify({
-                Title = "✅ TRANSACTION SUCCESS",
-                Content = "Successfully processed: **" .. SelectedItem.Name .. "**",
-                Duration = 4,
-                Image = "rbxassetid://11419719540"
+                Image = 11419713314
             })
         end
     end
 })
 
 MainTab:CreateButton({
-    Name = "📦 Buy All (Mass Purchase)",
+    Name = "📦 Mass Purchase (Buy All)",
     Callback = function()
         Rayfield:Notify({
-            Title = "⏳ MASS PROCESSING",
-            Content = "Executing all items in queue...",
+            Title = "⏳ PROCESSING",
+            Content = "Executing mass purchase. Please wait...",
             Duration = 3,
             Image = 4483362458
         })
 
         local count = 0
         for _, item in ipairs(CachedProducts) do
-            local s = TriggerPurchase(item.ID)
-            if s then count = count + 1 end
-            task.wait(0.4) -- Delay agar tidak crash
+            if AttemptPurchase(item.ID) then
+                count = count + 1
+            end
+            task.wait(0.2) -- Safe delay for executors
         end
 
         Rayfield:Notify({
             Title = "🔥 COMPLETED",
-            Content = "Successfully processed **" .. count .. "** products.",
+            Content = "Successfully processed **" .. count .. "** items.",
             Duration = 5,
-            Image = "rbxassetid://11419719540"
+            Image = 11419719540
         })
     end
 })
 
 MainTab:CreateButton({
-    Name = "🔄 Sync/Refresh List",
+    Name = "🔄 Refresh Database",
     Callback = function()
-        local updated = UpdateProductList()
-        Dropdown:SetOptions(updated)
+        local list = FetchProducts()
+        Dropdown:SetOptions(list)
         Rayfield:Notify({
             Title = "📡 SYNCED",
-            Content = "Database refreshed. Found **" .. #updated .. "** items.",
-            Duration = 3,
+            Content = "Product list updated!",
+            Duration = 2,
             Image = 4483362458
         })
     end
@@ -157,39 +162,42 @@ MainTab:CreateButton({
 MainTab:CreateButton({
     Name = "📋 Copy Item ID",
     Callback = function()
-        if SelectedItem and setclipboard then
-            setclipboard(tostring(SelectedItem.ID))
-            Rayfield:Notify({
-                Title = "📝 COPIED",
-                Content = "ID: **" .. SelectedItem.ID .. "** added to clipboard.",
-                Duration = 3,
-                Image = 4483362458
-            })
-        else
-            Rayfield:Notify({
-                Title = "❌ ERROR",
-                Content = "Action failed. Make sure item is selected.",
-                Duration = 3,
-                Image = "rbxassetid://11419713314"
-            })
+        if SelectedItem then
+            -- Safe Clipboard check for mobile/PC executors
+            local clipboard = setclipboard or toclipboard or (Syn and Syn.set_clipboard)
+            if clipboard then
+                clipboard(tostring(SelectedItem.ID))
+                Rayfield:Notify({
+                    Title = "📝 COPIED",
+                    Content = "ID: **" .. SelectedItem.ID .. "** copied to clipboard.",
+                    Duration = 3,
+                    Image = 4483362458
+                })
+            else
+                Rayfield:Notify({
+                    Title = "❌ ERROR",
+                    Content = "Your executor doesn't support clipboard!",
+                    Duration = 3,
+                    Image = 11419713314
+                })
+            end
         end
     end
 })
 
 MainTab:CreateSection("Item Inspector")
-local InfoLabel = MainTab:CreateLabel("Waiting for selection...")
+local InfoLabel = MainTab:CreateLabel("Status: Waiting for selection...")
 
--- // Background Task untuk Update Label
+-- // Background Task (Optimized)
 task.spawn(function()
-    while true do
+    while task.wait(0.5) do
         if SelectedItem then
             InfoLabel:Set(string.format(
-                "🔹 **Name**: %s\n🔹 **Price**: %d R$\n🔹 **ID**: %s", 
+                "🏷️ **Item**: %s\n💵 **Price**: %d R$\n🆔 **ID**: %s", 
                 SelectedItem.Name, 
                 SelectedItem.Price, 
                 SelectedItem.ID
             ))
         end
-        task.wait(0.5)
     end
 end)
