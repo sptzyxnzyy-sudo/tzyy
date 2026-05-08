@@ -19,7 +19,7 @@ MainFrame.Position = UDim2.new(0.5, -150, 0.5, -150)
 MainFrame.Size = UDim2.new(0, 300, 0, 300)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
-MainFrame.Draggable = true -- Support geser di Delta/Studio Lite
+MainFrame.Draggable = true 
 
 local Title = Instance.new("TextLabel")
 Title.Parent = MainFrame
@@ -67,7 +67,7 @@ Status.TextColor3 = Color3.new(0.8, 0.8, 0.8)
 Status.TextSize = 12
 
 -----------------------------------------------------------
--- LOGIKA PERBAIKAN (FIX ERROR)
+-- LOGIKA UTAMA
 -----------------------------------------------------------
 
 local FILENAME = "sptzyy_data.json"
@@ -78,8 +78,8 @@ CopyBtn.MouseButton1Click:Connect(function()
     
     for _, v in pairs(workspace:GetDescendants()) do
         if v:IsA("BasePart") and not v:IsA("Terrain") then
-            -- Cek agar tidak copy karakter player
             local isPlayer = false
+            -- Cek apakah bagian dari karakter
             if v:FindFirstAncestorOfClass("Model") and v:FindFirstAncestorOfClass("Model"):FindFirstChild("Humanoid") then
                 isPlayer = true
             end
@@ -108,6 +108,7 @@ CopyBtn.MouseButton1Click:Connect(function()
         Status.Text = "Status: Saved " .. #data .. " Parts!"
     else
         Status.Text = "Status: Save Error!"
+        warn(err)
     end
 end)
 
@@ -125,16 +126,19 @@ PasteBtn.MouseButton1Click:Connect(function()
     Folder.Name = "PastedMap_Sptzyy"
     
     for _, d in pairs(data) do
-        local p = Instance.new(d.Class)
-        p.Name = d.Name
-        p.Size = Vector3.new(d.Size[1], d.Size[2], d.Size[3])
-        p.CFrame = CFrame.new(unpack(d.CFrame))
-        p.Color = Color3.new(d.Color[1], d.Color[2], d.Color[3])
-        p.Material = Enum.Material[d.Mat]
-        p.Transparency = d.Trans
-        p.Anchored = d.Anch or true
-        p.CanCollide = d.Coll
-        p.Parent = Folder
+        local success, p = pcall(function()
+            local part = Instance.new(d.Class)
+            part.Name = d.Name
+            part.Size = Vector3.new(d.Size[1], d.Size[2], d.Size[3])
+            part.CFrame = CFrame.new(unpack(d.CFrame))
+            part.Color = Color3.new(d.Color[1], d.Color[2], d.Color[3])
+            part.Material = Enum.Material[d.Mat]
+            part.Transparency = d.Trans
+            part.Anchored = d.Anch
+            part.CanCollide = d.Coll
+            part.Parent = Folder
+            return part
+        end)
     end
     Status.Text = "Status: Paste Done!"
 end)
