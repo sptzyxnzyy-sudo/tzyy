@@ -1,399 +1,142 @@
 local HttpService = game:GetService("HttpService")
-local CoreGui = game:GetService("CoreGui")
-
--- Membersihkan UI lama jika ada
-if CoreGui:FindFirstChild("SptzyyToolboxFinal") then 
-    CoreGui.SptzyyToolboxFinal:Destroy() 
-end
-
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "SptzyyToolboxFinal"
-ScreenGui.ResetOnSpawn = false
-ScreenGui.Parent = CoreGui
-
--- State Management (Logika Halaman & Data)
-local cursors = { [1] = "" } 
-local currentPage = 1
-local currentKeyword = ""
-local isFetching = false
-local currentId = ""
-
-local function addCorner(obj, r)
-    local c = Instance.new("UICorner")
-    c.CornerRadius = UDim.new(0, r or 4)
-    c.Parent = obj
-end
-
--- ==========================================
--- OPEN BUTTON (Icon Store)
--- ==========================================
-local OpenBtn = Instance.new("ImageButton")
-OpenBtn.Name = "OpenButton"
-OpenBtn.Size = UDim2.new(0, 45, 0, 45)
-OpenBtn.Position = UDim2.new(0, 10, 0.5, -22)
-OpenBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-OpenBtn.Image = "rbxassetid://10734950309"
-OpenBtn.Visible = false
-OpenBtn.Active = true
-OpenBtn.Draggable = true
-OpenBtn.Parent = ScreenGui
-addCorner(OpenBtn, 10)
-
--- ==========================================
--- MAIN FRAME (300x300)
--- ==========================================
-local Main = Instance.new("Frame")
-Main.Name = "MainFrame"
-Main.Size = UDim2.new(0, 100, 0, 100)
-Main.Position = UDim2.new(0.5, -150, 0.5, -150)
-Main.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-Main.BorderSizePixel = 0
-Main.Active = true
-Main.Draggable = true
-Main.Parent = ScreenGui
-addCorner(Main, 8)
-
--- Tombol Close (X)
-local CloseBtn = Instance.new("TextButton")
-CloseBtn.Size = UDim2.new(0, 25, 0, 25)
-CloseBtn.Position = UDim2.new(1, -30, 0, 5)
-CloseBtn.Text = "×"
-CloseBtn.Font = Enum.Font.SourceSansBold
-CloseBtn.TextSize = 20
-CloseBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
-CloseBtn.BackgroundTransparency = 1
-CloseBtn.Parent = Main
-
--- ==========================================
--- CENTERED HEADER (JUDUL BERTINGKAT)
--- ==========================================
-local HeaderContainer = Instance.new("Frame")
-HeaderContainer.Size = UDim2.new(1, 0, 0, 60)
-HeaderContainer.BackgroundTransparency = 1
-HeaderContainer.Parent = Main
-
+local MainFrame = Instance.new("Frame")
 local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1, 0, 0, 25)
-Title.Position = UDim2.new(0, 0, 0, 10)
-Title.Text = "SEARCH TOOLBOX"
-Title.Font = Enum.Font.SourceSansBold
+local CopyBtn = Instance.new("TextButton")
+local PasteBtn = Instance.new("TextButton")
+local CloseBtn = Instance.new("TextButton")
+local StatusLabel = Instance.new("TextLabel")
+
+-- GUI Setup
+ScreenGui.Name = "SptzyyCopyGame_CrossServer"
+ScreenGui.Parent = game:GetService("CoreGui")
+
+MainFrame.Name = "MainFrame"
+MainFrame.Parent = ScreenGui
+MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+MainFrame.Position = UDim2.new(0.5, -150, 0.5, -150)
+MainFrame.Size = UDim2.new(0, 300, 0, 300)
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true
+
+Title.Parent = MainFrame
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+Title.Text = "SPTZYY COPYY GAME"
+Title.TextColor3 = Color3.fromRGB(0, 255, 255)
 Title.TextSize = 18
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.TextXAlignment = Enum.TextXAlignment.Center
-Title.BackgroundTransparency = 1
-Title.Parent = HeaderContainer
+Title.Font = Enum.Font.SourceSansBold
 
-local Credit = Instance.new("TextLabel")
-Credit.Size = UDim2.new(1, 0, 0, 15)
-Credit.Position = UDim2.new(0, 0, 0, 30)
-Credit.Text = "by @sptzyy"
-Credit.Font = Enum.Font.SourceSans
-Credit.TextSize = 13
-Credit.TextColor3 = Color3.fromRGB(180, 180, 180)
-Credit.TextXAlignment = Enum.TextXAlignment.Center
-Credit.BackgroundTransparency = 1
-Credit.Parent = HeaderContainer
+CloseBtn.Parent = MainFrame
+CloseBtn.Position = UDim2.new(1, -35, 0, 5)
+CloseBtn.Size = UDim2.new(0, 30, 0, 30)
+CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+CloseBtn.Text = "X"
+CloseBtn.TextColor3 = Color3.white
+CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
 
-local Version = Instance.new("TextLabel")
-Version.Size = UDim2.new(1, 0, 0, 10)
-Version.Position = UDim2.new(0, 0, 0, 45)
-Version.Text = "version 1.0"
-Version.Font = Enum.Font.SourceSans
-Version.TextSize = 10
-Version.TextColor3 = Color3.fromRGB(100, 100, 100)
-Version.TextXAlignment = Enum.TextXAlignment.Center
-Version.BackgroundTransparency = 1
-Version.Parent = HeaderContainer
+CopyBtn.Parent = MainFrame
+CopyBtn.Position = UDim2.new(0.1, 0, 0.25, 0)
+CopyBtn.Size = UDim2.new(0.8, 0, 0, 50)
+CopyBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+CopyBtn.Text = "COPY MAP (Save to File)"
+CopyBtn.TextColor3 = Color3.white
 
--- ==========================================
--- SYMMETRICAL INPUT (<- INPUT ->)
--- ==========================================
--- Tombol Prev (Kiri)
-local PrevBtn = Instance.new("TextButton")
-PrevBtn.Size = UDim2.new(0, 25, 0, 25)
-PrevBtn.Position = UDim2.new(0, 10, 0, 65)
-PrevBtn.Text = "<"
-PrevBtn.Font = Enum.Font.SourceSansBold
-PrevBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-PrevBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-PrevBtn.Visible = false
-PrevBtn.Parent = Main
-addCorner(PrevBtn)
+PasteBtn.Parent = MainFrame
+PasteBtn.Position = UDim2.new(0.1, 0, 0.5, 0)
+PasteBtn.Size = UDim2.new(0.8, 0, 0, 50)
+PasteBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 200)
+PasteBtn.Text = "PASTE MAP (Load from File)"
+PasteBtn.TextColor3 = Color3.white
 
--- Input Box (Tengah)
-local Input = Instance.new("TextBox")
-Input.Size = UDim2.new(0, 210, 0, 25)
-Input.Position = UDim2.new(0, 45, 0, 65)
-Input.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-Input.PlaceholderText = "Cari asset..."
-Input.Text = ""
-Input.TextColor3 = Color3.fromRGB(255, 255, 255)
-Input.Font = Enum.Font.SourceSans
-Input.TextSize = 13
-Input.ClearTextOnFocus = false
-Input.Parent = Main
-addCorner(Input, 4)
+StatusLabel.Parent = MainFrame
+StatusLabel.Position = UDim2.new(0, 0, 0.8, 0)
+StatusLabel.Size = UDim2.new(1, 0, 0, 30)
+StatusLabel.BackgroundTransparency = 1
+StatusLabel.Text = "Ready to Copy/Paste"
+StatusLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
 
--- Tombol Next (Kanan)
-local NextBtn = Instance.new("TextButton")
-NextBtn.Size = UDim2.new(0, 25, 0, 25)
-NextBtn.Position = UDim2.new(0, 265, 0, 65)
-NextBtn.Text = ">"
-NextBtn.Font = Enum.Font.SourceSansBold
-NextBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-NextBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-NextBtn.Visible = false
-NextBtn.Parent = Main
-addCorner(NextBtn)
+-----------------------------------------------------------
+-- LOGIKA DATA PERSISTENCE (WRITE/READ FILE)
+-----------------------------------------------------------
 
-local PageIndicator = Instance.new("TextLabel")
-PageIndicator.Size = UDim2.new(1, -20, 0, 15)
-PageIndicator.Position = UDim2.new(0, 10, 0, 92)
-PageIndicator.Text = ""
-PageIndicator.TextColor3 = Color3.fromRGB(150, 150, 150)
-PageIndicator.Font = Enum.Font.SourceSans
-PageIndicator.TextSize = 10
-PageIndicator.TextXAlignment = Enum.TextXAlignment.Center
-PageIndicator.BackgroundTransparency = 1
-PageIndicator.Parent = Main
+local FILENAME = "sptzyy_map_data.txt"
 
--- ==========================================
--- LIST PAGE & GRID
--- ==========================================
-local ListPage = Instance.new("ScrollingFrame")
-ListPage.Size = UDim2.new(1, -10, 1, -120)
-ListPage.Position = UDim2.new(0, 5, 0, 110)
-ListPage.BackgroundTransparency = 1
-ListPage.ScrollBarThickness = 2
-ListPage.Parent = Main
-
-local Grid = Instance.new("UIGridLayout")
-Grid.CellSize = UDim2.new(0, 92, 0, 110)
-Grid.CellPadding = UDim2.new(0, 3, 0, 5)
-Grid.HorizontalAlignment = Enum.HorizontalAlignment.Center
-Grid.Parent = ListPage
-
-local WelcomeMsg = Instance.new("TextLabel")
-WelcomeMsg.Size = UDim2.new(1, -20, 0, 80)
-WelcomeMsg.Position = UDim2.new(0, 10, 0.2, 0)
-WelcomeMsg.Text = "Masukkan kata kunci di atas.\n\nGunakan panah untuk navigasi halaman."
-WelcomeMsg.Font = Enum.Font.SourceSansItalic
-WelcomeMsg.TextSize = 14
-WelcomeMsg.TextColor3 = Color3.fromRGB(100, 100, 100)
-WelcomeMsg.TextWrapped = true
-WelcomeMsg.BackgroundTransparency = 1
-WelcomeMsg.Parent = ListPage
-
--- ==========================================
--- DETAIL PAGE
--- ==========================================
-local DetailPage = Instance.new("Frame")
-DetailPage.Size = UDim2.new(1, 0, 1, -35)
-DetailPage.Position = UDim2.new(0, 0, 0, 35)
-DetailPage.BackgroundColor3 = Main.BackgroundColor3
-DetailPage.Visible = false
-DetailPage.Parent = Main
-addCorner(DetailPage, 8)
-
-local BackBtn = Instance.new("TextButton")
-BackBtn.Size = UDim2.new(0, 30, 0, 30)
-BackBtn.Position = UDim2.new(0, 5, 0, 5)
-BackBtn.Text = "←"
-BackBtn.Font = Enum.Font.SourceSansBold
-BackBtn.TextSize = 25
-BackBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-BackBtn.BackgroundTransparency = 1
-BackBtn.Parent = DetailPage
-
-local DetImg = Instance.new("ImageLabel")
-DetImg.Size = UDim2.new(0, 120, 0, 120)
-DetImg.Position = UDim2.new(0.5, -60, 0, 20)
-DetImg.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-DetImg.Parent = DetailPage
-addCorner(DetImg)
-
-local DetName = Instance.new("TextLabel")
-DetName.Size = UDim2.new(1, -40, 0, 35)
-DetName.Position = UDim2.new(0, 20, 0, 145)
-DetName.Font = Enum.Font.SourceSansBold
-DetName.TextSize = 15
-DetName.TextColor3 = Color3.fromRGB(255, 255, 255)
-DetName.TextWrapped = true
-DetName.BackgroundTransparency = 1
-DetName.Parent = DetailPage
-
-local DetCreator = Instance.new("TextLabel")
-DetCreator.Size = UDim2.new(0, 160, 0, 20)
-DetCreator.Position = UDim2.new(0, 20, 0, 180)
-DetCreator.TextSize = 12
-DetCreator.TextColor3 = Color3.fromRGB(180, 180, 180)
-DetCreator.TextXAlignment = Enum.TextXAlignment.Left
-DetCreator.BackgroundTransparency = 1
-DetCreator.Parent = DetailPage
-
-local MenuBtn = Instance.new("TextButton")
-MenuBtn.Size = UDim2.new(0, 25, 0, 25)
-MenuBtn.Position = UDim2.new(1, -40, 0, 178)
-MenuBtn.Text = "≡"
-MenuBtn.Font = Enum.Font.SourceSansBold
-MenuBtn.TextSize = 22
-MenuBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
-MenuBtn.BackgroundTransparency = 1
-MenuBtn.Parent = DetailPage
-
-local Dropdown = Instance.new("TextButton")
-Dropdown.Size = UDim2.new(0, 80, 0, 25)
-Dropdown.Position = UDim2.new(1, -90, 0, 205)
-Dropdown.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-Dropdown.Text = "Copy ID"
-Dropdown.Font = Enum.Font.SourceSans
-Dropdown.TextSize = 13
-Dropdown.TextColor3 = Color3.fromRGB(255, 255, 255)
-Dropdown.Visible = false
-Dropdown.ZIndex = 10
-Dropdown.Parent = DetailPage
-addCorner(Dropdown, 4)
-
--- ==========================================
--- API & SEARCH LOGIC
--- ==========================================
-local function httpRequest(opt)
-    local f = (syn and syn.request) or (http and http.request) or http_request or request
-    return f(opt)
+-- Fungsi konversi CFrame/Color ke Tabel (agar bisa jadi JSON)
+local function tableFromCFrame(cf)
+    return {cf:GetComponents()}
 end
 
-local function clearList()
-    for _, v in pairs(ListPage:GetChildren()) do
-        if v:IsA("Frame") then v:Destroy() end
-    end
+local function tableFromColor(c)
+    return {R = c.r, G = c.g, B = c.b}
 end
 
-local function showDetail(data)
-    currentId = tostring(data.asset.id)
-    DetImg.Image = "rbxthumb://type=Asset&id="..currentId.."&w=420&h=420"
-    DetName.Text = data.asset.name
-    DetCreator.Text = "by " .. data.creator.name
-    
-    Dropdown.Visible = false
-    ListPage.Visible = false
-    HeaderContainer.Visible = false
-    Input.Visible = false
-    PrevBtn.Visible = false
-    NextBtn.Visible = false
-    PageIndicator.Visible = false
-    DetailPage.Visible = true
-end
+-- Tombol Copy
+CopyBtn.MouseButton1Click:Connect(function()
+    local mapData = {}
+    StatusLabel.Text = "Scanning... please wait"
+    wait(0.5)
 
-local function Search(kw, cursor, pageNum)
-    if isFetching then return end
-    isFetching = true
-    clearList()
-    WelcomeMsg.Visible = false
-    
-    local url = "https://apis.roblox.com/toolbox-service/v1/marketplace/10?limit=30&keyword="..HttpService:UrlEncode(kw)
-    if cursor and cursor ~= "" then url = url.."&cursor="..cursor end
-    
-    local success, res = pcall(function() return httpRequest({Url = url, Method = "GET"}) end)
-    
-    if success and res and res.StatusCode == 200 then
-        local body = HttpService:JSONDecode(res.Body)
-        currentPage = pageNum
-        cursors[currentPage + 1] = body.nextPageCursor or ""
-        
-        PrevBtn.Visible = (currentPage > 1)
-        NextBtn.Visible = (body.nextPageCursor ~= nil and body.nextPageCursor ~= "")
-        PageIndicator.Text = "PAGE: "..currentPage.."  |  RESULTS: "..(body.totalResults or "0")
-        PageIndicator.Visible = true
-
-        local ids = {}
-        for _, v in pairs(body.data) do table.insert(ids, tostring(v.id)) end
-        
-        if #ids == 0 then
-            WelcomeMsg.Text = "Asset tidak ditemukan."
-            WelcomeMsg.Visible = true
-        else
-            local detRes = httpRequest({Url = "https://apis.roblox.com/toolbox-service/v1/items/details?assetIds="..table.concat(ids, ","), Method = "GET"})
-            if detRes and detRes.StatusCode == 200 then
-                for _, data in pairs(HttpService:JSONDecode(detRes.Body).data) do
-                    local Card = Instance.new("Frame")
-                    Card.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-                    Card.Parent = ListPage
-                    addCorner(Card, 6)
-                    
-                    local Img = Instance.new("ImageLabel")
-                    Img.Size = UDim2.new(1, -10, 0, 70)
-                    Img.Position = UDim2.new(0, 5, 0, 5)
-                    Img.Image = "rbxthumb://type=Asset&id="..data.asset.id.."&w=150&h=150"
-                    Img.BackgroundTransparency = 1
-                    Img.Parent = Card
-                    
-                    local Info = Instance.new("TextLabel")
-                    Info.Size = UDim2.new(1, -6, 0, 30)
-                    Info.Position = UDim2.new(0, 3, 0, 78)
-                    Info.Text = data.asset.name.."\nID: "..data.asset.id
-                    Info.TextColor3 = Color3.fromRGB(255, 255, 255)
-                    Info.TextSize = 9
-                    Info.Font = Enum.Font.SourceSansBold
-                    Info.TextWrapped = true
-                    Info.BackgroundTransparency = 1
-                    Info.Parent = Card
-                    
-                    local btn = Instance.new("TextButton")
-                    btn.Size = UDim2.new(1, 0, 1, 0)
-                    btn.BackgroundTransparency = 1
-                    btn.Text = ""
-                    btn.Parent = Card
-                    btn.MouseButton1Click:Connect(function() showDetail(data) end)
-                end
+    for _, obj in pairs(workspace:GetDescendants()) do
+        if obj:IsA("BasePart") and not obj:IsA("Terrain") then
+            -- Pastikan bukan bagian dari karakter pemain
+            if not obj:FindFirstAncestorOfClass("Model") or not obj:FindFirstAncestorOfClass("Model"):FindFirstChild("Humanoid") then
+                table.insert(mapData, {
+                    ClassName = obj.ClassName,
+                    Name = obj.Name,
+                    Size = {obj.Size.X, obj.Size.Y, obj.Size.Z},
+                    CFrame = tableFromCFrame(obj.CFrame),
+                    Color = tableFromColor(obj.Color),
+                    Material = obj.Material.Name,
+                    Transparency = obj.Transparency,
+                    Anchored = obj.Anchored,
+                    CanCollide = obj.CanCollide
+                })
             end
         end
     end
-    ListPage.CanvasPosition = Vector2.new(0,0)
-    ListPage.CanvasSize = UDim2.new(0,0,0,Grid.AbsoluteContentSize.Y + 10)
-    isFetching = false
-end
 
--- ==========================================
--- BUTTON & INPUT CONNECTIONS
--- ==========================================
-Input.FocusLost:Connect(function(enter)
-    if enter and Input.Text ~= "" then
-        currentKeyword = Input.Text
-        cursors = { [1] = "" } -- Reset navigasi saat cari baru
-        Search(currentKeyword, "", 1)
+    -- Simpan ke file di folder executor
+    local success, err = pcall(function()
+        writefile(FILENAME, HttpService:JSONEncode(mapData))
+    end)
+
+    if success then
+        StatusLabel.Text = "Saved! Go to another map and paste."
+    else
+        StatusLabel.Text = "Error saving file!"
+        warn(err)
     end
 end)
 
-NextBtn.MouseButton1Click:Connect(function()
-    if not isFetching and cursors[currentPage + 1] ~= "" then
-        Search(currentKeyword, cursors[currentPage + 1], currentPage + 1)
+-- Tombol Paste
+PasteBtn.MouseButton1Click:Connect(function()
+    if not isfile(FILENAME) then
+        StatusLabel.Text = "No copy data found!"
+        return
     end
-end)
 
-PrevBtn.MouseButton1Click:Connect(function()
-    if not isFetching and currentPage > 1 then
-        Search(currentKeyword, cursors[currentPage - 1], currentPage - 1)
+    StatusLabel.Text = "Loading file..."
+    local dataRaw = readfile(FILENAME)
+    local data = HttpService:JSONDecode(dataRaw)
+    
+    local NewFolder = Instance.new("Folder")
+    NewFolder.Name = "Sptzyy_PastedMap"
+    NewFolder.Parent = workspace
+
+    for _, pData in pairs(data) do
+        local p = Instance.new(pData.ClassName)
+        p.Name = pData.Name
+        p.Size = Vector3.new(pData.Size[1], pData.Size[2], pData.Size[3])
+        p.CFrame = CFrame.new(unpack(pData.CFrame))
+        p.Color = Color3.new(pData.Color.R, pData.Color.G, pData.Color.B)
+        p.Material = Enum.Material[pData.Material]
+        p.Transparency = pData.Transparency
+        p.Anchored = pData.Anchored
+        p.CanCollide = pData.CanCollide
+        p.Parent = NewFolder
     end
-end)
 
-CloseBtn.MouseButton1Click:Connect(function() Main.Visible = false OpenBtn.Visible = true end)
-OpenBtn.MouseButton1Click:Connect(function() Main.Visible = true OpenBtn.Visible = false end)
-
-BackBtn.MouseButton1Click:Connect(function()
-    DetailPage.Visible = false
-    HeaderContainer.Visible = true
-    Input.Visible = true
-    PrevBtn.Visible = (currentPage > 1)
-    NextBtn.Visible = (cursors[currentPage+1] ~= "")
-    PageIndicator.Visible = true
-    ListPage.Visible = true
-end)
-
-MenuBtn.MouseButton1Click:Connect(function() Dropdown.Visible = not Dropdown.Visible end)
-Dropdown.MouseButton1Click:Connect(function()
-    setclipboard(currentId)
-    Dropdown.Text = "Copied!"
-    task.wait(1)
-    Dropdown.Text = "Copy ID"
-    Dropdown.Visible = false
+    StatusLabel.Text = "Paste Success! " .. #data .. " parts."
 end)
