@@ -1,23 +1,50 @@
--- [[ KRIPTOS PHYSICAL MANIPULATION TOOL v5.1 FIXED ICON ]] --
+-- [[ KRIPTOS PHYSICAL ENGINE v6.0 - PURE EDITION ]] --
 -- Cocok untuk Executor Mobile & PC (Delta, Fluxus, Hydrogen, Wave, dll)
--- PERBAIKAN: Ikon Gambar diganti dengan TextButton Simbol "⚙" agar 100% pasti muncul.
+-- OPTIMASI: Seluruh fitur pencarian/toolbox dihapus. Fokus penuh pada manipulasi fisik bypass radius.
 
+local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
-local CoreGui = game:GetService("CoreGui")
 
--- Bersihkan UI lama jika ada
-if CoreGui:FindFirstChild("KriptosConstraintUI_v5_1") then
-    CoreGui.KriptosConstraintUI_v5_1:Destroy()
+-- Membersihkan UI lama jika ada
+if CoreGui:FindFirstChild("KriptosPhysicsPure_v6") then 
+    CoreGui.KriptosPhysicsPure_v6:Destroy() 
 end
 
-local SGUI = Instance.new("ScreenGui")
-SGUI.Name = "KriptosConstraintUI_v5_1"
-SGUI.Parent = CoreGui
-SGUI.ResetOnSpawn = false
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "KriptosPhysicsPure_v6"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = CoreGui
 
--- [[ UTILITY: FUNGSI SYSTEM DRAGGABLE ]] --
+-- State Management (Logika Fitur & Data)
+local ActiveStates = {
+    ["Mass Drag"] = false,
+    ["Mass Spin"] = false,
+    ["Black Hole"] = false,
+    ["Fling Slingshot"] = false,
+    ["Break Constraints"] = false
+}
+
+local FeatureDescriptions = {
+    ["Mass Drag"] = "Menarik part unanchored di dekat radius Anda menggunakan tali elastis (Rope). Jalankan karakter untuk menyeret objek map.",
+    ["Mass Spin"] = "Menyuntikkan gaya putar AngularVelocity konstan pada objek map di dekat Anda hingga berputar kencang.",
+    ["Black Hole"] = "Menciptakan titik gravitasi hampa tepat di atas kepala Anda. Objek unanchored di sekitar akan terangkat melayang.",
+    ["Fling Slingshot"] = "Melontarkan paksa seluruh properti map terdekat menggunakan impuls VectorForce acak berdaya hancur tinggi.",
+    ["Break Constraints"] = "Memotong las mekanis bawaan objek map (Weld/Snap/Motor6D) dalam jangkauan Anda agar model rontok."
+}
+
+local StoredObjects = {}
+
+local function addCorner(obj, r)
+    local c = Instance.new("UICorner")
+    c.CornerRadius = UDim.new(0, r or 4)
+    c.Parent = obj
+end
+
+-- ==========================================
+-- UTILITY: SMART MOBILE DRAGGABLE SYSTEM
+-- ==========================================
 local function makeDraggable(frame, dragHandle)
     local dragging, dragInput, dragStart, startPos
     dragHandle = dragHandle or frame
@@ -48,102 +75,115 @@ local function makeDraggable(frame, dragHandle)
     end)
 end
 
--- [[ 1. FIXED ICON SETTINGS (Menggunakan TextButton Murni Simbol Roda Gigi) ]] --
-local SettingsIcon = Instance.new("TextButton")
-SettingsIcon.Name = "SettingsIcon"
-SettingsIcon.Size = UDim2.new(0, 45, 0, 45)
-SettingsIcon.Position = UDim2.new(0, 20, 0, 150) -- Letak tombol di kiri layar (bisa digeser)
-SettingsIcon.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-SettingsIcon.Text = "⚙" -- Simbol Roda Gigi Universal font bawaan system
-SettingsIcon.TextColor3 = Color3.fromRGB(0, 255, 255) -- Cyan Neon
-SettingsIcon.Font = Enum.Font.SourceSansBold
-SettingsIcon.TextSize = 28 -- Ukuran tombol dibuat besar dan jelas
-SettingsIcon.BorderSizePixel = 0
-SettingsIcon.Parent = SGUI
+-- ==========================================
+-- OPEN BUTTON (Ikon Utama Sistem)
+-- ==========================================
+local OpenBtn = Instance.new("TextButton")
+OpenBtn.Name = "OpenButton"
+OpenBtn.Size = UDim2.new(0, 45, 0, 45)
+OpenBtn.Position = UDim2.new(0, 15, 0.5, -22)
+OpenBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+OpenBtn.Text = "⚙"
+OpenBtn.TextColor3 = Color3.fromRGB(0, 255, 255)
+OpenBtn.Font = Enum.Font.SourceSansBold
+OpenBtn.TextSize = 26
+OpenBtn.Visible = false
+OpenBtn.Parent = ScreenGui
+addCorner(OpenBtn, 10)
 
-local IconCorner = Instance.new("UICorner")
-IconCorner.CornerRadius = UDim.new(0, 10)
-IconCorner.Parent = SettingsIcon
+local OpenStroke = Instance.new("UIStroke")
+OpenStroke.Color = Color3.fromRGB(0, 255, 255)
+OpenStroke.Thickness = 1.5
+OpenStroke.Parent = OpenBtn
 
-local IconStroke = Instance.new("UIStroke")
-IconStroke.Color = Color3.fromRGB(0, 255, 255)
-IconStroke.Thickness = 1.5
-IconStroke.Parent = SettingsIcon
+makeDraggable(OpenBtn)
 
-makeDraggable(SettingsIcon) -- Ikon pembuka bisa kamu geser bebas di layar
-
--- [[ 2. MAIN PANEL GUI ]] --
-local MainFrame = Instance.new("Frame")
-MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 310, 0, 400)
-MainFrame.Position = UDim2.new(0.5, -155, 0.5, -200)
-MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-MainFrame.BorderSizePixel = 0
-MainFrame.Visible = false -- Tersembunyi saat awal disuntik
-MainFrame.Parent = SGUI
-
-local MainCorner = Instance.new("UICorner")
-MainCorner.CornerRadius = UDim.new(0, 12)
-MainCorner.Parent = MainFrame
+-- ==========================================
+-- MAIN FRAME (310x350) - Ukuran Lebih Ringkas
+-- ==========================================
+local Main = Instance.new("Frame")
+Main.Name = "MainFrame"
+Main.Size = UDim2.new(0, 310, 0, 350) 
+Main.Position = UDim2.new(0.5, -155, 0.5, -175)
+Main.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+Main.BorderSizePixel = 0
+Main.Visible = true
+Main.Parent = ScreenGui
+addCorner(Main, 12)
 
 local MainStroke = Instance.new("UIStroke")
 MainStroke.Color = Color3.fromRGB(45, 45, 45)
 MainStroke.Thickness = 2
-MainStroke.Parent = MainFrame
+MainStroke.Parent = Main
 
-makeDraggable(MainFrame)
+makeDraggable(Main)
 
-local Header = Instance.new("TextLabel")
-Header.Size = UDim2.new(1, 0, 0, 40)
-Header.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-Header.Text = "PHYSICS ENGINE BENCH v5.1"
-Header.TextColor3 = Color3.fromRGB(0, 255, 255)
-Header.Font = Enum.Font.SourceSansBold
-Header.TextSize = 14
-Header.Parent = MainFrame
+-- Tombol Close (X)
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Size = UDim2.new(0, 25, 0, 25)
+CloseBtn.Position = UDim2.new(1, -30, 0, 8)
+CloseBtn.Text = "×"
+CloseBtn.Font = Enum.Font.SourceSansBold
+CloseBtn.TextSize = 22
+CloseBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+CloseBtn.BackgroundTransparency = 1
+CloseBtn.Parent = Main
 
-local HeaderCorner = Instance.new("UICorner")
-HeaderCorner.CornerRadius = UDim.new(0, 12)
-HeaderCorner.Parent = Header
+-- ==========================================
+-- HEADER SYSTEM
+-- ==========================================
+local HeaderContainer = Instance.new("Frame")
+HeaderContainer.Size = UDim2.new(1, 0, 0, 45)
+HeaderContainer.BackgroundTransparency = 1
+HeaderContainer.Parent = Main
 
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, 0, 0, 25)
+Title.Position = UDim2.new(0, 0, 0, 8)
+Title.Text = "KRIPTOS PHYSICAL ENGINE v6.0"
+Title.Font = Enum.Font.SourceSansBold
+Title.TextSize = 15
+Title.TextColor3 = Color3.fromRGB(0, 255, 255)
+Title.TextXAlignment = Enum.TextXAlignment.Center
+Title.BackgroundTransparency = 1
+Title.Parent = HeaderContainer
+
+local Version = Instance.new("TextLabel")
+Version.Size = UDim2.new(1, 0, 0, 10)
+Version.Position = UDim2.new(0, 0, 0, 28)
+Version.Text = "by @sptzyy & @ikyy | Pure Physics Mode"
+Version.Font = Enum.Font.SourceSans
+Version.TextSize = 10
+Version.TextColor3 = Color3.fromRGB(120, 120, 120)
+Version.TextXAlignment = Enum.TextXAlignment.Center
+Version.BackgroundTransparency = 1
+Version.Parent = HeaderContainer
+
+-- ==========================================
+-- LIST CONTAINER (SCROLLING FRAME)
+-- ==========================================
 local ScrollContainer = Instance.new("ScrollingFrame")
-ScrollContainer.Size = UDim2.new(1, -20, 1, -55)
-ScrollContainer.Position = UDim2.new(0, 10, 0, 48)
+ScrollContainer.Size = UDim2.new(1, -20, 1, -65)
+ScrollContainer.Position = UDim2.new(0, 10, 0, 52)
 ScrollContainer.BackgroundTransparency = 1
 ScrollContainer.BorderSizePixel = 0
 ScrollContainer.ScrollBarThickness = 4
 ScrollContainer.ScrollBarImageColor3 = Color3.fromRGB(0, 255, 255)
 ScrollContainer.CanvasSize = UDim2.new(0, 0, 0, 0)
-ScrollContainer.Parent = MainFrame
+ScrollContainer.Parent = Main
 
 local UILayout = Instance.new("UIListLayout")
 UILayout.Parent = ScrollContainer
 UILayout.SortOrder = Enum.SortOrder.LayoutOrder
-UILayout.Padding = UDim.new(0, 6)
+UILayout.Padding = UDim.new(0, 8)
 
 UILayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
     ScrollContainer.CanvasSize = UDim2.new(0, 0, 0, UILayout.AbsoluteContentSize.Y + 10)
 end)
 
--- [[ 3. DATA & LOGIKA ENGINE FISIKA RE RADIUS ]] --
-local ActiveStates = {
-    ["Mass Drag"] = false,
-    ["Mass Spin"] = false,
-    ["Black Hole"] = false,
-    ["Fling Slingshot"] = false,
-    ["Break Constraints"] = false
-}
-
-local FeatureDescriptions = {
-    ["Mass Drag"] = "Menarik part unanchored di sekitar radius Anda menggunakan tali elastis (Rope). Jalankan karakter untuk menyeret objek map tersebut.",
-    ["Mass Spin"] = "Menyuntikkan gaya putar AngularVelocity konstan pada objek map di dekat Anda hingga berputar kencang di tempat.",
-    ["Black Hole"] = "Menciptakan titik gravitasi hampa tepat di atas kepala Anda. Objek unanchored di sekitar radius akan terangkat dan melayang.",
-    ["Fling Slingshot"] = "Melontarkan paksa seluruh properti map terdekat menggunakan impuls VectorForce acak berdaya hancur tinggi.",
-    ["Break Constraints"] = "Memotong las mekanis bawaan objek map (Weld/Snap/Motor6D) dalam jangkauan Anda agar model langsung rontok ke tanah."
-}
-
-local StoredObjects = {}
-
+-- ==========================================
+-- LOGIKA ENGINE FISIKA RADIUS BYPASS
+-- ==========================================
 local function ClearAllFisika()
     for _, obj in pairs(StoredObjects) do
         if obj and obj.Parent then obj:Destroy() end
@@ -160,7 +200,6 @@ local function isAPlayerCharacterPart(part)
     return false
 end
 
--- ENGINE UTAMA RUNTIME STEPPED
 RunService.Stepped:Connect(function()
     local character = LocalPlayer.Character
     local hrp = character and character:FindFirstChild("HumanoidRootPart")
@@ -188,7 +227,6 @@ RunService.Stepped:Connect(function()
     end
     
     for _, part in pairs(targetParts) do
-        -- Pengambilalihan hak fisik
         if part.Velocity.Magnitude < 1 then
             part.Velocity = Vector3.new(0, -0.1, 0)
         end
@@ -290,15 +328,17 @@ RunService.Stepped:Connect(function()
     end
 end)
 
--- [[ 4. DYNAMIC BUTTON GENERATOR WITH LAYOUT ]] --
+-- ==========================================
+-- DYNAMIC BUTTON GENERATOR WITH LAYOUT
+-- ==========================================
 local function CreateMenuButton(featureName)
     local ItemGroupFrame = Instance.new("Frame")
-    ItemGroupFrame.Size = UDim2.new(1, -6, 0, 95)
+    ItemGroupFrame.Size = UDim2.new(1, -6, 0, 90)
     ItemGroupFrame.BackgroundTransparency = 1
     ItemGroupFrame.Parent = ScrollContainer
     
     local Btn = Instance.new("TextButton")
-    Btn.Size = UDim2.new(1, 0, 0, 38)
+    Btn.Size = UDim2.new(1, 0, 0, 36)
     Btn.BackgroundColor3 = Color3.fromRGB(28, 28, 28)
     Btn.Text = featureName .. " : [OFF]"
     Btn.TextColor3 = Color3.fromRGB(180, 180, 180)
@@ -317,8 +357,8 @@ local function CreateMenuButton(featureName)
     BtnStroke.Parent = Btn
     
     local DescLabel = Instance.new("TextLabel")
-    DescLabel.Size = UDim2.new(1, 0, 0, 52)
-    DescLabel.Position = UDim2.new(0, 0, 0, 43)
+    DescLabel.Size = UDim2.new(1, 0, 0, 48)
+    DescLabel.Position = UDim2.new(0, 0, 0, 40)
     DescLabel.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
     DescLabel.Text = FeatureDescriptions[featureName]
     DescLabel.TextColor3 = Color3.fromRGB(140, 140, 140)
@@ -359,14 +399,15 @@ local function CreateMenuButton(featureName)
     end)
 end
 
--- Bangun Struktur Daftar Tombol Menu Utama
+-- Menjalankan Inisialisasi Tombol Properti Fisika
 CreateMenuButton("Mass Drag")
 CreateMenuButton("Mass Spin")
 CreateMenuButton("Black Hole")
 CreateMenuButton("Fling Slingshot")
 CreateMenuButton("Break Constraints")
 
--- [[ 5. KENDALI OPEN/CLOSE PANEL UTAMA ]] --
-SettingsIcon.MouseButton1Click:Connect(function()
-    MainFrame.Visible = not MainFrame.Visible
-end)
+-- ==========================================
+-- WINDOW TOGGLE HANDLERS
+-- ==========================================
+CloseBtn.MouseButton1Click:Connect(function() Main.Visible = false OpenBtn.Visible = true end)
+OpenBtn.MouseButton1Click:Connect(function() Main.Visible = true OpenBtn.Visible = false end)
