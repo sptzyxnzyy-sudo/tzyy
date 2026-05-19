@@ -1,4 +1,4 @@
--- [[ SERVER-REPLICATED SHARP SQUARE 300x300 PHYSICS PRO V11 ]] --
+-- [[ SERVER-REPLICATED SHARP SQUARE 300x300 PHYSICS PRO V12 ]] --
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
@@ -37,7 +37,7 @@ local HeaderLabel = Instance.new("TextLabel")
 HeaderLabel.Size = UDim2.new(1, 0, 0, 30)
 HeaderLabel.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
 HeaderLabel.BorderSizePixel = 0
-HeaderLabel.Text = "  SERVER REPLICATED PHYSICS V11"
+HeaderLabel.Text = "  SERVER REPLICATED PHYSICS V12"
 HeaderLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 HeaderLabel.Font = Enum.Font.SourceSansBold
 HeaderLabel.TextSize = 11
@@ -65,7 +65,7 @@ UIListLayout.Padding = UDim.new(0, 6)
 UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 UIListLayout.Parent = ScrollContainer
 
--- [[ VARIABLE & LOGIKA REPLIKASI FISIKA SERVER ]] --
+-- [[ VARIABLE & LOGIKA REPLIKASI FISIKA ]] --
 local States = {
     MassSpin = false,
     BlackHole = false,
@@ -81,10 +81,10 @@ local Configs = {
     Fling_Power = 500,
     Scan_Radius = 150,
     Glitch_Multi = 2000,
-    Quantum_Power = 35
+    Quantum_Power = 45 -- Kecepatan respons magnet pembawa bawaan kepala
 }
 
--- Fungsi mengklaim Network Ownership agar perubahan dilihat semua orang
+-- Fungsi klaim Network Ownership otomatis via fisika aktif
 local function claimNetworkOwnership(part)
     if settings().Physics.AllowSleep then
         settings().Physics.AllowSleep = false
@@ -92,42 +92,34 @@ local function claimNetworkOwnership(part)
     part.RotVelocity = part.RotVelocity + Vector3.new(0, 0.01, 0)
 end
 
--- [[ BLACKLIST FILTER SANGAT KETAT UNTUK SEGALA JENIS TUBUH PLAYER ]] --
+-- Blacklist Filter agar sama sekali tidak mengganggu part tubuh manapun
 local function isAPlayerPart(part)
-    -- 1. Proteksi Utama: Cek jika part ada di dalam Model Character milik player manapun
     for _, player in pairs(Players:GetPlayers()) do
         local pChar = player.Character
         if pChar and part:IsDescendantOf(pChar) then
             return true
         end
     end
-    
-    -- 2. Proteksi Humanoid Parent: Cek jika indukan part memiliki objek Humanoid
     if part.Parent and (part.Parent:FindFirstChildOfClass("Humanoid") or (part.Parent.Parent and part.Parent.Parent:FindFirstChildOfClass("Humanoid"))) then
         return true
     end
-
-    -- 3. Proteksi Aksesori: Jangan sentuh topi, rambut, jubah, atau back-tool player
     if part.Parent and (part.Parent:IsA("Accessory") or part.Parent:IsA("Tool") or part.Parent:IsA("Hat")) then
         return true
     end
-
-    -- 4. Proteksi Berdasarkan String Nama Karakter Standard Roblox (R6 / R15 / Custom)
     local name = part.Name:lower()
     if name:find("head") or name:find("torso") or name:find("root") or name:find("arm") or name:find("leg") or name:find("hand") or name:find("foot") or name:find("limb") then
         return true
     end
-    
     return false
 end
 
+-- Fungsi Pemindaian Sesuai Radius Konfigurasi
 local function getValidParts()
     local parts = {}
     local root = Character:FindFirstChild("HumanoidRootPart")
     if not root then return parts end
 
     for _, obj in pairs(workspace:GetDescendants()) do
-        -- Hanya memproses part unanchored yang aman dari filter tubuh
         if obj:IsA("BasePart") and not obj.Anchored then
             if not isAPlayerPart(obj) then
                 if (obj.Position - root.Position).Magnitude <= Configs.Scan_Radius then
@@ -139,7 +131,7 @@ local function getValidParts()
     return parts
 end
 
--- Runtime Loop Menggunakan Heartbeat
+-- Runtime Loop Menggunakan Heartbeat (Sync Fisika Server)
 RunService.Heartbeat:Connect(function()
     local root = Character:FindFirstChild("HumanoidRootPart")
     if not root then return end
@@ -149,18 +141,45 @@ RunService.Heartbeat:Connect(function()
     for _, part in pairs(targets) do
         claimNetworkOwnership(part)
 
-        -- 1. Mass Spin
-        if States.MassSpin then
+        -- =======================================================
+        -- LOGIKA BARU QUANTUM TETHER (SCAN -> BREAK -> MAGNET -> SPIN DI ATAS KEPALA)
+        -- =======================================================
+        if States.QuantumTether then
+            -- 1. Break Tethers (Putus otomatis instan saat tergenggam fitur ini)
+            for _, subObj in pairs(part:GetChildren()) do
+                if subObj:IsA("Constraint") or subObj:IsA("RopeConstraint") or subObj:IsA("Weld") or subObj:IsA("WeldConstraint") then
+                    subObj:Destroy()
+                end
+            end
+
+            -- Posisi Target: Selalu di atas kepala player (Y + 12 agar tidak menabrak karakter)
+            local targetPos = root.Position + Vector3.new(0, 12, 0)
+            local direction = (targetPos - part.Position)
+            local distance = direction.Magnitude
+            
+            -- 2. Magnet (Menarik objek menuju titik target di atas kepala)
+            if distance > 1.5 then
+                part.Velocity = direction * Configs.Quantum_Power
+            else
+                -- Jika sudah sampai di atas kepala, kunci kecepatan menyatu dengan pergerakan player
+                part.Velocity = root.Velocity
+            end
+
+            -- 3. Spin Di Atas Kepala (Konstan berputar ekstrem agar replikasi server terjaga)
+            part.RotVelocity = Vector3.new(0, 120, 0)
+        end
+
+        -- 1. Mass Spin (Normal Standalone)
+        if States.MassSpin and not States.QuantumTether then
             part.RotVelocity = Vector3.new(0, Configs.MassSpin_Speed, 0)
             part.Velocity = part.Velocity + Vector3.new(math.random(-15, 15), math.random(-10, 10), math.random(-15, 15))
         end
 
-        -- 2. Black Hole
-        if States.BlackHole then
+        -- 2. Black Hole (Normal Standalone)
+        if States.BlackHole and not States.QuantumTether then
             local targetPos = root.Position + Vector3.new(0, 18, 0)
             local direction = (targetPos - part.Position)
             local distance = direction.Magnitude
-            
             if distance > 2 then
                 part.Velocity = direction.Unit * Configs.BlackHole_Force
             else
@@ -178,8 +197,8 @@ RunService.Heartbeat:Connect(function()
             )
         end
 
-        -- 4. Break Tethers
-        if States.BreakTethers then
+        -- 4. Break Tethers (Normal Standalone)
+        if States.BreakTethers and not States.QuantumTether then
             for _, subObj in pairs(part:GetChildren()) do
                 if subObj:IsA("Constraint") or subObj:IsA("RopeConstraint") or subObj:IsA("Weld") or subObj:IsA("WeldConstraint") then
                     subObj:Destroy()
@@ -194,19 +213,6 @@ RunService.Heartbeat:Connect(function()
             local multi = Configs.Glitch_Multi
             part.Velocity = direction.Unit * math.random(multi * 0.4, multi) * (math.random(1, 2) == 1 and 1 or -1)
             part.RotVelocity = Vector3.new(math.random(-500, 500), math.random(-500, 500), math.random(-500, 500))
-        end
-
-        -- 6. Quantum Tether (Membawa Part Tanpa Lepas)
-        if States.QuantumTether then
-            local holdPos = (root.CFrame * CFrame.new(0, 0, -6)).Position
-            local direction = (holdPos - part.Position)
-            local distance = direction.Magnitude
-            
-            if distance > 1 then
-                part.Velocity = direction * Configs.Quantum_Power
-            else
-                part.Velocity = root.Velocity
-            end
         end
     end
 end)
@@ -248,7 +254,7 @@ local function createSquareComponent(title, desc, defaultVal, configKey, callbac
     DescLabel.TextYAlignment = Enum.TextYAlignment.Top
     DescLabel.Parent = ButtonFrame
 
-    -- KOTAK INPUT ANGKA VIA TEXTBOX
+    -- INPUT FIELD TEXTBOX
     local InputBox = Instance.new("TextBox")
     InputBox.Size = UDim2.new(0, 42, 0, 20)
     InputBox.Position = UDim2.new(1, -92, 0.5, -10)
@@ -275,7 +281,7 @@ local function createSquareComponent(title, desc, defaultVal, configKey, callbac
         end
     end)
 
-    -- TOMBOL TOGGLE ON/OFF
+    -- TOMBOL SWITCH ON/OFF
     local ToggleButton = Instance.new("TextButton")
     ToggleButton.Size = UDim2.new(0, 36, 0, 20)
     ToggleButton.Position = UDim2.new(1, -44, 0.5, -10)
@@ -313,12 +319,12 @@ local function createSquareComponent(title, desc, defaultVal, configKey, callbac
     end)
 end
 
--- [[ INTEGRASI 6 FITUR UTAMA DENGAN FILTER ANTIPLAYER ]] --
-createSquareComponent("Mass Spin", "Objek berputar ekstrem & bergoyang brutal.", Configs.MassSpin_Speed, "MassSpin_Speed", function(state) States.MassSpin = state end)
-createSquareComponent("Black Hole", "Menarik objek berkumpul di atas kepala.", Configs.BlackHole_Force, "BlackHole_Force", function(state) States.BlackHole = state end)
+-- [[ INTEGRASI SEURUH KOMPONEN KE UI ]] --
+createSquareComponent("Quantum Tether", "Scan -> Break -> Magnet -> Spin di atas kepala.", Configs.Quantum_Power, "Quantum_Power", function(state) States.QuantumTether = state end)
+createSquareComponent("Mass Spin", "Membuat objek berputar ekstrem & bergoyang.", Configs.MassSpin_Speed, "MassSpin_Speed", function(state) States.MassSpin = state end)
+createSquareComponent("Black Hole", "Menarik objek berkumpul statis di atas kepala.", Configs.BlackHole_Force, "BlackHole_Force", function(state) States.BlackHole = state end)
 createSquareComponent("Fling Slingshot", "Melontarkan objek dengan gaya entakan masif.", Configs.Fling_Power, "Fling_Power", function(state) States.FlingSlingshot = state end)
-createSquareComponent("Break Tethers", "Memutus tali/joint constraint radius.", Configs.Scan_Radius, "Scan_Radius", function(state) States.BreakTethers = state end)
-createSquareComponent("Glitch Magnet", "Menarik objek dengan velocity acak/rusak.", Configs.Glitch_Multi, "Glitch_Multi", function(state) States.GlitchMagnet = state end)
-createSquareComponent("Quantum Tether", "Mengunci & membawa objek mengikuti player.", Configs.Quantum_Power, "Quantum_Power", function(state) States.QuantumTether = state end)
+createSquareComponent("Break Tethers", "Membatasi jarak radius scan & memutus tali.", Configs.Scan_Radius, "Scan_Radius", function(state) States.BreakTethers = state end)
+createSquareComponent("Glitch Magnet", "Menarik objek dengan keanehan velocity acak.", Configs.Glitch_Multi, "Glitch_Multi", function(state) States.GlitchMagnet = state end)
 
-print("Server-Replicated Physics Toolkit v11 (Strict Anti-Player Body) Loaded!")
+print("Server-Replicated Physics Toolkit v12 (Chain Genggam Kepala) Loaded!")
