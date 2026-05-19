@@ -1,4 +1,4 @@
--- [[ HORIZONTAL MINIMALIST PHYSICS EXECUTOR ]] --
+-- [[ SQUARE 300x300 PHYSICS EXECUTOR ]] --
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
@@ -10,47 +10,60 @@ end)
 
 -- [[ SETUP GUI UTAMA ]] --
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "HorizontalPhysics"
+ScreenGui.Name = "SquarePhysics"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.Parent = (gethui and gethui()) or game:GetService("CoreGui") or LocalPlayer:WaitForChild("PlayerGui")
 
--- Frame Utama (Bentuk Persegi Panjang ke Samping)
+-- Frame Utama (Kotak Sempurna 300x300)
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 680, 0, 75) -- Lebar ke samping, sangat tipis ke bawah
-MainFrame.Position = UDim2.new(0.5, -340, 0.05, 0) -- Default di bagian atas tengah layar
-MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+MainFrame.Size = UDim2.new(0, 300, 0, 300) -- Ukuran pas 300x300 sesuai permintaan
+MainFrame.Position = UDim2.new(0.5, -150, 0.3, -150)
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
-MainFrame.Draggable = true -- Bisa digeser bebas ke mana saja
+MainFrame.Draggable = true 
 MainFrame.Parent = ScreenGui
 
-local UICorner = Instance.new("UICorner")
-UICorner.CornerRadius = UDim.new(0, 6)
-UICorner.Parent = MainFrame
-
+-- Efek Border Cyan Tajam (Tanpa Lengkungan)
 local UIStroke = Instance.new("UIStroke")
-UIStroke.Color = Color3.fromRGB(0, 180, 255) -- Aksen Cyan Modern
-UIStroke.Thickness = 1.2
+UIStroke.Color = Color3.fromRGB(0, 180, 255)
+UIStroke.Thickness = 1.5
 UIStroke.Parent = MainFrame
 
--- Kontainer Horizontal untuk Fitur
-local RowLayout = Instance.new("ScrollingFrame")
-RowLayout.Size = UDim2.new(1, -10, 1, -10)
-RowLayout.Position = UDim2.new(0, 5, 0, 5)
-RowLayout.BackgroundTransparency = 1
-RowLayout.BorderSizePixel = 0
-RowLayout.CanvasSize = UDim2.new(0, 850, 0, 0) -- Scroll ke samping jika layar HP terlalu kecil
-RowLayout.ScrollBarThickness = 3
-RowLayout.Parent = MainFrame
+-- Header Menu Kecil
+local HeaderLabel = Instance.new("TextLabel")
+HeaderLabel.Size = UDim2.new(1, 0, 0, 28)
+HeaderLabel.BackgroundColor3 = Color3.fromRGB(22, 22, 26)
+HeaderLabel.BorderSizePixel = 0
+HeaderLabel.Text = "  PHYSICS TOOLKIT (300x300)"
+HeaderLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+HeaderLabel.Font = Enum.Font.SourceSansBold
+HeaderLabel.TextSize = 12
+HeaderLabel.TextXAlignment = Enum.TextXAlignment.Left
+HeaderLabel.Parent = MainFrame
+
+local HeaderStroke = Instance.new("UIStroke")
+HeaderStroke.Color = Color3.fromRGB(30, 30, 35)
+HeaderStroke.Thickness = 1
+HeaderStroke.Parent = HeaderLabel
+
+-- Kontainer Vertikal (Scroll ke Bawah jika Penuh)
+local ScrollContainer = Instance.new("ScrollingFrame")
+ScrollContainer.Size = UDim2.new(1, -12, 1, -38)
+ScrollContainer.Position = UDim2.new(0, 6, 0, 32)
+ScrollContainer.BackgroundTransparency = 1
+ScrollContainer.BorderSizePixel = 0
+ScrollContainer.CanvasSize = UDim2.new(0, 0, 0, 310) -- Ruang gulir vertikal yang pas
+ScrollContainer.ScrollBarThickness = 3
+ScrollContainer.Parent = MainFrame
 
 local UIListLayout = Instance.new("UIListLayout")
-UIListLayout.FillDirection = Enum.FillDirection.Horizontal -- Menyusun ke samping
-UIListLayout.Padding = UDim.new(0, 8)
+UIListLayout.FillDirection = Enum.FillDirection.Vertical -- Menyusun ke bawah agar pas di 300x300
+UIListLayout.Padding = UDim.new(0, 6)
 UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-UIListLayout.VerticalAlignment = Enum.VerticalAlignment.Center
-UIListLayout.Parent = RowLayout
+UIListLayout.Parent = ScrollContainer
 
 -- [[ VARIABLE & LOGIKA PHYSICS ]] --
 local States = {
@@ -79,7 +92,7 @@ local function getUnanchoredParts()
     return parts
 end
 
--- Runtime Loop untuk Fungsi Utama
+-- Runtime Loop
 RunService.Heartbeat:Connect(function()
     local root = Character:FindFirstChild("HumanoidRootPart")
     if not root then return end
@@ -132,7 +145,7 @@ RunService.Heartbeat:Connect(function()
         ActiveSpins = {}
     end
 
-    -- 3. Black Hole (18 Studs Above)
+    -- 3. Black Hole
     if States.BlackHole then
         local targetPos = root.Position + Vector3.new(0, 18, 0)
         for _, part in pairs(targets) do
@@ -172,46 +185,70 @@ local function breakConstraints()
     end
 end
 
--- [[ METODE SEEDING TOMBOL DENGAN SUB-TEKS KETERANGAN ]] --
-local function createHorizontalComponent(title, desc, isToggle, callback)
+-- [[ METODE SEEDING KOMPONEN: VERTIKAL UNTUK UKURAN KOTAK 300x300 ]] --
+local function createComponent(title, desc, isToggle, callback)
     local ButtonFrame = Instance.new("TextButton")
-    ButtonFrame.Size = UDim2.new(0, 155, 0, 52) -- Ukuran kotak modul fitur yang pas
-    ButtonFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+    ButtonFrame.Size = UDim2.new(1, -6, 0, 50) -- Lebar penuh mengikuti kontainer kontainer kotak 300x300
+    ButtonFrame.BackgroundColor3 = Color3.fromRGB(24, 24, 28)
     ButtonFrame.Text = ""
     ButtonFrame.AutoButtonColor = true
-    ButtonFrame.Parent = RowLayout
-
-    local BtnCorner = Instance.new("UICorner")
-    BtnCorner.CornerRadius = UDim.new(0, 5)
-    BtnCorner.Parent = ButtonFrame
+    ButtonFrame.BorderSizePixel = 0
+    ButtonFrame.Parent = ScrollContainer
 
     local Stroke = Instance.new("UIStroke")
-    Stroke.Color = Color3.fromRGB(45, 45, 50)
+    Stroke.Color = Color3.fromRGB(40, 40, 45)
     Stroke.Thickness = 1
     Stroke.Parent = ButtonFrame
 
-    -- Label Nama Fitur
+    -- Judul Fitur
     local TitleLabel = Instance.new("TextLabel")
-    TitleLabel.Size = UDim2.new(1, 0, 0.5, 0)
-    TitleLabel.Position = UDim2.new(0, 0, 0.1, 0)
+    TitleLabel.Size = UDim2.new(1, -50, 0.4, 0)
+    TitleLabel.Position = UDim2.new(0, 8, 0.1, 0)
     TitleLabel.BackgroundTransparency = 1
     TitleLabel.Text = title
     TitleLabel.TextColor3 = Color3.fromRGB(240, 240, 240)
     TitleLabel.Font = Enum.Font.SourceSansBold
     TitleLabel.TextSize = 13
+    TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
     TitleLabel.Parent = ButtonFrame
 
-    -- Label Keterangan Fitur (Deskripsi)
+    -- Deskripsi Fitur
     local DescLabel = Instance.new("TextLabel")
-    DescLabel.Size = UDim2.new(1, -10, 0.4, 0)
-    DescLabel.Position = UDim2.new(0, 5, 0.55, 0)
+    DescLabel.Size = UDim2.new(1, -55, 0.5, 0)
+    DescLabel.Position = UDim2.new(0, 8, 0.45, 0)
     DescLabel.BackgroundTransparency = 1
     DescLabel.Text = desc
-    DescLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+    DescLabel.TextColor3 = Color3.fromRGB(135, 135, 140)
     DescLabel.Font = Enum.Font.SourceSansItalic
     DescLabel.TextSize = 10
     DescLabel.TextWrapped = true
+    DescLabel.TextXAlignment = Enum.TextXAlignment.Left
+    DescLabel.TextYAlignment = Enum.TextYAlignment.Top
     DescLabel.Parent = ButtonFrame
+
+    -- Tombol Indikator Satuan ON / OFF
+    local Indicator = Instance.new("TextLabel")
+    local IndicatorStroke = Instance.new("UIStroke")
+    Indicator.Size = UDim2.new(0, 36, 0, 20)
+    Indicator.Position = UDim2.new(1, -44, 0.5, -10)
+    Indicator.BorderSizePixel = 0
+    Indicator.Font = Enum.Font.SourceSansBold
+    Indicator.TextSize = 10
+    Indicator.Parent = ButtonFrame
+
+    if isToggle then
+        Indicator.BackgroundColor3 = Color3.fromRGB(38, 38, 43)
+        Indicator.Text = "OFF"
+        Indicator.TextColor3 = Color3.fromRGB(150, 150, 150)
+        IndicatorStroke.Color = Color3.fromRGB(55, 55, 60)
+    else
+        Indicator.BackgroundColor3 = Color3.fromRGB(48, 22, 22)
+        Indicator.Text = "RUN"
+        Indicator.TextColor3 = Color3.fromRGB(240, 90, 90)
+        IndicatorStroke.Color = Color3.fromRGB(90, 35, 35)
+    end
+    IndicatorStroke.Thickness = 1
+    IndicatorStroke.Parent = Indicator
 
     local toggled = false
 
@@ -219,32 +256,36 @@ local function createHorizontalComponent(title, desc, isToggle, callback)
         if isToggle then
             toggled = not toggled
             if toggled then
-                ButtonFrame.BackgroundColor3 = Color3.fromRGB(0, 100, 180)
                 Stroke.Color = Color3.fromRGB(0, 180, 255)
-                TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-                DescLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
+                Indicator.BackgroundColor3 = Color3.fromRGB(0, 85, 160)
+                Indicator.TextColor3 = Color3.fromRGB(255, 255, 255)
+                Indicator.Text = "ON"
+                IndicatorStroke.Color = Color3.fromRGB(0, 180, 255)
             else
-                ButtonFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
-                Stroke.Color = Color3.fromRGB(45, 45, 50)
-                TitleLabel.TextColor3 = Color3.fromRGB(240, 240, 240)
-                DescLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+                Stroke.Color = Color3.fromRGB(40, 40, 45)
+                Indicator.BackgroundColor3 = Color3.fromRGB(38, 38, 43)
+                Indicator.TextColor3 = Color3.fromRGB(150, 150, 150)
+                Indicator.Text = "OFF"
+                IndicatorStroke.Color = Color3.fromRGB(55, 55, 60)
             end
             callback(toggled)
         else
-            -- Kilasan warna untuk tombol aksi instan (Break Constraints)
-            ButtonFrame.BackgroundColor3 = Color3.fromRGB(150, 35, 35)
+            -- Animasi Kedip untuk Trigger Sekali Klik
+            Indicator.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+            Indicator.TextColor3 = Color3.fromRGB(255, 255, 255)
             task.wait(0.12)
-            ButtonFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+            Indicator.BackgroundColor3 = Color3.fromRGB(48, 22, 22)
+            Indicator.TextColor3 = Color3.fromRGB(240, 90, 90)
             callback()
         end
     end)
 end
 
--- [[ INTEGRASI SEMUA FITUR + KETERANGAN ]] --
-createHorizontalComponent("Mass Drag", "Mengikat objek unanchored di sekitar dengan tali virtual.", true, function(state) States.MassDrag = state end)
-createHorizontalComponent("Mass Spin", "Membuat objek berputar sangat cepat menggunakan gaya maksimal.", true, function(state) States.MassSpin = state end)
-createHorizontalComponent("Black Hole", "Menyedot semua material melayang 18 stud di atas kepala.", true, function(state) States.BlackHole = state end)
-createHorizontalComponent("Fling Slingshot", "Melontarkan objek secara acak dengan daya dorong besar.", true, function(state) States.FlingSlingshot = state end)
-createHorizontalComponent("Break Constraints", "Menghancurkan las (weld) objek jembatan/mobil instan.", false, function() breakConstraints() end)
+-- [[ DISTRIBUSI MODUL FITUR ]] --
+createComponent("Mass Drag", "Mengikat objek unanchored dengan tali virtual.", true, function(state) States.MassDrag = state end)
+createComponent("Mass Spin", "Membuat objek berputar kencang dengan MaxTorque.", true, function(state) States.MassSpin = state end)
+createComponent("Black Hole", "Menyedot material melayang 18 stud di atas kepala.", true, function(state) States.BlackHole = state end)
+createComponent("Fling Slingshot", "Melontarkan part secara instan ke arah acak.", true, function(state) States.FlingSlingshot = state end)
+createComponent("Break Constraints", "Menghancurkan sambungan las model map.", false, function() breakConstraints() end)
 
-print("Horizontal Sleek Physics Toolkit v3 Berhasil Dimuat!")
+print("Sharp Square 300x300 Physics Toolkit v5 Berhasil Dimuat!")
