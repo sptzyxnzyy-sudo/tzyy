@@ -1,6 +1,6 @@
--- [[ KRIPTOS PHYSICAL MANIPULATION TOOL v5.0 PRO FULL ]] --
+-- [[ KRIPTOS PHYSICAL MANIPULATION TOOL v5.1 FIXED ICON ]] --
 -- Cocok untuk Executor Mobile & PC (Delta, Fluxus, Hydrogen, Wave, dll)
--- UPDATE: Menggunakan metode Radius-Based Physics & Real-time Attachment Lock.
+-- PERBAIKAN: Ikon Gambar diganti dengan TextButton Simbol "⚙" agar 100% pasti muncul.
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -8,12 +8,12 @@ local LocalPlayer = Players.LocalPlayer
 local CoreGui = game:GetService("CoreGui")
 
 -- Bersihkan UI lama jika ada
-if CoreGui:FindFirstChild("KriptosConstraintUI_v5") then
-    CoreGui.KriptosConstraintUI_v5:Destroy()
+if CoreGui:FindFirstChild("KriptosConstraintUI_v5_1") then
+    CoreGui.KriptosConstraintUI_v5_1:Destroy()
 end
 
 local SGUI = Instance.new("ScreenGui")
-SGUI.Name = "KriptosConstraintUI_v5"
+SGUI.Name = "KriptosConstraintUI_v5_1"
 SGUI.Parent = CoreGui
 SGUI.ResetOnSpawn = false
 
@@ -48,26 +48,18 @@ local function makeDraggable(frame, dragHandle)
     end)
 end
 
--- [[ 1. ICON SETTINGS (Tombol Utama) ]] --
-local SettingsIcon = Instance.new("ImageButton")
+-- [[ 1. FIXED ICON SETTINGS (Menggunakan TextButton Murni Simbol Roda Gigi) ]] --
+local SettingsIcon = Instance.new("TextButton")
 SettingsIcon.Name = "SettingsIcon"
 SettingsIcon.Size = UDim2.new(0, 45, 0, 45)
-SettingsIcon.Position = UDim2.new(0, 20, 0, 150)
+SettingsIcon.Position = UDim2.new(0, 20, 0, 150) -- Letak tombol di kiri layar (bisa digeser)
 SettingsIcon.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-SettingsIcon.Image = "rbxassetid://7059346373"
-SettingsIcon.ImageColor3 = Color3.fromRGB(0, 255, 255)
+SettingsIcon.Text = "⚙" -- Simbol Roda Gigi Universal font bawaan system
+SettingsIcon.TextColor3 = Color3.fromRGB(0, 255, 255) -- Cyan Neon
+SettingsIcon.Font = Enum.Font.SourceSansBold
+SettingsIcon.TextSize = 28 -- Ukuran tombol dibuat besar dan jelas
 SettingsIcon.BorderSizePixel = 0
 SettingsIcon.Parent = SGUI
-
-local BackupText = Instance.new("TextLabel")
-BackupText.Size = UDim2.new(1, 0, 1, 0)
-BackupText.BackgroundTransparency = 1
-BackupText.Text = "[ K ]"
-BackupText.TextColor3 = Color3.fromRGB(0, 255, 255)
-BackupText.Font = Enum.Font.SourceSansBold
-BackupText.TextSize = 14
-BackupText.ZIndex = 0
-BackupText.Parent = SettingsIcon
 
 local IconCorner = Instance.new("UICorner")
 IconCorner.CornerRadius = UDim.new(0, 10)
@@ -78,7 +70,7 @@ IconStroke.Color = Color3.fromRGB(0, 255, 255)
 IconStroke.Thickness = 1.5
 IconStroke.Parent = SettingsIcon
 
-makeDraggable(SettingsIcon)
+makeDraggable(SettingsIcon) -- Ikon pembuka bisa kamu geser bebas di layar
 
 -- [[ 2. MAIN PANEL GUI ]] --
 local MainFrame = Instance.new("Frame")
@@ -87,7 +79,7 @@ MainFrame.Size = UDim2.new(0, 310, 0, 400)
 MainFrame.Position = UDim2.new(0.5, -155, 0.5, -200)
 MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 MainFrame.BorderSizePixel = 0
-MainFrame.Visible = false
+MainFrame.Visible = false -- Tersembunyi saat awal disuntik
 MainFrame.Parent = SGUI
 
 local MainCorner = Instance.new("UICorner")
@@ -104,7 +96,7 @@ makeDraggable(MainFrame)
 local Header = Instance.new("TextLabel")
 Header.Size = UDim2.new(1, 0, 0, 40)
 Header.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-Header.Text = "PHYSICS ENGINE BENCH v5.0"
+Header.Text = "PHYSICS ENGINE BENCH v5.1"
 Header.TextColor3 = Color3.fromRGB(0, 255, 255)
 Header.Font = Enum.Font.SourceSansBold
 Header.TextSize = 14
@@ -133,7 +125,7 @@ UILayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
     ScrollContainer.CanvasSize = UDim2.new(0, 0, 0, UILayout.AbsoluteContentSize.Y + 10)
 end)
 
--- [[ 3. DATA & LOGIKA ENGINE FISIKA RE-BUILT (MENGGUNAKAN SELECTION RADIUS) ]] --
+-- [[ 3. DATA & LOGIKA ENGINE FISIKA RE RADIUS ]] --
 local ActiveStates = {
     ["Mass Drag"] = false,
     ["Mass Spin"] = false,
@@ -152,7 +144,6 @@ local FeatureDescriptions = {
 
 local StoredObjects = {}
 
--- Fungsi pembersih instansi gaya fisik lama agar memori executor bersih
 local function ClearAllFisika()
     for _, obj in pairs(StoredObjects) do
         if obj and obj.Parent then obj:Destroy() end
@@ -160,7 +151,6 @@ local function ClearAllFisika()
     StoredObjects = {}
 end
 
--- Filter pelindung agar anggota tubuh pemain di server aman dari modifikasi
 local function isAPlayerCharacterPart(part)
     for _, p in pairs(Players:GetPlayers()) do
         if p.Character and part:IsDescendantOf(p.Character) then
@@ -170,12 +160,11 @@ local function isAPlayerCharacterPart(part)
     return false
 end
 
--- ENGINE MANIPULASI REAL-TIME (Dijalankan setiap frame menggunakan Stepped)
+-- ENGINE UTAMA RUNTIME STEPPED
 RunService.Stepped:Connect(function()
     local character = LocalPlayer.Character
     local hrp = character and character:FindFirstChild("HumanoidRootPart")
     
-    -- Jika tidak ada fitur yang ON atau Karakter mati, bersihkan sisa objek
     local anyFeatureActive = false
     for _, state in pairs(ActiveStates) do
         if state then anyFeatureActive = true break end
@@ -186,7 +175,6 @@ RunService.Stepped:Connect(function()
         return
     end
     
-    -- SCANNING BERBASIS RADIUS JARAK (Maksimal 150 Studs demi kestabilan bypass NetworkOwnership)
     local scanRadius = 150
     local targetParts = {}
     
@@ -199,15 +187,13 @@ RunService.Stepped:Connect(function()
         end
     end
     
-    -- Eksekusi Gaya Fisika Secara Real-time Ke Objek Yang Valid
     for _, part in pairs(targetParts) do
-        
-        -- Bypass Kepemilikan Jaringan (Network Ownership Claimer)
+        -- Pengambilalihan hak fisik
         if part.Velocity.Magnitude < 1 then
             part.Velocity = Vector3.new(0, -0.1, 0)
         end
         
-        -- [FITUR A]: MASS DRAG
+        -- [A] MASS DRAG
         if ActiveStates["Mass Drag"] then
             if not part:FindFirstChild("DragAtt") then
                 local att1 = Instance.new("Attachment")
@@ -233,7 +219,7 @@ RunService.Stepped:Connect(function()
             end
         end
         
-        -- [FITUR B]: MASS SPIN
+        -- [B] MASS SPIN
         if ActiveStates["Mass Spin"] then
             if not part:FindFirstChild("SpinVelocity") then
                 local att = Instance.new("Attachment")
@@ -252,7 +238,7 @@ RunService.Stepped:Connect(function()
             end
         end
         
-        -- [FITUR C]: BLACK HOLE (Umpan Posisi Diperbarui Setiap Frame)
+        -- [C] BLACK HOLE
         if ActiveStates["Black Hole"] then
             local lv = part:FindFirstChild("BlackHoleVelocity")
             local att = part:FindFirstChild("BlackHoleAtt")
@@ -271,12 +257,11 @@ RunService.Stepped:Connect(function()
                 table.insert(StoredObjects, att)
                 table.insert(StoredObjects, lv)
             end
-            -- Perbarui arah gaya linear secara presisi menuju atas kepala pemain
             local targetPos = hrp.Position + Vector3.new(0, 18, 0)
             lv.VectorVelocity = (targetPos - part.Position).Unit * 55
         end
         
-        -- [FITUR D]: FLING SLINGSHOT
+        -- [D] FLING SLINGSHOT
         if ActiveStates["Fling Slingshot"] then
             if not part:FindFirstChild("FlingForce") then
                 local att = Instance.new("Attachment")
@@ -294,7 +279,7 @@ RunService.Stepped:Connect(function()
             end
         end
         
-        -- [FITUR E]: BREAK CONSTRAINTS (Instant Destroy Tanpa Penyimpanan)
+        -- [E] BREAK CONSTRAINTS
         if ActiveStates["Break Constraints"] then
             for _, joint in pairs(part:GetChildren()) do
                 if joint:IsA("Constraint") or joint:IsA("Weld") or joint:IsA("ManualWeld") or joint:IsA("WeldConstraint") or joint:IsA("Motor6D") or joint:IsA("Snap") then
@@ -302,10 +287,8 @@ RunService.Stepped:Connect(function()
                 end
             end
         end
-        
     end
 end)
-
 
 -- [[ 4. DYNAMIC BUTTON GENERATOR WITH LAYOUT ]] --
 local function CreateMenuButton(featureName)
@@ -371,21 +354,19 @@ local function CreateMenuButton(featureName)
             Btn.TextColor3 = Color3.fromRGB(180, 180, 180)
             Btn.UIStroke.Color = Color3.fromRGB(45, 45, 45)
             DescLabel.TextColor3 = Color3.fromRGB(140, 140, 140)
-            
-            -- Hapus seluruh instansi terkait fitur ini seketika saat dimatikan
             ClearAllFisika()
         end
     end)
 end
 
--- Inisialisasi Tombol Utama
+-- Bangun Struktur Daftar Tombol Menu Utama
 CreateMenuButton("Mass Drag")
 CreateMenuButton("Mass Spin")
 CreateMenuButton("Black Hole")
 CreateMenuButton("Fling Slingshot")
 CreateMenuButton("Break Constraints")
 
--- [[ 5. KENDALI OPEN/CLOSE UTAMA ]] --
+-- [[ 5. KENDALI OPEN/CLOSE PANEL UTAMA ]] --
 SettingsIcon.MouseButton1Click:Connect(function()
     MainFrame.Visible = not MainFrame.Visible
 end)
