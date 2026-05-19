@@ -1,6 +1,6 @@
--- [[ KRIPTOS PHYSICAL MANIPULATION TOOL v4.6 FIX ]] --
+-- [[ KRIPTOS PHYSICAL MANIPULATION TOOL v5.0 PRO FULL ]] --
 -- Cocok untuk Executor Mobile & PC (Delta, Fluxus, Hydrogen, Wave, dll)
--- FIX: Perbaikan logika loop yang menghapus objek gaya secara tidak sengaja.
+-- UPDATE: Menggunakan metode Radius-Based Physics & Real-time Attachment Lock.
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -8,12 +8,12 @@ local LocalPlayer = Players.LocalPlayer
 local CoreGui = game:GetService("CoreGui")
 
 -- Bersihkan UI lama jika ada
-if CoreGui:FindFirstChild("KriptosConstraintUI_v4_6") then
-    CoreGui.KriptosConstraintUI_v4_6:Destroy()
+if CoreGui:FindFirstChild("KriptosConstraintUI_v5") then
+    CoreGui.KriptosConstraintUI_v5:Destroy()
 end
 
 local SGUI = Instance.new("ScreenGui")
-SGUI.Name = "KriptosConstraintUI_v4_6"
+SGUI.Name = "KriptosConstraintUI_v5"
 SGUI.Parent = CoreGui
 SGUI.ResetOnSpawn = false
 
@@ -48,7 +48,7 @@ local function makeDraggable(frame, dragHandle)
     end)
 end
 
--- [[ 1. ICON SETTINGS (Ditambahkan teks alternatif jika Gambar Aset Gagal Muat) ]] --
+-- [[ 1. ICON SETTINGS (Tombol Utama) ]] --
 local SettingsIcon = Instance.new("ImageButton")
 SettingsIcon.Name = "SettingsIcon"
 SettingsIcon.Size = UDim2.new(0, 45, 0, 45)
@@ -66,7 +66,7 @@ BackupText.Text = "[ K ]"
 BackupText.TextColor3 = Color3.fromRGB(0, 255, 255)
 BackupText.Font = Enum.Font.SourceSansBold
 BackupText.TextSize = 14
-BackupText.ZIndex = 0 -- Berada di belakang gambar, muncul jika gambar transparan/gagal muat
+BackupText.ZIndex = 0
 BackupText.Parent = SettingsIcon
 
 local IconCorner = Instance.new("UICorner")
@@ -104,7 +104,7 @@ makeDraggable(MainFrame)
 local Header = Instance.new("TextLabel")
 Header.Size = UDim2.new(1, 0, 0, 40)
 Header.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-Header.Text = "PHYSICS & REPLICATION v4.6"
+Header.Text = "PHYSICS ENGINE BENCH v5.0"
 Header.TextColor3 = Color3.fromRGB(0, 255, 255)
 Header.Font = Enum.Font.SourceSansBold
 Header.TextSize = 14
@@ -133,7 +133,7 @@ UILayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
     ScrollContainer.CanvasSize = UDim2.new(0, 0, 0, UILayout.AbsoluteContentSize.Y + 10)
 end)
 
--- [[ 3. LOGIKA ENGINE FISIKA RE-OPTIMIZED ]] --
+-- [[ 3. DATA & LOGIKA ENGINE FISIKA RE-BUILT (MENGGUNAKAN SELECTION RADIUS) ]] --
 local ActiveStates = {
     ["Mass Drag"] = false,
     ["Mass Spin"] = false,
@@ -143,29 +143,24 @@ local ActiveStates = {
 }
 
 local FeatureDescriptions = {
-    ["Mass Drag"] = "Menghubungkan seluruh part unanchored di map ke tubuh Anda menggunakan RopeConstraint elastis. Objek akan terseret ke mana pun Anda bergerak.",
-    ["Mass Spin"] = "Menyuntikkan daya AngularVelocity ekstrem ke sumbu Y pusat objek map. Membuat objek berputar di tempat seperti baling-baling helikopter.",
-    ["Black Hole"] = "Membuat pusaran gravitasi buatan tepat 15 stud di atas kepala Anda. Seluruh objek map valid akan melayang ditarik menuju satu titik.",
-    ["Fling Slingshot"] = "Memberikan dorongan impuls daya VectorForce acak yang sangat besar (X, Y, Z). Objek akan terlempar acak menabrak seisi server game.",
-    ["Break Constraints"] = "Memindai las mekanis bawaan objek map (Weld, Snap, Motor6D, dll), mengklaim ownership lokal, lalu menghancurkannya agar properti copot terberai."
+    ["Mass Drag"] = "Menarik part unanchored di sekitar radius Anda menggunakan tali elastis (Rope). Jalankan karakter untuk menyeret objek map tersebut.",
+    ["Mass Spin"] = "Menyuntikkan gaya putar AngularVelocity konstan pada objek map di dekat Anda hingga berputar kencang di tempat.",
+    ["Black Hole"] = "Menciptakan titik gravitasi hampa tepat di atas kepala Anda. Objek unanchored di sekitar radius akan terangkat dan melayang.",
+    ["Fling Slingshot"] = "Melontarkan paksa seluruh properti map terdekat menggunakan impuls VectorForce acak berdaya hancur tinggi.",
+    ["Break Constraints"] = "Memotong las mekanis bawaan objek map (Weld/Snap/Motor6D) dalam jangkauan Anda agar model langsung rontok ke tanah."
 }
 
-local StoredObjects = {
-    ["Mass Drag"] = {},
-    ["Mass Spin"] = {},
-    ["Black Hole"] = {},
-    ["Fling Slingshot"] = {}
-}
+local StoredObjects = {}
 
-local function ClearSpecificFisika(featureName)
-    if StoredObjects[featureName] then
-        for _, item in pairs(StoredObjects[featureName]) do
-            if item and item.Parent then item:Destroy() end
-        end
-        StoredObjects[featureName] = {}
+-- Fungsi pembersih instansi gaya fisik lama agar memori executor bersih
+local function ClearAllFisika()
+    for _, obj in pairs(StoredObjects) do
+        if obj and obj.Parent then obj:Destroy() end
     end
+    StoredObjects = {}
 end
 
+-- Filter pelindung agar anggota tubuh pemain di server aman dari modifikasi
 local function isAPlayerCharacterPart(part)
     for _, p in pairs(Players:GetPlayers()) do
         if p.Character and part:IsDescendantOf(p.Character) then
@@ -175,102 +170,144 @@ local function isAPlayerCharacterPart(part)
     return false
 end
 
--- LOGIKA APLIKASI GAYA FISIK INDEPENDEN (Hanya dieksekusi saat status ON)
-local function TerapkanGayaKeObjek(featureName, part, hrp)
-    if featureName == "Mass Drag" then
-        local att0 = Instance.new("Attachment", hrp)
-        local att1 = Instance.new("Attachment", part)
-        local rope = Instance.new("RopeConstraint")
-        rope.Attachment0 = att0
-        rope.Attachment1 = att1
-        rope.Length = 12
-        rope.Visible = true
-        rope.Color = BrickColor.new("Cyan")
-        rope.Parent = hrp
-        table.insert(StoredObjects["Mass Drag"], att0)
-        table.insert(StoredObjects["Mass Drag"], att1)
-        table.insert(StoredObjects["Mass Drag"], rope)
-        
-    elseif featureName == "Mass Spin" then
-        local att = Instance.new("Attachment", part)
-        local av = Instance.new("AngularVelocity")
-        av.Attachment0 = att
-        av.MaxTorque = math.huge
-        av.AngularVelocity = Vector3.new(0, 75, 0)
-        av.Parent = part
-        table.insert(StoredObjects["Mass Spin"], att)
-        table.insert(StoredObjects["Mass Spin"], av)
-        
-    elseif featureName == "Black Hole" then
-        local att = Instance.new("Attachment", part)
-        local lv = Instance.new("LinearVelocity")
-        lv.Attachment0 = att
-        lv.MaxForce = math.huge
-        lv.VectorVelocity = ((hrp.Position + Vector3.new(0, 15, 0)) - part.Position).Unit * 60
-        lv.Parent = part
-        table.insert(StoredObjects["Black Hole"], att)
-        table.insert(StoredObjects["Black Hole"], lv)
-        
-    elseif featureName == "Fling Slingshot" then
-        local att = Instance.new("Attachment", part)
-        local vf = Instance.new("VectorForce")
-        vf.Attachment0 = att
-        vf.Force = Vector3.new(math.random(-80000, 80000), 100000, math.random(-80000, 80000))
-        vf.Parent = part
-        table.insert(StoredObjects["Fling Slingshot"], att)
-        table.insert(StoredObjects["Fling Slingshot"], vf)
-        
-    elseif featureName == "Break Constraints" then
-        local targetJoints = {}
-        for _, joint in pairs(part:GetChildren()) do
-            if joint:IsA("Constraint") or joint:IsA("Weld") or joint:IsA("ManualWeld") or joint:IsA("WeldConstraint") or joint:IsA("Motor6D") or joint:IsA("Snap") then
-                table.insert(targetJoints, joint)
-            end
-        end
-        if #targetJoints > 0 then
-            part.Velocity = Vector3.new(0, -0.5, 0) -- Paksa network ownership
-            for _, target in pairs(targetJoints) do
-                target:Destroy()
+-- ENGINE MANIPULASI REAL-TIME (Dijalankan setiap frame menggunakan Stepped)
+RunService.Stepped:Connect(function()
+    local character = LocalPlayer.Character
+    local hrp = character and character:FindFirstChild("HumanoidRootPart")
+    
+    -- Jika tidak ada fitur yang ON atau Karakter mati, bersihkan sisa objek
+    local anyFeatureActive = false
+    for _, state in pairs(ActiveStates) do
+        if state then anyFeatureActive = true break end
+    end
+    
+    if not hrp or not anyFeatureActive then
+        ClearAllFisika()
+        return
+    end
+    
+    -- SCANNING BERBASIS RADIUS JARAK (Maksimal 150 Studs demi kestabilan bypass NetworkOwnership)
+    local scanRadius = 150
+    local targetParts = {}
+    
+    for _, part in pairs(workspace:GetDescendants()) do
+        if part:IsA("BasePart") and not part.Anchored and not isAPlayerCharacterPart(part) then
+            local distance = (part.Position - hrp.Position).Magnitude
+            if distance <= scanRadius then
+                table.insert(targetParts, part)
             end
         end
     end
-end
-
--- THREAD LOOP UTAMA (FIXED: Tidak menghapus objek yang sedang aktif)
-task.spawn(function()
-    while true do
-        local character = LocalPlayer.Character
-        local hrp = character and character:FindFirstChild("HumanoidRootPart")
+    
+    -- Eksekusi Gaya Fisika Secara Real-time Ke Objek Yang Valid
+    for _, part in pairs(targetParts) do
         
-        if hrp then
-            -- Cari tahu fitur apa saja yang saat ini berstatus ON
-            local activeFeatures = {}
-            for fName, state in pairs(ActiveStates) do
-                if state then
-                    table.insert(activeFeatures, fName)
-                    -- Reset instansi lama khusus fitur bertipe looping kontinyu (seperti Black Hole/Drag agar posisinya terupdate)
-                    if fName ~= "Break Constraints" then
-                        ClearSpecificFisika(fName)
-                    end
-                end
+        -- Bypass Kepemilikan Jaringan (Network Ownership Claimer)
+        if part.Velocity.Magnitude < 1 then
+            part.Velocity = Vector3.new(0, -0.1, 0)
+        end
+        
+        -- [FITUR A]: MASS DRAG
+        if ActiveStates["Mass Drag"] then
+            if not part:FindFirstChild("DragAtt") then
+                local att1 = Instance.new("Attachment")
+                att1.Name = "DragAtt"
+                att1.Parent = part
+                
+                local att0 = Instance.new("Attachment")
+                att0.Name = "PlayerDragAtt"
+                att0.Parent = hrp
+                
+                local rope = Instance.new("RopeConstraint")
+                rope.Name = "DragRope"
+                rope.Attachment0 = att0
+                rope.Attachment1 = att1
+                rope.Length = 10
+                rope.Visible = true
+                rope.Color = BrickColor.new("Cyan")
+                rope.Parent = part
+                
+                table.insert(StoredObjects, att1)
+                table.insert(StoredObjects, att0)
+                table.insert(StoredObjects, rope)
             end
+        end
+        
+        -- [FITUR B]: MASS SPIN
+        if ActiveStates["Mass Spin"] then
+            if not part:FindFirstChild("SpinVelocity") then
+                local att = Instance.new("Attachment")
+                att.Name = "SpinAtt"
+                att.Parent = part
+                
+                local av = Instance.new("AngularVelocity")
+                av.Name = "SpinVelocity"
+                av.Attachment0 = att
+                av.MaxTorque = math.huge
+                av.AngularVelocity = Vector3.new(0, 80, 0)
+                av.Parent = part
+                
+                table.insert(StoredObjects, att)
+                table.insert(StoredObjects, av)
+            end
+        end
+        
+        -- [FITUR C]: BLACK HOLE (Umpan Posisi Diperbarui Setiap Frame)
+        if ActiveStates["Black Hole"] then
+            local lv = part:FindFirstChild("BlackHoleVelocity")
+            local att = part:FindFirstChild("BlackHoleAtt")
             
-            -- Jika ada minimal satu fitur ON, scan workspace satu kali untuk frame ini
-            if #activeFeatures > 0 then
-                for _, part in pairs(workspace:GetDescendants()) do
-                    if part:IsA("BasePart") and not part.Anchored and not isAPlayerCharacterPart(part) then
-                        for _, fName in pairs(activeFeatures) do
-                            TerapkanGayaKeObjek(fName, part, hrp)
-                        end
-                    end
+            if not lv then
+                att = Instance.new("Attachment")
+                att.Name = "BlackHoleAtt"
+                att.Parent = part
+                
+                lv = Instance.new("LinearVelocity")
+                lv.Name = "BlackHoleVelocity"
+                lv.Attachment0 = att
+                lv.MaxForce = math.huge
+                lv.Parent = part
+                
+                table.insert(StoredObjects, att)
+                table.insert(StoredObjects, lv)
+            end
+            -- Perbarui arah gaya linear secara presisi menuju atas kepala pemain
+            local targetPos = hrp.Position + Vector3.new(0, 18, 0)
+            lv.VectorVelocity = (targetPos - part.Position).Unit * 55
+        end
+        
+        -- [FITUR D]: FLING SLINGSHOT
+        if ActiveStates["Fling Slingshot"] then
+            if not part:FindFirstChild("FlingForce") then
+                local att = Instance.new("Attachment")
+                att.Name = "FlingAtt"
+                att.Parent = part
+                
+                local vf = Instance.new("VectorForce")
+                vf.Name = "FlingForce"
+                vf.Attachment0 = att
+                vf.Force = Vector3.new(math.random(-85000, 85000), 110000, math.random(-85000, 85000))
+                vf.Parent = part
+                
+                table.insert(StoredObjects, att)
+                table.insert(StoredObjects, vf)
+            end
+        end
+        
+        -- [FITUR E]: BREAK CONSTRAINTS (Instant Destroy Tanpa Penyimpanan)
+        if ActiveStates["Break Constraints"] then
+            for _, joint in pairs(part:GetChildren()) do
+                if joint:IsA("Constraint") or joint:IsA("Weld") or joint:IsA("ManualWeld") or joint:IsA("WeldConstraint") or joint:IsA("Motor6D") or joint:IsA("Snap") then
+                    joint:Destroy()
                 end
             end
         end
-        task.wait(0.6) -- Durasi delay dioptimalkan agar tidak lag/crash di perangkat mobile
+        
     end
 end)
 
--- [[ 4. DYNAMIC BUTTON GENERATOR ]] --
+
+-- [[ 4. DYNAMIC BUTTON GENERATOR WITH LAYOUT ]] --
 local function CreateMenuButton(featureName)
     local ItemGroupFrame = Instance.new("Frame")
     ItemGroupFrame.Size = UDim2.new(1, -6, 0, 95)
@@ -335,19 +372,20 @@ local function CreateMenuButton(featureName)
             Btn.UIStroke.Color = Color3.fromRGB(45, 45, 45)
             DescLabel.TextColor3 = Color3.fromRGB(140, 140, 140)
             
-            ClearSpecificFisika(featureName)
+            -- Hapus seluruh instansi terkait fitur ini seketika saat dimatikan
+            ClearAllFisika()
         end
     end)
 end
 
--- Membangun Tombol
+-- Inisialisasi Tombol Utama
 CreateMenuButton("Mass Drag")
 CreateMenuButton("Mass Spin")
 CreateMenuButton("Black Hole")
 CreateMenuButton("Fling Slingshot")
 CreateMenuButton("Break Constraints")
 
--- [[ 5. KENDALI TOMBOL UTAMA ]] --
+-- [[ 5. KENDALI OPEN/CLOSE UTAMA ]] --
 SettingsIcon.MouseButton1Click:Connect(function()
     MainFrame.Visible = not MainFrame.Visible
 end)
