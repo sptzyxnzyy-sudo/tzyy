@@ -1,19 +1,18 @@
--- [[ KRIPTOS PHYSICAL ENGINE v6.1 - MOBILE GUI FIX ]] --
--- PERBAIKAN: Mengalihkan Parent ke PlayerGui jika CoreGui diblokir oleh Executor.
+-- [[ KRIPTOS PHYSICAL ENGINE v6.2 - ULTRA-COMPATIBILITY ]] --
+-- FIX: Mengganti Font ke Arial (Anti-Crash Roblox Update), Mengaktifkan Multi-Parent Jalur Darurat.
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 
--- Cari jalur tampilan yang aman
-local TargetParent = LocalPlayer:WaitForChild("PlayerGui")
+-- Mencari jalur alternatif yang paling tembus di executor kamu
+local TargetParent = LocalPlayer:FindFirstChild("PlayerGui") or game:GetService("CoreGui") or workspace.CurrentCamera
 
--- Bersihkan UI lama jika tersangkut di PlayerGui atau CoreGui
-if TargetParent:FindFirstChild("KriptosPhysicsPure_v6") then 
-    TargetParent.KriptosPhysicsPure_v6:Destroy() 
-end
-if game:GetService("CoreGui"):FindFirstChild("KriptosPhysicsPure_v6") then
-    game:GetService("CoreGui").KriptosPhysicsPure_v6:Destroy()
+-- Bersihkan UI lama di semua lini
+for _, parent in pairs({LocalPlayer:FindFirstChild("PlayerGui"), game:GetService("CoreGui"), workspace.CurrentCamera}) do
+    if parent and parent:FindFirstChild("KriptosPhysicsPure_v6") then
+        parent["KriptosPhysicsPure_v6"]:Destroy()
+    end
 end
 
 local ScreenGui = Instance.new("ScreenGui")
@@ -46,7 +45,7 @@ local function addCorner(obj, r)
     c.Parent = obj
 end
 
--- UTILITY: SMART MOBILE DRAGGABLE SYSTEM
+-- SMART MOBILE DRAGGABLE SYSTEM (Touch & Mouse Fix)
 local function makeDraggable(frame, dragHandle)
     local dragging, dragInput, dragStart, startPos
     dragHandle = dragHandle or frame
@@ -85,9 +84,10 @@ OpenBtn.Position = UDim2.new(0, 15, 0.5, -22)
 OpenBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 OpenBtn.Text = "⚙"
 OpenBtn.TextColor3 = Color3.fromRGB(0, 255, 255)
-OpenBtn.Font = Enum.Font.SourceSansBold
+OpenBtn.Font = Enum.Font.ArialBold
 OpenBtn.TextSize = 26
-OpenBtn.Visible = false -- Otomatis muncul jika Frame utama ditutup
+OpenBtn.Active = true
+OpenBtn.Visible = false
 OpenBtn.Parent = ScreenGui
 addCorner(OpenBtn, 10)
 
@@ -105,6 +105,7 @@ Main.Size = UDim2.new(0, 310, 0, 350)
 Main.Position = UDim2.new(0.5, -155, 0.5, -175)
 Main.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 Main.BorderSizePixel = 0
+Main.Active = true
 Main.Visible = true
 Main.Parent = ScreenGui
 addCorner(Main, 12)
@@ -121,10 +122,11 @@ local CloseBtn = Instance.new("TextButton")
 CloseBtn.Size = UDim2.new(0, 25, 0, 25)
 CloseBtn.Position = UDim2.new(1, -30, 0, 8)
 CloseBtn.Text = "×"
-CloseBtn.Font = Enum.Font.SourceSansBold
+CloseBtn.Font = Enum.Font.ArialBold
 CloseBtn.TextSize = 22
 CloseBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
 CloseBtn.BackgroundTransparency = 1
+CloseBtn.Active = true
 CloseBtn.Parent = Main
 
 -- HEADER SYSTEM
@@ -136,8 +138,8 @@ HeaderContainer.Parent = Main
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, 0, 0, 25)
 Title.Position = UDim2.new(0, 0, 0, 8)
-Title.Text = "KRIPTOS PHYSICAL ENGINE v6.1"
-Title.Font = Enum.Font.SourceSansBold
+Title.Text = "KRIPTOS PHYSICAL ENGINE v6.2"
+Title.Font = Enum.Font.ArialBold
 Title.TextSize = 15
 Title.TextColor3 = Color3.fromRGB(0, 255, 255)
 Title.TextXAlignment = Enum.TextXAlignment.Center
@@ -147,8 +149,8 @@ Title.Parent = HeaderContainer
 local Version = Instance.new("TextLabel")
 Version.Size = UDim2.new(1, 0, 0, 10)
 Version.Position = UDim2.new(0, 0, 0, 28)
-Version.Text = "Pure Physics Edition | HP Display Fix"
-Version.Font = Enum.Font.SourceSans
+Version.Text = "Universal Compatibility | Font Fix"
+Version.Font = Enum.Font.Arial
 Version.TextSize = 10
 Version.TextColor3 = Color3.fromRGB(120, 120, 120)
 Version.TextXAlignment = Enum.TextXAlignment.Center
@@ -332,9 +334,10 @@ local function CreateMenuButton(featureName)
     Btn.BackgroundColor3 = Color3.fromRGB(28, 28, 28)
     Btn.Text = featureName .. " : [OFF]"
     Btn.TextColor3 = Color3.fromRGB(180, 180, 180)
-    Btn.Font = Enum.Font.SourceSansBold
+    Btn.Font = Enum.Font.ArialBold
     Btn.TextSize = 14
     Btn.BorderSizePixel = 0
+    Btn.Active = true
     Btn.Parent = ItemGroupFrame
     
     local BtnCorner = Instance.new("UICorner")
@@ -352,7 +355,7 @@ local function CreateMenuButton(featureName)
     DescLabel.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
     DescLabel.Text = FeatureDescriptions[featureName]
     DescLabel.TextColor3 = Color3.fromRGB(140, 140, 140)
-    DescLabel.Font = Enum.Font.SourceSans
+    DescLabel.Font = Enum.Font.Arial
     DescLabel.TextSize = 11
     DescLabel.TextWrapped = true
     DescLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -388,7 +391,7 @@ local function CreateMenuButton(featureName)
     end)
 end
 
--- Inisialisasi tombol menu
+-- Menjalankan Inisialisasi Tombol Properti Fisika
 CreateMenuButton("Mass Drag")
 CreateMenuButton("Mass Spin")
 CreateMenuButton("Black Hole")
