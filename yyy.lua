@@ -1,4 +1,4 @@
--- [[ SERVER-REPLICATED SHARP SQUARE 300x300 PHYSICS ]] --
+-- [[ SERVER-REPLICATED SHARP SQUARE 300x300 PHYSICS PRO V8 ]] --
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
@@ -37,10 +37,10 @@ local HeaderLabel = Instance.new("TextLabel")
 HeaderLabel.Size = UDim2.new(1, 0, 0, 30)
 HeaderLabel.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
 HeaderLabel.BorderSizePixel = 0
-HeaderLabel.Text = "  SERVER REPLICATED PHYSICS"
+HeaderLabel.Text = "  SERVER REPLICATED PHYSICS V8"
 HeaderLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 HeaderLabel.Font = Enum.Font.SourceSansBold
-HeaderLabel.TextSize = 12
+HeaderLabel.TextSize = 11
 HeaderLabel.TextXAlignment = Enum.TextXAlignment.Left
 HeaderLabel.Parent = MainFrame
 
@@ -49,13 +49,13 @@ HeaderStroke.Color = Color3.fromRGB(28, 28, 33)
 HeaderStroke.Thickness = 1
 HeaderStroke.Parent = HeaderLabel
 
--- Kontainer Utama Vertikal
+-- Kontainer Utama Vertikal (CanvasSize disesuaikan untuk 6 fitur)
 local ScrollContainer = Instance.new("ScrollingFrame")
 ScrollContainer.Size = UDim2.new(1, -12, 1, -40)
 ScrollContainer.Position = UDim2.new(0, 6, 0, 34)
 ScrollContainer.BackgroundTransparency = 1
 ScrollContainer.BorderSizePixel = 0
-ScrollContainer.CanvasSize = UDim2.new(0, 0, 0, 200)
+ScrollContainer.CanvasSize = UDim2.new(0, 0, 0, 340)
 ScrollContainer.ScrollBarThickness = 3
 ScrollContainer.Parent = MainFrame
 
@@ -65,21 +65,23 @@ UIListLayout.Padding = UDim.new(0, 6)
 UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 UIListLayout.Parent = ScrollContainer
 
--- [[ VARIABLE & LOGIKA REPLIKASI FISIKA SSERVER ]] --
+-- [[ VARIABLE & LOGIKA REPLIKASI FISIKA SERVER ]] --
 local States = {
     MassSpin = false,
     BlackHole = false,
-    FlingSlingshot = false
+    FlingSlingshot = false,
+    BreakTethers = false,
+    GlitchMagnet = false,
+    QuantumTether = false
 }
 
-local Radius = 150 -- Jarak jangkauan luas
+local Radius = 150 -- Jarak jangkauan luas (150 Studs)
 
 -- Fungsi mengklaim Network Ownership agar perubahan dilihat semua orang
 local function claimNetworkOwnership(part)
     if settings().Physics.AllowSleep then
         settings().Physics.AllowSleep = false
     end
-    -- Menginduksi sedikit gaya rotasi tak terlihat agar server memperbarui kepemilikan fisik ke client kita
     part.RotVelocity = part.RotVelocity + Vector3.new(0, 0.01, 0)
 end
 
@@ -89,7 +91,6 @@ local function getValidParts()
     if not root then return parts end
 
     for _, obj in pairs(workspace:GetDescendants()) do
-        -- Hanya memproses part unanchored (karena part anchored tidak mereplikasi fisika client-ke-server)
         if obj:IsA("BasePart") and not obj.Anchored and not obj:IsDescendantOf(Character) then
             if (obj.Position - root.Position).Magnitude <= Radius then
                 table.insert(parts, obj)
@@ -99,7 +100,7 @@ local function getValidParts()
     return parts
 end
 
--- Runtime Loop Menggunakan Heartbeat (Dijalankan sebelum render fisika server)
+-- Runtime Loop Menggunakan Heartbeat
 RunService.Heartbeat:Connect(function()
     local root = Character:FindFirstChild("HumanoidRootPart")
     if not root then return end
@@ -107,12 +108,11 @@ RunService.Heartbeat:Connect(function()
     local targets = getValidParts()
 
     for _, part in pairs(targets) do
-        -- Klaim kontrol jaringan setiap frame agar sinkron ke server
         claimNetworkOwnership(part)
 
         -- 1. Mass Spin (Goyang Brutal + Replicated)
         if States.MassSpin then
-            part.RotVelocity = Vector3.new(0, 150, 0) -- Manipulasi kecepatan sudut langsung (Tersinkronisasi)
+            part.RotVelocity = Vector3.new(0, 150, 0)
             part.Velocity = part.Velocity + Vector3.new(math.random(-15, 15), math.random(-10, 10), math.random(-15, 15))
         end
 
@@ -123,9 +123,9 @@ RunService.Heartbeat:Connect(function()
             local distance = direction.Magnitude
             
             if distance > 2 then
-                part.Velocity = direction.Unit * 65 -- Tarikan konstan
+                part.Velocity = direction.Unit * 65
             else
-                part.Velocity = Vector3.new(0, 0, 0) -- Mengunci posisi di udara
+                part.Velocity = Vector3.new(0, 0, 0)
             end
         end
 
@@ -137,13 +137,46 @@ RunService.Heartbeat:Connect(function()
                 math.random(-500, 500)
             )
         end
+
+        -- 4. Break Tethers (Hancurkan Constraint Tali Aktif)
+        if States.BreakTethers then
+            for _, subObj in pairs(part:GetChildren()) do
+                if subObj:IsA("Constraint") or subObj:IsA("RopeConstraint") or subObj:IsA("Weld") or subObj:IsA("WeldConstraint") then
+                    subObj:Destroy()
+                end
+            end
+        end
+
+        -- 5. Glitch Magnet (Mekanisme Magnet Error / Stuttering Server)
+        if States.GlitchMagnet then
+            local targetPos = root.Position
+            local direction = (targetPos - part.Position)
+            -- Membanjiri kalkulasi posisi dengan entakan eksponensial tak beraturan
+            part.Velocity = direction.Unit * math.random(800, 3000) * (math.random(1, 2) == 1 and 1 or -1)
+            part.RotVelocity = Vector3.new(math.random(-500, 500), math.random(-500, 500), math.random(-500, 500))
+        end
+
+        -- 6. Quantum Tether (Membawa Part Kemana Saja - Magnet Sangat Kuat)
+        if States.QuantumTether then
+            -- Target titik berada 6 stud tepat di depan dada player
+            local holdPos = (root.CFrame * CFrame.new(0, 0, -6)).Position
+            local direction = (holdPos - part.Position)
+            local distance = direction.Magnitude
+            
+            -- Peningkatan akselerasi berdasarkan jarak agar tarikan sangat ketat dan tidak lepas
+            if distance > 1 then
+                part.Velocity = direction * 35
+            else
+                part.Velocity = root.Velocity -- Mengunci kecepatan part mengikuti kecepatan jalan player
+            end
+        end
     end
 end)
 
 -- [[ METODE GENERATOR KOMPONEN GUI ]] --
 local function createSquareComponent(title, desc, callback)
     local ButtonFrame = Instance.new("TextButton")
-    ButtonFrame.Size = UDim2.new(1, -6, 0, 50)
+    ButtonFrame.Size = UDim2.new(1, -6, 0, 48)
     ButtonFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 24)
     ButtonFrame.Text = ""
     ButtonFrame.AutoButtonColor = true
@@ -162,7 +195,7 @@ local function createSquareComponent(title, desc, callback)
     TitleLabel.Text = title
     TitleLabel.TextColor3 = Color3.fromRGB(240, 240, 240)
     TitleLabel.Font = Enum.Font.SourceSansBold
-    TitleLabel.TextSize = 13
+    TitleLabel.TextSize = 12
     TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
     TitleLabel.Parent = ButtonFrame
 
@@ -173,7 +206,7 @@ local function createSquareComponent(title, desc, callback)
     DescLabel.Text = desc
     DescLabel.TextColor3 = Color3.fromRGB(130, 130, 135)
     DescLabel.Font = Enum.Font.SourceSansItalic
-    DescLabel.TextSize = 9.5
+    DescLabel.TextSize = 9
     DescLabel.TextWrapped = true
     DescLabel.TextXAlignment = Enum.TextXAlignment.Left
     DescLabel.TextYAlignment = Enum.TextYAlignment.Top
@@ -181,11 +214,11 @@ local function createSquareComponent(title, desc, callback)
 
     local Indicator = Instance.new("TextLabel")
     local IndicatorStroke = Instance.new("UIStroke")
-    Indicator.Size = UDim2.new(0, 36, 0, 20)
-    Indicator.Position = UDim2.new(1, -44, 0.5, -10)
+    Indicator.Size = UDim2.new(0, 36, 0, 18)
+    Indicator.Position = UDim2.new(1, -44, 0.5, -9)
     Indicator.BorderSizePixel = 0
     Indicator.Font = Enum.Font.SourceSansBold
-    Indicator.TextSize = 9.5
+    Indicator.TextSize = 9
     Indicator.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
     Indicator.Text = "OFF"
     Indicator.TextColor3 = Color3.fromRGB(150, 150, 150)
@@ -216,9 +249,12 @@ local function createSquareComponent(title, desc, callback)
     end)
 end
 
--- [[ INTEGRASI 3 FITUR UTAMA YANG REPLICATED ]] --
-createSquareComponent("Mass Spin", "Membuat objek berputar ekstrem dan bergoyang brutal (Dilihat Server).", function(state) States.MassSpin = state end)
-createSquareComponent("Black Hole", "Menarik objek unanchored secara mulus berkumpul di atas kepala (Dilihat Server).", function(state) States.BlackHole = state end)
-createSquareComponent("Fling Slingshot", "Melontarkan objek dengan entakan kecepatan masif secara acak (Dilihat Server).", function(state) States.FlingSlingshot = state end)
+-- [[ INTEGRASI SEMUA FITUR (6 KOMPONEN ACTIVE TOGGLE) ]] --
+createSquareComponent("Mass Spin", "Membuat objek berputar ekstrem dan bergoyang brutal.", function(state) States.MassSpin = state end)
+createSquareComponent("Black Hole", "Menarik objek unanchored berkumpul di atas kepala.", function(state) States.BlackHole = state end)
+createSquareComponent("Fling Slingshot", "Melontarkan objek dengan entakan kecepatan masif acak.", function(state) States.FlingSlingshot = state end)
+createSquareComponent("Break Tethers", "Memutus paksa sambungan tali/constraint pada part terdekat.", function(state) States.BreakTethers = state end)
+createSquareComponent("Glitch Magnet", "Menarik objek dengan kalkulasi velocity rusak/error.", function(state) States.GlitchMagnet = state end)
+createSquareComponent("Quantum Tether", "Mengunci dan membawa objek kemana pun karakter bergerak.", function(state) States.QuantumTether = state end)
 
-print("Server-Replicated Physics Toolkit v7 Berhasil Dimuat!")
+print("Server-Replicated Physics Toolkit v8 Berhasil Dimuat!")
