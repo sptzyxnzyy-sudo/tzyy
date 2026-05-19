@@ -1,29 +1,44 @@
--- [[ SPTZYY TOOLBOX FINAL v1.3 MOBILE OPTIMIZED ]] --
--- Cocok untuk Executor Mobile & PC (Delta, Fluxus, Hydrogen, Wave, dll)
--- FIX: Pembenahan sistem drag (Anti-Crash Touch), perbaikan inisialisasi Open Button.
+-- [[ KRIPTOS PHYSICAL ENGINE v6.1 - MOBILE GUI FIX ]] --
+-- PERBAIKAN: Mengalihkan Parent ke PlayerGui jika CoreGui diblokir oleh Executor.
 
-local HttpService = game:GetService("HttpService")
-local CoreGui = game:GetService("CoreGui")
-local UserInputService = game:GetService("UserInputService")
+local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
 
--- Membersihkan UI lama jika ada
-if CoreGui:FindFirstChild("SptzyyToolboxFinal") then 
-    CoreGui.SptzyyToolboxFinal:Destroy() 
+-- Cari jalur tampilan yang aman
+local TargetParent = LocalPlayer:WaitForChild("PlayerGui")
+
+-- Bersihkan UI lama jika tersangkut di PlayerGui atau CoreGui
+if TargetParent:FindFirstChild("KriptosPhysicsPure_v6") then 
+    TargetParent.KriptosPhysicsPure_v6:Destroy() 
+end
+if game:GetService("CoreGui"):FindFirstChild("KriptosPhysicsPure_v6") then
+    game:GetService("CoreGui").KriptosPhysicsPure_v6:Destroy()
 end
 
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "SptzyyToolboxFinal"
+ScreenGui.Name = "KriptosPhysicsPure_v6"
 ScreenGui.ResetOnSpawn = false
-ScreenGui.Parent = CoreGui
+ScreenGui.Parent = TargetParent
 
--- State Management (Logika Halaman & Data)
-local cursors = { [1] = "" } 
-local currentPage = 1
-local currentKeyword = ""
-local isFetching = false
-local currentId = ""
-local searchMode = "10" -- Default: 10 (Model). Audio adalah 3.
+-- State Management
+local ActiveStates = {
+    ["Mass Drag"] = false,
+    ["Mass Spin"] = false,
+    ["Black Hole"] = false,
+    ["Fling Slingshot"] = false,
+    ["Break Constraints"] = false
+}
+
+local FeatureDescriptions = {
+    ["Mass Drag"] = "Menarik part unanchored di dekat radius Anda menggunakan tali elastis (Rope). Jalankan karakter untuk menyeret objek map.",
+    ["Mass Spin"] = "Menyuntikkan gaya putar AngularVelocity konstan pada objek map di dekat Anda hingga berputar kencang.",
+    ["Black Hole"] = "Menciptakan titik gravitasi hampa tepat di atas kepala Anda. Objek unanchored di sekitar akan terangkat melayang.",
+    ["Fling Slingshot"] = "Melontarkan paksa seluruh properti map terdekat menggunakan impuls VectorForce acak berdaya hancur tinggi.",
+    ["Break Constraints"] = "Memotong las mekanis bawaan objek map (Weld/Snap/Motor6D) dalam jangkauan Anda agar model rontok."
+}
+
+local StoredObjects = {}
 
 local function addCorner(obj, r)
     local c = Instance.new("UICorner")
@@ -31,9 +46,7 @@ local function addCorner(obj, r)
     c.Parent = obj
 end
 
--- ==========================================
 -- UTILITY: SMART MOBILE DRAGGABLE SYSTEM
--- ==========================================
 local function makeDraggable(frame, dragHandle)
     local dragging, dragInput, dragStart, startPos
     dragHandle = dragHandle or frame
@@ -64,45 +77,41 @@ local function makeDraggable(frame, dragHandle)
     end)
 end
 
--- ==========================================
--- OPEN BUTTON (Menggunakan Alternatif Teks "🔍" Jika Gambar Diblokir)
--- ==========================================
+-- OPEN BUTTON (Tombol Roda Gigi)
 local OpenBtn = Instance.new("TextButton")
 OpenBtn.Name = "OpenButton"
 OpenBtn.Size = UDim2.new(0, 45, 0, 45)
 OpenBtn.Position = UDim2.new(0, 15, 0.5, -22)
-OpenBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-OpenBtn.Text = "🔍"
-OpenBtn.TextColor3 = Color3.fromRGB(0, 170, 255)
+OpenBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+OpenBtn.Text = "⚙"
+OpenBtn.TextColor3 = Color3.fromRGB(0, 255, 255)
 OpenBtn.Font = Enum.Font.SourceSansBold
-OpenBtn.TextSize = 22
-OpenBtn.Visible = false -- Menjadi true saat Main Frame ditutup
+OpenBtn.TextSize = 26
+OpenBtn.Visible = false -- Otomatis muncul jika Frame utama ditutup
 OpenBtn.Parent = ScreenGui
 addCorner(OpenBtn, 10)
 
 local OpenStroke = Instance.new("UIStroke")
-OpenStroke.Color = Color3.fromRGB(0, 170, 255)
+OpenStroke.Color = Color3.fromRGB(0, 255, 255)
 OpenStroke.Thickness = 1.5
 OpenStroke.Parent = OpenBtn
 
 makeDraggable(OpenBtn)
 
--- ==========================================
--- MAIN FRAME (300x300)
--- ==========================================
+-- MAIN FRAME (310x350)
 local Main = Instance.new("Frame")
 Main.Name = "MainFrame"
-Main.Size = UDim2.new(0, 300, 0, 300) 
-Main.Position = UDim2.new(0.5, -150, 0.5, -150)
-Main.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+Main.Size = UDim2.new(0, 310, 0, 350) 
+Main.Position = UDim2.new(0.5, -155, 0.5, -175)
+Main.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 Main.BorderSizePixel = 0
-Main.Visible = true -- Pastikan aktif saat pertama disuntik
+Main.Visible = true
 Main.Parent = ScreenGui
-addCorner(Main, 8)
+addCorner(Main, 12)
 
 local MainStroke = Instance.new("UIStroke")
 MainStroke.Color = Color3.fromRGB(45, 45, 45)
-MainStroke.Thickness = 1.5
+MainStroke.Thickness = 2
 MainStroke.Parent = Main
 
 makeDraggable(Main)
@@ -110,7 +119,7 @@ makeDraggable(Main)
 -- Tombol Close (X)
 local CloseBtn = Instance.new("TextButton")
 CloseBtn.Size = UDim2.new(0, 25, 0, 25)
-CloseBtn.Position = UDim2.new(1, -30, 0, 5)
+CloseBtn.Position = UDim2.new(1, -30, 0, 8)
 CloseBtn.Text = "×"
 CloseBtn.Font = Enum.Font.SourceSansBold
 CloseBtn.TextSize = 22
@@ -118,389 +127,274 @@ CloseBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
 CloseBtn.BackgroundTransparency = 1
 CloseBtn.Parent = Main
 
--- ==========================================
--- CENTERED HEADER
--- ==========================================
+-- HEADER SYSTEM
 local HeaderContainer = Instance.new("Frame")
-HeaderContainer.Size = UDim2.new(1, 0, 0, 60)
+HeaderContainer.Size = UDim2.new(1, 0, 0, 45)
 HeaderContainer.BackgroundTransparency = 1
 HeaderContainer.Parent = Main
 
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, 0, 0, 25)
-Title.Position = UDim2.new(0, 0, 0, 10)
-Title.Text = "SEARCH TOOLBOX"
+Title.Position = UDim2.new(0, 0, 0, 8)
+Title.Text = "KRIPTOS PHYSICAL ENGINE v6.1"
 Title.Font = Enum.Font.SourceSansBold
-Title.TextSize = 18
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 15
+Title.TextColor3 = Color3.fromRGB(0, 255, 255)
 Title.TextXAlignment = Enum.TextXAlignment.Center
 Title.BackgroundTransparency = 1
 Title.Parent = HeaderContainer
 
-local Credit = Instance.new("TextLabel")
-Credit.Size = UDim2.new(1, 0, 0, 15)
-Credit.Position = UDim2.new(0, 0, 0, 30)
-Credit.Text = "by @sptzyy"
-Credit.Font = Enum.Font.SourceSans
-Credit.TextSize = 13
-Credit.TextColor3 = Color3.fromRGB(180, 180, 180)
-Credit.TextXAlignment = Enum.TextXAlignment.Center
-Credit.BackgroundTransparency = 1
-Credit.Parent = HeaderContainer
-
 local Version = Instance.new("TextLabel")
 Version.Size = UDim2.new(1, 0, 0, 10)
-Version.Position = UDim2.new(0, 0, 0, 45)
-Version.Text = "version 1.3 (Mobile Fix)"
+Version.Position = UDim2.new(0, 0, 0, 28)
+Version.Text = "Pure Physics Edition | HP Display Fix"
 Version.Font = Enum.Font.SourceSans
 Version.TextSize = 10
-Version.TextColor3 = Color3.fromRGB(100, 100, 100)
+Version.TextColor3 = Color3.fromRGB(120, 120, 120)
 Version.TextXAlignment = Enum.TextXAlignment.Center
 Version.BackgroundTransparency = 1
 Version.Parent = HeaderContainer
 
--- ==========================================
--- INPUT & NAVIGATION INTERFACE
--- ==========================================
-local PrevBtn = Instance.new("TextButton")
-PrevBtn.Size = UDim2.new(0, 25, 0, 25)
-PrevBtn.Position = UDim2.new(0, 10, 0, 65)
-PrevBtn.Text = "<"
-PrevBtn.Font = Enum.Font.SourceSansBold
-PrevBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-PrevBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-PrevBtn.Visible = false
-PrevBtn.Parent = Main
-addCorner(PrevBtn)
+-- SCROLLING FRAME
+local ScrollContainer = Instance.new("ScrollingFrame")
+ScrollContainer.Size = UDim2.new(1, -20, 1, -65)
+ScrollContainer.Position = UDim2.new(0, 10, 0, 52)
+ScrollContainer.BackgroundTransparency = 1
+ScrollContainer.BorderSizePixel = 0
+ScrollContainer.ScrollBarThickness = 4
+ScrollContainer.ScrollBarImageColor3 = Color3.fromRGB(0, 255, 255)
+ScrollContainer.CanvasSize = UDim2.new(0, 0, 0, 0)
+ScrollContainer.Parent = Main
 
-local Input = Instance.new("TextBox")
-Input.Size = UDim2.new(0, 180, 0, 25)
-Input.Position = UDim2.new(0, 45, 0, 65)
-Input.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-Input.PlaceholderText = "Cari asset..."
-Input.Text = ""
-Input.TextColor3 = Color3.fromRGB(255, 255, 255)
-Input.Font = Enum.Font.SourceSans
-Input.TextSize = 13
-Input.ClearTextOnFocus = false
-Input.Parent = Main
-addCorner(Input, 4)
+local UILayout = Instance.new("UIListLayout")
+UILayout.Parent = ScrollContainer
+UILayout.SortOrder = Enum.SortOrder.LayoutOrder
+UILayout.Padding = UDim.new(0, 8)
 
-local ModeBtn = Instance.new("TextButton")
-ModeBtn.Size = UDim2.new(0, 25, 0, 25)
-ModeBtn.Position = UDim2.new(0, 230, 0, 65)
-ModeBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
-ModeBtn.Text = "🧱" -- Emoticon representasi Blok/Model
-ModeBtn.TextSize = 14
-ModeBtn.Parent = Main
-addCorner(ModeBtn)
-
-local NextBtn = Instance.new("TextButton")
-NextBtn.Size = UDim2.new(0, 25, 0, 25)
-NextBtn.Position = UDim2.new(0, 265, 0, 65)
-NextBtn.Text = ">"
-NextBtn.Font = Enum.Font.SourceSansBold
-NextBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-NextBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-NextBtn.Visible = false
-NextBtn.Parent = Main
-addCorner(NextBtn)
-
-local PageIndicator = Instance.new("TextLabel")
-PageIndicator.Size = UDim2.new(1, -20, 0, 15)
-PageIndicator.Position = UDim2.new(0, 10, 0, 92)
-PageIndicator.Text = "MODE: MODEL"
-PageIndicator.TextColor3 = Color3.fromRGB(0, 170, 255)
-PageIndicator.Font = Enum.Font.SourceSansBold
-PageIndicator.TextSize = 10
-PageIndicator.TextXAlignment = Enum.TextXAlignment.Center
-PageIndicator.BackgroundTransparency = 1
-PageIndicator.Parent = Main
-
--- Mode Switcher Logic
-ModeBtn.MouseButton1Click:Connect(function()
-    if searchMode == "10" then
-        searchMode = "3"
-        PageIndicator.Text = "MODE: AUDIO"
-        PageIndicator.TextColor3 = Color3.fromRGB(255, 170, 0)
-        ModeBtn.BackgroundColor3 = Color3.fromRGB(255, 170, 0)
-        ModeBtn.Text = "🎵"
-    else
-        searchMode = "10"
-        PageIndicator.Text = "MODE: MODEL"
-        PageIndicator.TextColor3 = Color3.fromRGB(0, 170, 255)
-        ModeBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
-        ModeBtn.Text = "🧱"
-    end
+UILayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    ScrollContainer.CanvasSize = UDim2.new(0, 0, 0, UILayout.AbsoluteContentSize.Y + 10)
 end)
 
--- ==========================================
--- LIST PAGE & GRID CONTEXT
--- ==========================================
-local ListPage = Instance.new("ScrollingFrame")
-ListPage.Size = UDim2.new(1, -10, 1, -120)
-ListPage.Position = UDim2.new(0, 5, 0, 110)
-ListPage.BackgroundTransparency = 1
-ListPage.ScrollBarThickness = 3
-ListPage.ScrollBarImageColor3 = Color3.fromRGB(0, 170, 255)
-ListPage.Parent = Main
-
-local Grid = Instance.new("UIGridLayout")
-Grid.CellSize = UDim2.new(0, 92, 0, 110)
-Grid.CellPadding = UDim2.new(0, 3, 0, 5)
-Grid.HorizontalAlignment = Enum.HorizontalAlignment.Center
-Grid.Parent = ListPage
-
-local WelcomeMsg = Instance.new("TextLabel")
-WelcomeMsg.Size = UDim2.new(1, -20, 0, 80)
-WelcomeMsg.Position = UDim2.new(0, 10, 0.2, 0)
-WelcomeMsg.Text = "Pilih mode (Model/Audio), ketik kata kunci, lalu tekan Enter."
-WelcomeMsg.Font = Enum.Font.SourceSansItalic
-WelcomeMsg.TextSize = 14
-WelcomeMsg.TextColor3 = Color3.fromRGB(140, 140, 140)
-WelcomeMsg.TextWrapped = true
-WelcomeMsg.BackgroundTransparency = 1
-WelcomeMsg.Parent = ListPage
-
--- ==========================================
--- DETAIL VIEW PAGE
--- ==========================================
-local DetailPage = Instance.new("Frame")
-DetailPage.Size = UDim2.new(1, 0, 1, -35)
-DetailPage.Position = UDim2.new(0, 0, 0, 35)
-DetailPage.BackgroundColor3 = Main.BackgroundColor3
-DetailPage.Visible = false
-DetailPage.Parent = Main
-addCorner(DetailPage, 8)
-
-local BackBtn = Instance.new("TextButton")
-BackBtn.Size = UDim2.new(0, 30, 0, 30)
-BackBtn.Position = UDim2.new(0, 5, 0, 5)
-BackBtn.Text = "←"
-BackBtn.Font = Enum.Font.SourceSansBold
-BackBtn.TextSize = 25
-BackBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-BackBtn.BackgroundTransparency = 1
-BackBtn.Parent = DetailPage
-
-local DetImg = Instance.new("ImageLabel")
-DetImg.Size = UDim2.new(0, 120, 0, 120)
-DetImg.Position = UDim2.new(0.5, -60, 0, 20)
-DetImg.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-DetImg.Parent = DetailPage
-addCorner(DetImg)
-
-local DetName = Instance.new("TextLabel")
-DetName.Size = UDim2.new(1, -40, 0, 35)
-DetName.Position = UDim2.new(0, 20, 0, 145)
-DetName.Font = Enum.Font.SourceSansBold
-DetName.TextSize = 14
-DetName.TextColor3 = Color3.fromRGB(255, 255, 255)
-DetName.TextWrapped = true
-DetName.BackgroundTransparency = 1
-DetName.Parent = DetailPage
-
-local DetCreator = Instance.new("TextLabel")
-DetCreator.Size = UDim2.new(0, 160, 0, 20)
-DetCreator.Position = UDim2.new(0, 20, 0, 180)
-DetCreator.TextSize = 12
-DetCreator.TextColor3 = Color3.fromRGB(180, 180, 180)
-DetCreator.TextXAlignment = Enum.TextXAlignment.Left
-DetCreator.BackgroundTransparency = 1
-DetCreator.Parent = DetailPage
-
-local MenuBtn = Instance.new("TextButton")
-MenuBtn.Size = UDim2.new(0, 25, 0, 25)
-MenuBtn.Position = UDim2.new(1, -40, 0, 178)
-MenuBtn.Text = "≡"
-MenuBtn.Font = Enum.Font.SourceSansBold
-MenuBtn.TextSize = 22
-MenuBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
-MenuBtn.BackgroundTransparency = 1
-MenuBtn.Parent = DetailPage
-
-local Dropdown = Instance.new("TextButton")
-Dropdown.Size = UDim2.new(0, 80, 0, 25)
-Dropdown.Position = UDim2.new(1, -90, 0, 205)
-Dropdown.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-Dropdown.Text = "Copy ID"
-Dropdown.Font = Enum.Font.SourceSans
-Dropdown.TextSize = 13
-Dropdown.TextColor3 = Color3.fromRGB(255, 255, 255)
-Dropdown.Visible = false
-Dropdown.ZIndex = 10
-Dropdown.Parent = DetailPage
-addCorner(Dropdown, 4)
-
--- ==========================================
--- API CORE METHOD EXECUTOR SECURITY
--- ==========================================
-local function httpRequest(opt)
-    local f = (syn and syn.request) or (http and http.request) or http_request or request
-    if f then
-        return f(opt)
-    else
-        warn("Executor tidak mendukung HTTP Request lokal!")
-        return nil
+-- RUNTIME LOGIC FISIKA
+local function ClearAllFisika()
+    for _, obj in pairs(StoredObjects) do
+        if obj and obj.Parent then obj:Destroy() end
     end
+    StoredObjects = {}
 end
 
-local function clearList()
-    for _, v in pairs(ListPage:GetChildren()) do
-        if v:IsA("Frame") then v:Destroy() end
+local function isAPlayerCharacterPart(part)
+    for _, p in pairs(Players:GetPlayers()) do
+        if p.Character and part:IsDescendantOf(p.Character) then
+            return true
+        end
     end
+    return false
 end
 
-local function showDetail(data)
-    currentId = tostring(data.asset.id)
+RunService.Stepped:Connect(function()
+    local character = LocalPlayer.Character
+    local hrp = character and character:FindFirstChild("HumanoidRootPart")
     
-    if searchMode == "3" then
-        DetImg.Image = "rbxassetid://10734951121"
-    else
-        DetImg.Image = "rbxthumb://type=Asset&id="..currentId.."&w=420&h=420"
+    local anyFeatureActive = false
+    for _, state in pairs(ActiveStates) do
+        if state then anyFeatureActive = true break end
     end
     
-    DetName.Text = data.asset.name
-    DetCreator.Text = "by " .. (data.creator and data.creator.name or "Unknown")
+    if not hrp or not anyFeatureActive then
+        ClearAllFisika()
+        return
+    end
     
-    Dropdown.Visible = false
-    ListPage.Visible = false
-    HeaderContainer.Visible = false
-    Input.Visible = false
-    PrevBtn.Visible = false
-    ModeBtn.Visible = false
-    NextBtn.Visible = false
-    PageIndicator.Visible = false
-    DetailPage.Visible = true
-end
-
-local function Search(kw, cursor, pageNum)
-    if isFetching then return end
-    isFetching = true
-    clearList()
-    WelcomeMsg.Visible = false
+    local scanRadius = 150
+    local targetParts = {}
     
-    local url = "https://apis.roblox.com/toolbox-service/v1/marketplace/"..searchMode.."?limit=30&keyword="..HttpService:UrlEncode(kw)
-    if cursor and cursor ~= "" then url = url.."&cursor="..cursor end
+    for _, part in pairs(workspace:GetDescendants()) do
+        if part:IsA("BasePart") and not part.Anchored and not isAPlayerCharacterPart(part) then
+            local distance = (part.Position - hrp.Position).Magnitude
+            if distance <= scanRadius then
+                table.insert(targetParts, part)
+            end
+        end
+    end
     
-    local success, res = pcall(function() return httpRequest({Url = url, Method = "GET"}) end)
-    
-    if success and res and res.StatusCode == 200 then
-        local body = HttpService:JSONDecode(res.Body)
-        currentPage = pageNum
-        cursors[currentPage + 1] = body.nextPageCursor or ""
+    for _, part in pairs(targetParts) do
+        if part.Velocity.Magnitude < 1 then
+            part.Velocity = Vector3.new(0, -0.1, 0)
+        end
         
-        PrevBtn.Visible = (currentPage > 1)
-        NextBtn.Visible = (body.nextPageCursor ~= nil and body.nextPageCursor ~= "")
+        -- [A] MASS DRAG
+        if ActiveStates["Mass Drag"] then
+            if not part:FindFirstChild("DragAtt") then
+                local att1 = Instance.new("Attachment")
+                att1.Name = "DragAtt"
+                att1.Parent = part
+                
+                local att0 = Instance.new("Attachment")
+                att0.Name = "PlayerDragAtt"
+                att0.Parent = hrp
+                
+                local rope = Instance.new("RopeConstraint")
+                rope.Name = "DragRope"
+                rope.Attachment0 = att0
+                rope.Attachment1 = att1
+                rope.Length = 10
+                rope.Visible = true
+                rope.Color = BrickColor.new("Cyan")
+                rope.Parent = part
+                
+                table.insert(StoredObjects, att1)
+                table.insert(StoredObjects, att0)
+                table.insert(StoredObjects, rope)
+            end
+        end
         
-        local labelMode = (searchMode == "10") and "MODELS" or "AUDIO"
-        PageIndicator.Text = "MODE: "..labelMode.." | PAGE: "..currentPage
-        PageIndicator.Visible = true
-
-        local ids = {}
-        for _, v in pairs(body.data) do table.insert(ids, tostring(v.id)) end
+        -- [B] MASS SPIN
+        if ActiveStates["Mass Spin"] then
+            if not part:FindFirstChild("SpinVelocity") then
+                local att = Instance.new("Attachment")
+                att.Name = "SpinAtt"
+                att.Parent = part
+                
+                local av = Instance.new("AngularVelocity")
+                av.Name = "SpinVelocity"
+                av.Attachment0 = att
+                av.MaxTorque = math.huge
+                av.AngularVelocity = Vector3.new(0, 80, 0)
+                av.Parent = part
+                
+                table.insert(StoredObjects, att)
+                table.insert(StoredObjects, av)
+            end
+        end
         
-        if #ids == 0 then
-            WelcomeMsg.Text = "Asset tidak ditemukan."
-            WelcomeMsg.Visible = true
-        else
-            local detRes = httpRequest({Url = "https://apis.roblox.com/toolbox-service/v1/items/details?assetIds="..table.concat(ids, ","), Method = "GET"})
-            if detRes and detRes.StatusCode == 200 then
-                for _, data in pairs(HttpService:JSONDecode(detRes.Body).data) do
-                    local Card = Instance.new("Frame")
-                    Card.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-                    Card.Parent = ListPage
-                    addCorner(Card, 6)
-                    
-                    local Img = Instance.new("ImageLabel")
-                    Img.Size = UDim2.new(1, -10, 0, 70)
-                    Img.Position = UDim2.new(0, 5, 0, 5)
-                    
-                    if searchMode == "3" then
-                        Img.Image = "rbxassetid://10734951121"
-                    else
-                        Img.Image = "rbxthumb://type=Asset&id="..data.asset.id.."&w=150&h=150"
-                    end
-                    
-                    Img.BackgroundTransparency = 1
-                    Img.Parent = Card
-                    
-                    local Info = Instance.new("TextLabel")
-                    Info.Size = UDim2.new(1, -6, 0, 30)
-                    Info.Position = UDim2.new(0, 3, 0, 78)
-                    Info.Text = data.asset.name.."\nID: "..data.asset.id
-                    Info.TextColor3 = Color3.fromRGB(255, 255, 255)
-                    Info.TextSize = 8
-                    Info.Font = Enum.Font.SourceSansBold
-                    Info.TextWrapped = true
-                    Info.BackgroundTransparency = 1
-                    Info.Parent = Card
-                    
-                    local btn = Instance.new("TextButton")
-                    btn.Size = UDim2.new(1, 0, 1, 0)
-                    btn.BackgroundTransparency = 1
-                    btn.Text = ""
-                    btn.Parent = Card
-                    btn.MouseButton1Click:Connect(function() showDetail(data) end)
+        -- [C] BLACK HOLE
+        if ActiveStates["Black Hole"] then
+            local lv = part:FindFirstChild("BlackHoleVelocity")
+            local att = part:FindFirstChild("BlackHoleAtt")
+            
+            if not lv then
+                att = Instance.new("Attachment")
+                att.Name = "BlackHoleAtt"
+                att.Parent = part
+                
+                lv = Instance.new("LinearVelocity")
+                lv.Name = "BlackHoleVelocity"
+                lv.Attachment0 = att
+                lv.MaxForce = math.huge
+                lv.Parent = part
+                
+                table.insert(StoredObjects, att)
+                table.insert(StoredObjects, lv)
+            end
+            local targetPos = hrp.Position + Vector3.new(0, 18, 0)
+            lv.VectorVelocity = (targetPos - part.Position).Unit * 55
+        end
+        
+        -- [D] FLING SLINGSHOT
+        if ActiveStates["Fling Slingshot"] then
+            if not part:FindFirstChild("FlingForce") then
+                local att = Instance.new("Attachment")
+                att.Name = "FlingAtt"
+                att.Parent = part
+                
+                local vf = Instance.new("VectorForce")
+                vf.Name = "FlingForce"
+                vf.Attachment0 = att
+                vf.Force = Vector3.new(math.random(-85000, 85000), 110000, math.random(-85000, 85000))
+                vf.Parent = part
+                
+                table.insert(StoredObjects, att)
+                table.insert(StoredObjects, vf)
+            end
+        end
+        
+        -- [E] BREAK CONSTRAINTS
+        if ActiveStates["Break Constraints"] then
+            for _, joint in pairs(part:GetChildren()) do
+                if joint:IsA("Constraint") or joint:IsA("Weld") or joint:IsA("ManualWeld") or joint:IsA("WeldConstraint") or joint:IsA("Motor6D") or joint:IsA("Snap") then
+                    joint:Destroy()
                 end
             end
         end
-    else
-        WelcomeMsg.Text = "Koneksi API Error atau Executor memblokir HTTP Request."
-        WelcomeMsg.Visible = true
     end
-    ListPage.CanvasPosition = Vector2.new(0,0)
-    ListPage.CanvasSize = UDim2.new(0,0,0,Grid.AbsoluteContentSize.Y + 10)
-    isFetching = false
+end)
+
+-- BUTTON GENERATOR
+local function CreateMenuButton(featureName)
+    local ItemGroupFrame = Instance.new("Frame")
+    ItemGroupFrame.Size = UDim2.new(1, -6, 0, 90)
+    ItemGroupFrame.BackgroundTransparency = 1
+    ItemGroupFrame.Parent = ScrollContainer
+    
+    local Btn = Instance.new("TextButton")
+    Btn.Size = UDim2.new(1, 0, 0, 36)
+    Btn.BackgroundColor3 = Color3.fromRGB(28, 28, 28)
+    Btn.Text = featureName .. " : [OFF]"
+    Btn.TextColor3 = Color3.fromRGB(180, 180, 180)
+    Btn.Font = Enum.Font.SourceSansBold
+    Btn.TextSize = 14
+    Btn.BorderSizePixel = 0
+    Btn.Parent = ItemGroupFrame
+    
+    local BtnCorner = Instance.new("UICorner")
+    BtnCorner.CornerRadius = UDim.new(0, 6)
+    BtnCorner.Parent = Btn
+    
+    local BtnStroke = Instance.new("UIStroke")
+    BtnStroke.Color = Color3.fromRGB(45, 45, 45)
+    BtnStroke.Thickness = 1
+    BtnStroke.Parent = Btn
+    
+    local DescLabel = Instance.new("TextLabel")
+    DescLabel.Size = UDim2.new(1, 0, 0, 48)
+    DescLabel.Position = UDim2.new(0, 0, 0, 40)
+    DescLabel.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
+    DescLabel.Text = FeatureDescriptions[featureName]
+    DescLabel.TextColor3 = Color3.fromRGB(140, 140, 140)
+    DescLabel.Font = Enum.Font.SourceSans
+    DescLabel.TextSize = 11
+    DescLabel.TextWrapped = true
+    DescLabel.TextXAlignment = Enum.TextXAlignment.Left
+    DescLabel.TextYAlignment = Enum.TextYAlignment.Top
+    DescLabel.Parent = ItemGroupFrame
+    
+    local DescCorner = Instance.new("UICorner")
+    DescCorner.CornerRadius = UDim.new(0, 4)
+    DescCorner.Parent = DescLabel
+    
+    local DescPadding = Instance.new("UIPadding")
+    DescPadding.PaddingLeft = UDim.new(0, 8)
+    DescPadding.PaddingRight = UDim.new(0, 8)
+    DescPadding.PaddingTop = UDim.new(0, 5)
+    DescPadding.Parent = DescLabel
+
+    Btn.MouseButton1Click:Connect(function()
+        ActiveStates[featureName] = not ActiveStates[featureName]
+        if ActiveStates[featureName] then
+            Btn.Text = featureName .. " : [ON]"
+            Btn.BackgroundColor3 = Color3.fromRGB(0, 90, 90)
+            Btn.TextColor3 = Color3.fromRGB(0, 255, 255)
+            Btn.UIStroke.Color = Color3.fromRGB(0, 255, 255)
+            DescLabel.TextColor3 = Color3.fromRGB(180, 255, 255)
+        else
+            Btn.Text = featureName .. " : [OFF]"
+            Btn.BackgroundColor3 = Color3.fromRGB(28, 28, 28)
+            Btn.TextColor3 = Color3.fromRGB(180, 180, 180)
+            Btn.UIStroke.Color = Color3.fromRGB(45, 45, 45)
+            DescLabel.TextColor3 = Color3.fromRGB(140, 140, 140)
+            ClearAllFisika()
+        end
+    end)
 end
 
--- ==========================================
--- INPUT CORRELATION HANDLER
--- ==========================================
-Input.FocusLost:Connect(function(enter)
-    if enter and Input.Text ~= "" then
-        currentKeyword = Input.Text
-        cursors = { [1] = "" }
-        Search(currentKeyword, "", 1)
-    end
-end)
+-- Inisialisasi tombol menu
+CreateMenuButton("Mass Drag")
+CreateMenuButton("Mass Spin")
+CreateMenuButton("Black Hole")
+CreateMenuButton("Fling Slingshot")
+CreateMenuButton("Break Constraints")
 
-NextBtn.MouseButton1Click:Connect(function()
-    if not isFetching and cursors[currentPage + 1] ~= "" then
-        Search(currentKeyword, cursors[currentPage + 1], currentPage + 1)
-    end
-end)
-
-PrevBtn.MouseButton1Click:Connect(function()
-    if not isFetching and currentPage > 1 then
-        Search(currentKeyword, cursors[currentPage - 1], currentPage - 1)
-    end
-end)
-
+-- TOGGLE WINDOW HANDLERS
 CloseBtn.MouseButton1Click:Connect(function() Main.Visible = false OpenBtn.Visible = true end)
 OpenBtn.MouseButton1Click:Connect(function() Main.Visible = true OpenBtn.Visible = false end)
-
-BackBtn.MouseButton1Click:Connect(function()
-    DetailPage.Visible = false
-    HeaderContainer.Visible = true
-    Input.Visible = true
-    ModeBtn.Visible = true
-    PrevBtn.Visible = (currentPage > 1)
-    NextBtn.Visible = (cursors[currentPage+1] ~= "")
-    PageIndicator.Visible = true
-    ListPage.Visible = true
-end)
-
-MenuBtn.MouseButton1Click:Connect(function() Dropdown.Visible = not Dropdown.Visible end)
-Dropdown.MouseButton1Click:Connect(function()
-    local clip = setclipboard or toclipboard or (syn and syn.write_clipboard)
-    if clip then
-        clip(currentId)
-        Dropdown.Text = "Copied!"
-    else
-        Dropdown.Text = "Not Supported"
-    end
-    task.wait(1)
-    Dropdown.Text = "Copy ID"
-    Dropdown.Visible = false
-end)
