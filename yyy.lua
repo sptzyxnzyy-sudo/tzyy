@@ -1,75 +1,58 @@
--- [[ ADVANCED PHYSICS EXECUTOR GUI ]] --
-local UserInputService = game:GetService("UserInputService")
-local TweenService = game:GetService("TweenService")
-local RunService = game:GetService("RunService")
+-- [[ HORIZONTAL MINIMALIST PHYSICS EXECUTOR ]] --
 local Players = game:GetService("Players")
-
+local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 
--- Pastikan karakter update saat respawn
 LocalPlayer.CharacterAdded:Connect(function(char)
     Character = char
 end)
 
--- [[ MEMBUAT GUI DRAGGABLE & RAPI ]] --
+-- [[ SETUP GUI UTAMA ]] --
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "PhysicsExecutor"
+ScreenGui.Name = "HorizontalPhysics"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.Parent = (gethui and gethui()) or game:GetService("CoreGui") or LocalPlayer:WaitForChild("PlayerGui")
 
--- Main Frame (Ukuran Kecil & Compact)
+-- Frame Utama (Bentuk Persegi Panjang ke Samping)
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 180, 0, 260) -- Ukuran kecil pas untuk mobile
-MainFrame.Position = UDim2.new(0.1, 0, 0.2, 0)
-MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+MainFrame.Size = UDim2.new(0, 680, 0, 75) -- Lebar ke samping, sangat tipis ke bawah
+MainFrame.Position = UDim2.new(0.5, -340, 0.05, 0) -- Default di bagian atas tengah layar
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
-MainFrame.Draggable = true -- Support geser luas di layar
+MainFrame.Draggable = true -- Bisa digeser bebas ke mana saja
 MainFrame.Parent = ScreenGui
 
 local UICorner = Instance.new("UICorner")
-UICorner.CornerRadius = UDim.new(0, 8)
+UICorner.CornerRadius = UDim.new(0, 6)
 UICorner.Parent = MainFrame
 
 local UIStroke = Instance.new("UIStroke")
-UIStroke.Color = Color3.fromRGB(0, 180, 255) -- Tema Cyan Modern
-UIStroke.Thickness = 1.5
+UIStroke.Color = Color3.fromRGB(0, 180, 255) -- Aksen Cyan Modern
+UIStroke.Thickness = 1.2
 UIStroke.Parent = MainFrame
 
--- Header Title
-local Header = Instance.new("TextLabel")
-Header.Size = UDim2.new(1, 0, 0, 30)
-Header.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
-Header.Text = "  PHYSICS TOOLKIT v2"
-Header.TextColor3 = Color3.fromRGB(255, 255, 255)
-Header.TextXAlignment = Enum.TextXAlignment.Left
-Header.Font = Enum.Font.SourceSansBold
-Header.TextSize = 14
-Header.Parent = MainFrame
-
-local HeaderCorner = Instance.new("UICorner")
-HeaderCorner.CornerRadius = UDim.new(0, 8)
-HeaderCorner.Parent = Header
-
--- Container untuk Tombol Fitur
-local ButtonContainer = Instance.new("ScrollingFrame")
-ButtonContainer.Size = UDim2.new(1, -10, 1, -40)
-ButtonContainer.Position = UDim2.new(0, 5, 0, 35)
-ButtonContainer.BackgroundTransparency = 1
-ButtonContainer.BorderSizePixel = 0
-ButtonContainer.CanvasSize = UDim2.new(0, 0, 0, 230) -- Scrollable jika penuh
-ButtonContainer.ScrollBarThickness = 2
-ButtonContainer.Parent = MainFrame
+-- Kontainer Horizontal untuk Fitur
+local RowLayout = Instance.new("ScrollingFrame")
+RowLayout.Size = UDim2.new(1, -10, 1, -10)
+RowLayout.Position = UDim2.new(0, 5, 0, 5)
+RowLayout.BackgroundTransparency = 1
+RowLayout.BorderSizePixel = 0
+RowLayout.CanvasSize = UDim2.new(0, 850, 0, 0) -- Scroll ke samping jika layar HP terlalu kecil
+RowLayout.ScrollBarThickness = 3
+RowLayout.Parent = MainFrame
 
 local UIListLayout = Instance.new("UIListLayout")
-UIListLayout.Padding = UDim.new(0, 6)
+UIListLayout.FillDirection = Enum.FillDirection.Horizontal -- Menyusun ke samping
+UIListLayout.Padding = UDim.new(0, 8)
 UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-UIListLayout.Parent = ButtonContainer
+UIListLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+UIListLayout.Parent = RowLayout
 
--- [[ LOGIKA UTAMA & STATE FITUR ]] --
+-- [[ VARIABLE & LOGIKA PHYSICS ]] --
 local States = {
     MassDrag = false,
     MassSpin = false,
@@ -77,11 +60,10 @@ local States = {
     FlingSlingshot = false
 }
 
-local Radius = 60 -- Jangkauan deteksi part unanchored
+local Radius = 65
 local ActiveRopes = {}
 local ActiveSpins = {}
 
--- Helper Fungsi untuk Scan Part Terdekat
 local function getUnanchoredParts()
     local parts = {}
     local root = Character:FindFirstChild("HumanoidRootPart")
@@ -97,14 +79,14 @@ local function getUnanchoredParts()
     return parts
 end
 
--- [[ LOOP UTAMA PHYSICS (RunService) ]] --
+-- Runtime Loop untuk Fungsi Utama
 RunService.Heartbeat:Connect(function()
     local root = Character:FindFirstChild("HumanoidRootPart")
     if not root then return end
 
     local targets = getUnanchoredParts()
 
-    -- 1. Logika Mass Drag
+    -- 1. Mass Drag
     if States.MassDrag then
         local attachmentChar = root:FindFirstChild("DragAttachment") or Instance.new("Attachment", root)
         attachmentChar.Name = "DragAttachment"
@@ -118,13 +100,12 @@ RunService.Heartbeat:Connect(function()
                 rope.Name = "DragRope"
                 rope.Attachment0 = attachmentChar
                 rope.Attachment1 = attPart
-                rope.Length = 5
-                rope.Visible = true -- Menggambarkan tali virtual
+                rope.Length = 6
+                rope.Visible = true
                 table.insert(ActiveRopes, {part, rope, attPart})
             end
         end
     else
-        -- Bersihkan tali jika dimatikan
         for _, data in pairs(ActiveRopes) do
             if data[2] then data[2]:Destroy() end
             if data[3] then data[3]:Destroy() end
@@ -132,7 +113,7 @@ RunService.Heartbeat:Connect(function()
         ActiveRopes = {}
     end
 
-    -- 2. Logika Mass Spin
+    -- 2. Mass Spin
     if States.MassSpin then
         for _, part in pairs(targets) do
             if not part:FindFirstChild("SpinVelocity") then
@@ -140,7 +121,7 @@ RunService.Heartbeat:Connect(function()
                 spin.Name = "SpinVelocity"
                 spin.Attachment0 = part:FindFirstChildOfClass("Attachment") or Instance.new("Attachment", part)
                 spin.MaxTorque = math.huge
-                spin.AngularVelocity = Vector3.new(0, 50, 0) -- Putar kencang di sumbu Y
+                spin.AngularVelocity = Vector3.new(0, 80, 0)
                 table.insert(ActiveSpins, spin)
             end
         end
@@ -151,31 +132,28 @@ RunService.Heartbeat:Connect(function()
         ActiveSpins = {}
     end
 
-    -- 3. Logika Black Hole
+    -- 3. Black Hole (18 Studs Above)
     if States.BlackHole then
-        local targetPos = root.Position + Vector3.new(0, 18, 0) -- 18 Stud di atas kepala
+        local targetPos = root.Position + Vector3.new(0, 18, 0)
         for _, part in pairs(targets) do
-            -- Menggunakan metode pengaturan Velocity langsung agar kompatibel di berbagai executor mobile
             local direction = (targetPos - part.Position)
-            part.Velocity = direction.Unit * 40 -- Kecepatan hisap
+            part.Velocity = direction.Unit * 45
         end
     end
 
-    -- 4. Logika Fling Slingshot
+    -- 4. Fling Slingshot
     if States.FlingSlingshot then
         for _, part in pairs(targets) do
-            -- Memberikan gaya sentak acak instan (Velocity Manipulation)
-            local randomForce = Vector3.new(
-                math.random(-300, 300),
-                math.random(200, 500), -- Efek melontar ke atas
-                math.random(-300, 300)
+            part.Velocity = Vector3.new(
+                math.random(-350, 350),
+                math.random(250, 550),
+                math.random(-350, 350)
             )
-            part.Velocity = randomForce
         end
     end
 end)
 
--- 5. Logika Break Constraints (Instant Trigger)
+-- 5. Break Constraints
 local function breakConstraints()
     local targets = getUnanchoredParts()
     for _, part in pairs(targets) do
@@ -184,7 +162,6 @@ local function breakConstraints()
                 joint:Destroy()
             end
         end
-        -- Cek juga di parent objeknya untuk merontokkan model
         if part.Parent then
             for _, joint in pairs(part.Parent:GetChildren()) do
                 if joint:IsA("Constraint") or joint:IsA("WeldConstraint") or joint:IsA("Weld") then
@@ -195,52 +172,79 @@ local function breakConstraints()
     end
 end
 
-
--- [[ FUNCTION UNTUK MEMBUAT TOMBOL UI RAPI ]] --
-local function createButton(name, isToggle, callback)
-    local Button = Instance.new("TextButton")
-    Button.Size = UDim2.new(1, -6, 0, 32)
-    Button.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
-    Button.Text = name
-    Button.TextColor3 = Color3.fromRGB(200, 200, 200)
-    Button.Font = Enum.Font.SourceSans
-    Button.TextSize = 13
-    Button.AutoButtonColor = true
-    Button.Parent = ButtonContainer
+-- [[ METODE SEEDING TOMBOL DENGAN SUB-TEKS KETERANGAN ]] --
+local function createHorizontalComponent(title, desc, isToggle, callback)
+    local ButtonFrame = Instance.new("TextButton")
+    ButtonFrame.Size = UDim2.new(0, 155, 0, 52) -- Ukuran kotak modul fitur yang pas
+    ButtonFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+    ButtonFrame.Text = ""
+    ButtonFrame.AutoButtonColor = true
+    ButtonFrame.Parent = RowLayout
 
     local BtnCorner = Instance.new("UICorner")
     BtnCorner.CornerRadius = UDim.new(0, 5)
-    BtnCorner.Parent = Button
+    BtnCorner.Parent = ButtonFrame
+
+    local Stroke = Instance.new("UIStroke")
+    Stroke.Color = Color3.fromRGB(45, 45, 50)
+    Stroke.Thickness = 1
+    Stroke.Parent = ButtonFrame
+
+    -- Label Nama Fitur
+    local TitleLabel = Instance.new("TextLabel")
+    TitleLabel.Size = UDim2.new(1, 0, 0.5, 0)
+    TitleLabel.Position = UDim2.new(0, 0, 0.1, 0)
+    TitleLabel.BackgroundTransparency = 1
+    TitleLabel.Text = title
+    TitleLabel.TextColor3 = Color3.fromRGB(240, 240, 240)
+    TitleLabel.Font = Enum.Font.SourceSansBold
+    TitleLabel.TextSize = 13
+    TitleLabel.Parent = ButtonFrame
+
+    -- Label Keterangan Fitur (Deskripsi)
+    local DescLabel = Instance.new("TextLabel")
+    DescLabel.Size = UDim2.new(1, -10, 0.4, 0)
+    DescLabel.Position = UDim2.new(0, 5, 0.55, 0)
+    DescLabel.BackgroundTransparency = 1
+    DescLabel.Text = desc
+    DescLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+    DescLabel.Font = Enum.Font.SourceSansItalic
+    DescLabel.TextSize = 10
+    DescLabel.TextWrapped = true
+    DescLabel.Parent = ButtonFrame
 
     local toggled = false
 
-    Button.MouseButton1Click:Connect(function()
+    ButtonFrame.MouseButton1Click:Connect(function()
         if isToggle then
             toggled = not toggled
             if toggled then
-                Button.BackgroundColor3 = Color3.fromRGB(0, 120, 200)
-                Button.TextColor3 = Color3.fromRGB(255, 255, 255)
+                ButtonFrame.BackgroundColor3 = Color3.fromRGB(0, 100, 180)
+                Stroke.Color = Color3.fromRGB(0, 180, 255)
+                TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+                DescLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
             else
-                Button.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
-                Button.TextColor3 = Color3.fromRGB(200, 200, 200)
+                ButtonFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+                Stroke.Color = Color3.fromRGB(45, 45, 50)
+                TitleLabel.TextColor3 = Color3.fromRGB(240, 240, 240)
+                DescLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
             end
             callback(toggled)
         else
-            -- Animasi klik instant untuk non-toggle (Break Constraints)
-            Button.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-            task.wait(0.1)
-            Button.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+            -- Kilasan warna untuk tombol aksi instan (Break Constraints)
+            ButtonFrame.BackgroundColor3 = Color3.fromRGB(150, 35, 35)
+            task.wait(0.12)
+            ButtonFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
             callback()
         end
     end)
 end
 
--- [[ MENDAFTARKAN FITUR KE UI ]] --
-createButton("Mass Drag", true, function(state) States.MassDrag = state end)
-createButton("Mass Spin", true, function(state) States.MassSpin = state end)
-createButton("Black Hole", true, function(state) States.BlackHole = state end)
-createButton("Fling Slingshot", true, function(state) States.FlingSlingshot = state end)
-createButton("Break Constraints", false, function() breakConstraints() end)
+-- [[ INTEGRASI SEMUA FITUR + KETERANGAN ]] --
+createHorizontalComponent("Mass Drag", "Mengikat objek unanchored di sekitar dengan tali virtual.", true, function(state) States.MassDrag = state end)
+createHorizontalComponent("Mass Spin", "Membuat objek berputar sangat cepat menggunakan gaya maksimal.", true, function(state) States.MassSpin = state end)
+createHorizontalComponent("Black Hole", "Menyedot semua material melayang 18 stud di atas kepala.", true, function(state) States.BlackHole = state end)
+createHorizontalComponent("Fling Slingshot", "Melontarkan objek secara acak dengan daya dorong besar.", true, function(state) States.FlingSlingshot = state end)
+createHorizontalComponent("Break Constraints", "Menghancurkan las (weld) objek jembatan/mobil instan.", false, function() breakConstraints() end)
 
--- Notifikasi sukses saat inject script
-print("Physics Toolkit v2 Berhasil Dimuat!")
+print("Horizontal Sleek Physics Toolkit v3 Berhasil Dimuat!")
