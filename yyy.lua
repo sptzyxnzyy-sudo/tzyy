@@ -1,4 +1,4 @@
--- [[ SQUARE 300x300 PHYSICS EXECUTOR ]] --
+-- [[ SHARP SQUARE 300x300 PHYSICS EXECUTOR ]] --
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
@@ -15,26 +15,26 @@ ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.Parent = (gethui and gethui()) or game:GetService("CoreGui") or LocalPlayer:WaitForChild("PlayerGui")
 
--- Frame Utama (Kotak Sempurna 300x300)
+-- Frame Utama (Bentuk Persegi Empat Sempurna 300x300)
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 300, 0, 300) -- Ukuran pas 300x300 sesuai permintaan
+MainFrame.Size = UDim2.new(0, 300, 0, 300) -- Kotak presisi 300x300 pixel
 MainFrame.Position = UDim2.new(0.5, -150, 0.3, -150)
 MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
-MainFrame.Draggable = true 
+MainFrame.Draggable = true -- Bisa digeser luas di layar mobile
 MainFrame.Parent = ScreenGui
 
--- Efek Border Cyan Tajam (Tanpa Lengkungan)
+-- Border Cyan Tajam Persegi Empat (Tanpa Lengkungan/UICorner)
 local UIStroke = Instance.new("UIStroke")
 UIStroke.Color = Color3.fromRGB(0, 180, 255)
 UIStroke.Thickness = 1.5
 UIStroke.Parent = MainFrame
 
--- Header Menu Kecil
+-- Header Menu Atas
 local HeaderLabel = Instance.new("TextLabel")
-HeaderLabel.Size = UDim2.new(1, 0, 0, 28)
+HeaderLabel.Size = UDim2.new(1, 0, 0, 30)
 HeaderLabel.BackgroundColor3 = Color3.fromRGB(22, 22, 26)
 HeaderLabel.BorderSizePixel = 0
 HeaderLabel.Text = "  PHYSICS TOOLKIT (300x300)"
@@ -49,18 +49,18 @@ HeaderStroke.Color = Color3.fromRGB(30, 30, 35)
 HeaderStroke.Thickness = 1
 HeaderStroke.Parent = HeaderLabel
 
--- Kontainer Vertikal (Scroll ke Bawah jika Penuh)
+-- Kontainer Utama (Scrollable Vertikal)
 local ScrollContainer = Instance.new("ScrollingFrame")
-ScrollContainer.Size = UDim2.new(1, -12, 1, -38)
-ScrollContainer.Position = UDim2.new(0, 6, 0, 32)
+ScrollContainer.Size = UDim2.new(1, -12, 1, -40)
+ScrollContainer.Position = UDim2.new(0, 6, 0, 34)
 ScrollContainer.BackgroundTransparency = 1
 ScrollContainer.BorderSizePixel = 0
-ScrollContainer.CanvasSize = UDim2.new(0, 0, 0, 310) -- Ruang gulir vertikal yang pas
+ScrollContainer.CanvasSize = UDim2.new(0, 0, 0, 290) -- Ruang pas untuk 5 fitur
 ScrollContainer.ScrollBarThickness = 3
 ScrollContainer.Parent = MainFrame
 
 local UIListLayout = Instance.new("UIListLayout")
-UIListLayout.FillDirection = Enum.FillDirection.Vertical -- Menyusun ke bawah agar pas di 300x300
+UIListLayout.FillDirection = Enum.FillDirection.Vertical -- Menyusun ke bawah agar pas di bentuk kotak
 UIListLayout.Padding = UDim.new(0, 6)
 UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 UIListLayout.Parent = ScrollContainer
@@ -92,7 +92,7 @@ local function getUnanchoredParts()
     return parts
 end
 
--- Runtime Loop
+-- Runtime Loop untuk Fungsi Utama
 RunService.Heartbeat:Connect(function()
     local root = Character:FindFirstChild("HumanoidRootPart")
     if not root then return end
@@ -185,10 +185,10 @@ local function breakConstraints()
     end
 end
 
--- [[ METODE SEEDING KOMPONEN: VERTIKAL UNTUK UKURAN KOTAK 300x300 ]] --
-local function createComponent(title, desc, isToggle, callback)
+-- [[ CONSTRUCT COMPONENT: MODUL PERSEGI EMPAT KECIL + BUTTON ON/OFF ]] --
+local function createSquareComponent(title, desc, isToggle, callback)
     local ButtonFrame = Instance.new("TextButton")
-    ButtonFrame.Size = UDim2.new(1, -6, 0, 50) -- Lebar penuh mengikuti kontainer kontainer kotak 300x300
+    ButtonFrame.Size = UDim2.new(1, -6, 0, 48) -- Menyesuaikan lebar kontainer 300x300
     ButtonFrame.BackgroundColor3 = Color3.fromRGB(24, 24, 28)
     ButtonFrame.Text = ""
     ButtonFrame.AutoButtonColor = true
@@ -212,7 +212,7 @@ local function createComponent(title, desc, isToggle, callback)
     TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
     TitleLabel.Parent = ButtonFrame
 
-    -- Deskripsi Fitur
+    -- Deskripsi Keterangan Fitur
     local DescLabel = Instance.new("TextLabel")
     DescLabel.Size = UDim2.new(1, -55, 0.5, 0)
     DescLabel.Position = UDim2.new(0, 8, 0.45, 0)
@@ -220,20 +220,20 @@ local function createComponent(title, desc, isToggle, callback)
     DescLabel.Text = desc
     DescLabel.TextColor3 = Color3.fromRGB(135, 135, 140)
     DescLabel.Font = Enum.Font.SourceSansItalic
-    DescLabel.TextSize = 10
+    DescLabel.TextSize = 9.5
     DescLabel.TextWrapped = true
     DescLabel.TextXAlignment = Enum.TextXAlignment.Left
     DescLabel.TextYAlignment = Enum.TextYAlignment.Top
     DescLabel.Parent = ButtonFrame
 
-    -- Tombol Indikator Satuan ON / OFF
+    -- Desain Kotak Indikator Tombol ON/OFF (Persegi Empat Tajam)
     local Indicator = Instance.new("TextLabel")
     local IndicatorStroke = Instance.new("UIStroke")
     Indicator.Size = UDim2.new(0, 36, 0, 20)
     Indicator.Position = UDim2.new(1, -44, 0.5, -10)
     Indicator.BorderSizePixel = 0
     Indicator.Font = Enum.Font.SourceSansBold
-    Indicator.TextSize = 10
+    Indicator.TextSize = 9.5
     Indicator.Parent = ButtonFrame
 
     if isToggle then
@@ -270,7 +270,7 @@ local function createComponent(title, desc, isToggle, callback)
             end
             callback(toggled)
         else
-            -- Animasi Kedip untuk Trigger Sekali Klik
+            -- Animasi Kedip Instan saat Fitur Run Ditekan
             Indicator.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
             Indicator.TextColor3 = Color3.fromRGB(255, 255, 255)
             task.wait(0.12)
@@ -281,11 +281,17 @@ local function createComponent(title, desc, isToggle, callback)
     end)
 end
 
--- [[ DISTRIBUSI MODUL FITUR ]] --
-createComponent("Mass Drag", "Mengikat objek unanchored dengan tali virtual.", true, function(state) States.MassDrag = state end)
-createComponent("Mass Spin", "Membuat objek berputar kencang dengan MaxTorque.", true, function(state) States.MassSpin = state end)
-createComponent("Black Hole", "Menyedot material melayang 18 stud di atas kepala.", true, function(state) States.BlackHole = state end)
-createComponent("Fling Slingshot", "Melontarkan part secara instan ke arah acak.", true, function(state) States.FlingSlingshot = state end)
-createComponent("Break Constraints", "Menghancurkan sambungan las model map.", false, function() breakConstraints() end)
+-- [[ REGISTRASI FITUR LENGKAP ]] --
+local desc1 = "Mengikat objek unanchored terdekat ke tubuh menggunakan tali virtual."
+local desc2 = "Menyuntikkan AngularVelocity maksimal membuat objek berputar kencang."
+local desc3 = "Menciptakan titik gravitasi melayang tepat 18 stud di atas kepala."
+local desc4 = "Memanfaatkan VectorForce melempar part ke arah acak instan."
+local desc5 = "Menghapus (Destroy) sambungan las jembatan/mobil secara instan."
+
+createSquareComponent("Mass Drag", desc1, true, function(state) States.MassDrag = state end)
+createSquareComponent("Mass Spin", desc2, true, function(state) States.MassSpin = state end)
+createSquareComponent("Black Hole", desc3, true, function(state) States.BlackHole = state end)
+createSquareComponent("Fling Slingshot", desc4, true, function(state) States.FlingSlingshot = state end)
+createSquareComponent("Break Constraints", desc5, false, function() breakConstraints() end)
 
 print("Sharp Square 300x300 Physics Toolkit v5 Berhasil Dimuat!")
