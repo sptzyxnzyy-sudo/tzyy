@@ -1,258 +1,246 @@
-local a = game:GetService("Players")
-local b = a.LocalPlayer
-local runService = game:GetService("RunService")
+-- [[ ADVANCED PHYSICS EXECUTOR GUI ]] --
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
 
--- Buat ScreenGui (Metode lokal andalanmu)
-local c = Instance.new("ScreenGui")
-c.Parent = b:WaitForChild("PlayerGui")
-c.Name = "KriptosPhysicsGui"
-c.ResetOnSpawn = false
+local LocalPlayer = Players.LocalPlayer
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 
--- Frame Utama (Ukuran disesuaikan jadi 310x350 agar muat deskripsi teks)
-local d = Instance.new("Frame")
-d.Parent = c
-d.Size = UDim2.new(0, 310, 0, 350)
-d.Position = UDim2.new(0.5, -155, 0.5, -175) -- Auto tengah layar, bisa di-drag
-d.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-d.BorderSizePixel = 0
-d.Active = true
-d.Visible = true
-
-local mainCorner = Instance.new("UICorner")
-mainCorner.CornerRadius = UDim.new(0, 10)
-mainCorner.Parent = d
-
--- Fungsi Dragging Pengganti .Draggable (Anti-Crash Mobile)
-local dragging, dragInput, dragStart, startPos
-d.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true
-        dragStart = input.Position
-        startPos = d.Position
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then dragging = false end
-        end)
-    end
-end)
-d.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-        dragInput = input
-    end
-end)
-runService.RenderStepped:Connect(function()
-    if dragging and dragInput then
-        local delta = dragInput.Position - dragStart
-        d.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-    end
+-- Pastikan karakter update saat respawn
+LocalPlayer.CharacterAdded:Connect(function(char)
+    Character = char
 end)
 
--- Title Label
-local e = Instance.new("TextLabel")
-e.Parent = d
-e.Size = UDim2.new(1, 0, 0, 45)
-e.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
-e.Text = "KRIPTOS PHYSICAL ENGINE v6.1"
-e.TextColor3 = Color3.new(0, 1, 1)
-e.Font = Enum.Font.SourceSansBold
-e.TextSize = 16
+-- [[ MEMBUAT GUI DRAGGABLE & RAPI ]] --
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "PhysicsExecutor"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.Parent = (gethui and gethui()) or game:GetService("CoreGui") or LocalPlayer:WaitForChild("PlayerGui")
 
-local titleCorner = Instance.new("UICorner")
-titleCorner.CornerRadius = UDim.new(0, 10)
-titleCorner.Parent = e
+-- Main Frame (Ukuran Kecil & Compact)
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 180, 0, 260) -- Ukuran kecil pas untuk mobile
+MainFrame.Position = UDim2.new(0.1, 0, 0.2, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true -- Support geser luas di layar
+MainFrame.Parent = ScreenGui
 
--- Scrolling Frame
-local f = Instance.new("ScrollingFrame")
-f.Parent = d
-f.Size = UDim2.new(1, -20, 1, -65)
-f.Position = UDim2.new(0, 10, 0, 55)
-f.CanvasSize = UDim2.new(0, 0, 0, 0)
-f.ScrollBarThickness = 5
-f.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-f.BorderSizePixel = 0
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 8)
+UICorner.Parent = MainFrame
 
--- Data Fitur & Deskripsi Persis Sebelumnya
-local activeStates = {
-    ["Mass Drag"] = false,
-    ["Mass Spin"] = false,
-    ["Black Hole"] = false,
-    ["Fling Slingshot"] = false,
-    ["Break Constraints"] = false
+local UIStroke = Instance.new("UIStroke")
+UIStroke.Color = Color3.fromRGB(0, 180, 255) -- Tema Cyan Modern
+UIStroke.Thickness = 1.5
+UIStroke.Parent = MainFrame
+
+-- Header Title
+local Header = Instance.new("TextLabel")
+Header.Size = UDim2.new(1, 0, 0, 30)
+Header.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+Header.Text = "  PHYSICS TOOLKIT v2"
+Header.TextColor3 = Color3.fromRGB(255, 255, 255)
+Header.TextXAlignment = Enum.TextXAlignment.Left
+Header.Font = Enum.Font.SourceSansBold
+Header.TextSize = 14
+Header.Parent = MainFrame
+
+local HeaderCorner = Instance.new("UICorner")
+HeaderCorner.CornerRadius = UDim.new(0, 8)
+HeaderCorner.Parent = Header
+
+-- Container untuk Tombol Fitur
+local ButtonContainer = Instance.new("ScrollingFrame")
+ButtonContainer.Size = UDim2.new(1, -10, 1, -40)
+ButtonContainer.Position = UDim2.new(0, 5, 0, 35)
+ButtonContainer.BackgroundTransparency = 1
+ButtonContainer.BorderSizePixel = 0
+ButtonContainer.CanvasSize = UDim2.new(0, 0, 0, 230) -- Scrollable jika penuh
+ButtonContainer.ScrollBarThickness = 2
+ButtonContainer.Parent = MainFrame
+
+local UIListLayout = Instance.new("UIListLayout")
+UIListLayout.Padding = UDim.new(0, 6)
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+UIListLayout.Parent = ButtonContainer
+
+-- [[ LOGIKA UTAMA & STATE FITUR ]] --
+local States = {
+    MassDrag = false,
+    MassSpin = false,
+    BlackHole = false,
+    FlingSlingshot = false
 }
 
-local featureDescriptions = {
-    ["Mass Drag"] = "Menarik part unanchored di dekat radius Anda menggunakan tali elastis (Rope). Jalankan karakter untuk menyeret objek map.",
-    ["Mass Spin"] = "Menyuntikkan gaya putar AngularVelocity konstan pada objek map di dekat Anda hingga berputar kencang.",
-    ["Black Hole"] = "Menciptakan titik gravitasi hampa tepat di atas kepala Anda. Objek unanchored di sekitar akan terangkat melayang.",
-    ["Fling Slingshot"] = "Melontarkan paksa seluruh properti map terdekat menggunakan impuls VectorForce acak berdaya hancur tinggi.",
-    ["Break Constraints"] = "Memotong las mekanis bawaan objek map (Weld/Snap/Motor6D) dalam jangkauan Anda agar model rontok."
-}
+local Radius = 60 -- Jangkauan deteksi part unanchored
+local ActiveRopes = {}
+local ActiveSpins = {}
 
-local storedObjects = {}
+-- Helper Fungsi untuk Scan Part Terdekat
+local function getUnanchoredParts()
+    local parts = {}
+    local root = Character:FindFirstChild("HumanoidRootPart")
+    if not root then return parts end
 
-local function clearFisika()
-    for _, obj in pairs(storedObjects) do
-        if obj and obj.Parent then obj:Destroy() end
-    end
-    storedObjects = {}
-end
-
--- Generator List Tombol + Deskripsi Otomatis (Gaya clean custom script)
-local featureList = {"Mass Drag", "Mass Spin", "Black Hole", "Fling Slingshot", "Break Constraints"}
-local h = 5
-
-for i, featureName in ipairs(featureList) do
-    -- Container per item agar rapi
-    local itemFrame = Instance.new("Frame")
-    itemFrame.Parent = f
-    itemFrame.Size = UDim2.new(1, -6, 0, 90)
-    itemFrame.Position = UDim2.new(0, 3, 0, h)
-    itemFrame.BackgroundTransparency = 1
-    
-    -- Tombol Fitur
-    local k = Instance.new("TextButton")
-    k.Parent = itemFrame
-    k.Size = UDim2.new(1, 0, 0, 35)
-    k.Text = featureName .. " : [OFF]"
-    k.BackgroundColor3 = Color3.fromRGB(28, 28, 28)
-    k.TextColor3 = Color3.fromRGB(180, 180, 180)
-    k.Font = Enum.Font.SourceSansBold
-    k.TextSize = 14
-    k.BorderSizePixel = 0
-    
-    local btnBtnCorner = Instance.new("UICorner")
-    btnBtnCorner.CornerRadius = UDim.new(0, 6)
-    btnBtnCorner.Parent = k
-    
-    -- Teks Deskripsi di bawah tombol
-    local descLabel = Instance.new("TextLabel")
-    descLabel.Parent = itemFrame
-    descLabel.Size = UDim2.new(1, 0, 0, 48)
-    descLabel.Position = UDim2.new(0, 0, 0, 40)
-    descLabel.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
-    descLabel.Text = featureDescriptions[featureName]
-    descLabel.TextColor3 = Color3.fromRGB(140, 140, 140)
-    descLabel.Font = Enum.Font.SourceSans
-    descLabel.TextSize = 11
-    descLabel.TextWrapped = true
-    descLabel.TextXAlignment = Enum.TextXAlignment.Left
-    descLabel.TextYAlignment = Enum.TextYAlignment.Top
-    
-    local descCorner = Instance.new("UICorner")
-    descCorner.CornerRadius = UDim.new(0, 4)
-    descCorner.Parent = descLabel
-    
-    local padding = Instance.new("UIPadding")
-    padding.PaddingLeft = UDim.new(0, 8)
-    padding.PaddingRight = UDim.new(0, 8)
-    padding.PaddingTop = UDim.new(0, 5)
-    padding.Parent = descLabel
-    
-    h = h + 98
-    
-    -- Logika Klik Switch ON/OFF
-    k.MouseButton1Click:Connect(function()
-        activeStates[featureName] = not activeStates[featureName]
-        if activeStates[featureName] then
-            k.Text = featureName .. " : [ON]"
-            k.BackgroundColor3 = Color3.fromRGB(0, 90, 90)
-            k.TextColor3 = Color3.new(0, 1, 1)
-            descLabel.TextColor3 = Color3.fromRGB(180, 255, 255)
-        else
-            k.Text = featureName .. " : [OFF]"
-            k.BackgroundColor3 = Color3.fromRGB(28, 28, 28)
-            k.TextColor3 = Color3.fromRGB(180, 180, 180)
-            descLabel.TextColor3 = Color3.fromRGB(140, 140, 140)
-            clearFisika()
+    for _, obj in pairs(workspace:GetDescendants()) do
+        if obj:IsA("BasePart") and not obj.Anchored and not obj:IsDescendantOf(Character) then
+            if (obj.Position - root.Position).Magnitude <= Radius then
+                table.insert(parts, obj)
+            end
         end
-    end)
-end
-f.CanvasSize = UDim2.new(0, 0, 0, h)
-
--- Core Backend Loop Engine Fisika
-runService.Stepped:Connect(function()
-    local char = b.Character
-    local hrp = char and char:FindFirstChild("HumanoidRootPart")
-    
-    local anyActive = false
-    for _, state in pairs(activeStates) do if state then anyActive = true break end end
-    
-    if not hrp or not anyActive then 
-        clearFisika() 
-        return 
     end
-    
-    for _, part in pairs(workspace:GetDescendants()) do
-        if part:IsA("BasePart") and not part.Anchored and not part:IsDescendantOf(char) then
-            local dist = (part.Position - hrp.Position).Magnitude
-            if dist <= 150 then
-                if part.Velocity.Magnitude < 1 then part.Velocity = Vector3.new(0, -0.1, 0) end
+    return parts
+end
+
+-- [[ LOOP UTAMA PHYSICS (RunService) ]] --
+RunService.Heartbeat:Connect(function()
+    local root = Character:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+
+    local targets = getUnanchoredParts()
+
+    -- 1. Logika Mass Drag
+    if States.MassDrag then
+        local attachmentChar = root:FindFirstChild("DragAttachment") or Instance.new("Attachment", root)
+        attachmentChar.Name = "DragAttachment"
+
+        for _, part in pairs(targets) do
+            if not part:FindFirstChild("DragRope") then
+                local attPart = Instance.new("Attachment", part)
+                attPart.Name = "PartAttachment"
                 
-                -- [1] MASS DRAG
-                if activeStates["Mass Drag"] and not part:FindFirstChild("DragAtt") then
-                    local a1 = Instance.new("Attachment", part) a1.Name = "DragAtt"
-                    local a0 = Instance.new("Attachment", hrp) a0.Name = "PlayerDragAtt"
-                    local r = Instance.new("RopeConstraint", part)
-                    r.Attachment0 = a0 r.Attachment1 = a1 r.Length = 10 r.Visible = true
-                    table.insert(storedObjects, a1) table.insert(storedObjects, a0) table.insert(storedObjects, r)
-                end
-                
-                -- [2] MASS SPIN
-                if activeStates["Mass Spin"] and not part:FindFirstChild("SpinVelocity") then
-                    local att = Instance.new("Attachment", part) att.Name = "SpinAtt"
-                    local av = Instance.new("AngularVelocity", part)
-                    av.Name = "SpinVelocity" av.Attachment0 = att av.MaxTorque = math.huge av.AngularVelocity = Vector3.new(0, 80, 0)
-                    table.insert(storedObjects, att) table.insert(storedObjects, av)
-                end
-                
-                -- [3] BLACK HOLE
-                if activeStates["Black Hole"] then
-                    local lv = part:FindFirstChild("BHVelocity")
-                    if not lv then
-                        local att = Instance.new("Attachment", part) att.Name = "BHAtt"
-                        lv = Instance.new("LinearVelocity", part)
-                        lv.Name = "BHVelocity" lv.Attachment0 = att lv.MaxForce = math.huge
-                        table.insert(storedObjects, att) table.insert(storedObjects, lv)
-                    end
-                    lv.VectorVelocity = ((hrp.Position + Vector3.new(0, 18, 0)) - part.Position).Unit * 55
-                end
-                
-                -- [4] FLING SLINGSHOT
-                if activeStates["Fling Slingshot"] and not part:FindFirstChild("FlingForce") then
-                    local att = Instance.new("Attachment", part)
-                    local vf = Instance.new("VectorForce", part)
-                    vf.Name = "FlingForce" vf.Attachment0 = att
-                    vf.Force = Vector3.new(math.random(-85000, 85000), 110000, math.random(-85000, 85000))
-                    table.insert(storedObjects, att) table.insert(storedObjects, vf)
-                end
-                
-                -- [5] BREAK CONSTRAINTS
-                if activeStates["Break Constraints"] then
-                    for _, j in pairs(part:GetChildren()) do
-                        if j:IsA("Constraint") or j:IsA("Weld") or j:IsA("WeldConstraint") or j:IsA("Motor6D") then j:Destroy() end
-                    end
+                local rope = Instance.new("RopeConstraint", part)
+                rope.Name = "DragRope"
+                rope.Attachment0 = attachmentChar
+                rope.Attachment1 = attPart
+                rope.Length = 5
+                rope.Visible = true -- Menggambarkan tali virtual
+                table.insert(ActiveRopes, {part, rope, attPart})
+            end
+        end
+    else
+        -- Bersihkan tali jika dimatikan
+        for _, data in pairs(ActiveRopes) do
+            if data[2] then data[2]:Destroy() end
+            if data[3] then data[3]:Destroy() end
+        end
+        ActiveRopes = {}
+    end
+
+    -- 2. Logika Mass Spin
+    if States.MassSpin then
+        for _, part in pairs(targets) do
+            if not part:FindFirstChild("SpinVelocity") then
+                local spin = Instance.new("AngularVelocity", part)
+                spin.Name = "SpinVelocity"
+                spin.Attachment0 = part:FindFirstChildOfClass("Attachment") or Instance.new("Attachment", part)
+                spin.MaxTorque = math.huge
+                spin.AngularVelocity = Vector3.new(0, 50, 0) -- Putar kencang di sumbu Y
+                table.insert(ActiveSpins, spin)
+            end
+        end
+    else
+        for _, spin in pairs(ActiveSpins) do
+            if spin then spin:Destroy() end
+        end
+        ActiveSpins = {}
+    end
+
+    -- 3. Logika Black Hole
+    if States.BlackHole then
+        local targetPos = root.Position + Vector3.new(0, 18, 0) -- 18 Stud di atas kepala
+        for _, part in pairs(targets) do
+            -- Menggunakan metode pengaturan Velocity langsung agar kompatibel di berbagai executor mobile
+            local direction = (targetPos - part.Position)
+            part.Velocity = direction.Unit * 40 -- Kecepatan hisap
+        end
+    end
+
+    -- 4. Logika Fling Slingshot
+    if States.FlingSlingshot then
+        for _, part in pairs(targets) do
+            -- Memberikan gaya sentak acak instan (Velocity Manipulation)
+            local randomForce = Vector3.new(
+                math.random(-300, 300),
+                math.random(200, 500), -- Efek melontar ke atas
+                math.random(-300, 300)
+            )
+            part.Velocity = randomForce
+        end
+    end
+end)
+
+-- 5. Logika Break Constraints (Instant Trigger)
+local function breakConstraints()
+    local targets = getUnanchoredParts()
+    for _, part in pairs(targets) do
+        for _, joint in pairs(part:GetDescendants()) do
+            if joint:IsA("Weld") or joint:IsA("WeldConstraint") or joint:IsA("Snap") or joint:IsA("Motor6D") then
+                joint:Destroy()
+            end
+        end
+        -- Cek juga di parent objeknya untuk merontokkan model
+        if part.Parent then
+            for _, joint in pairs(part.Parent:GetChildren()) do
+                if joint:IsA("Constraint") or joint:IsA("WeldConstraint") or joint:IsA("Weld") then
+                    joint:Destroy()
                 end
             end
         end
     end
-end)
+end
 
--- Tombol Bulat Toggle Utama ("PHY") - Letak & gaya persis punyamu
-local o = Instance.new("TextButton")
-o.Parent = c
-o.Size = UDim2.new(0, 50, 0, 50)
-o.Position = UDim2.new(0, 10, 0, 10) -- Letak awal di kiri atas dekat frame luar
-o.BackgroundColor3 = Color3.fromRGB(100, 100, 255)
-o.Text = "PHY"
-o.TextColor3 = Color3.new(1, 1, 1)
-o.Font = Enum.Font.SourceSansBold
-o.TextSize = 16
-o.BorderSizePixel = 0
-o.Active = true
 
-local p = Instance.new("UICorner")
-p.CornerRadius = UDim.new(1, 0)
-p.Parent = o
+-- [[ FUNCTION UNTUK MEMBUAT TOMBOL UI RAPI ]] --
+local function createButton(name, isToggle, callback)
+    local Button = Instance.new("TextButton")
+    Button.Size = UDim2.new(1, -6, 0, 32)
+    Button.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+    Button.Text = name
+    Button.TextColor3 = Color3.fromRGB(200, 200, 200)
+    Button.Font = Enum.Font.SourceSans
+    Button.TextSize = 13
+    Button.AutoButtonColor = true
+    Button.Parent = ButtonContainer
 
-o.MouseButton1Click:Connect(function()
-    d.Visible = not d.Visible
-end)
+    local BtnCorner = Instance.new("UICorner")
+    BtnCorner.CornerRadius = UDim.new(0, 5)
+    BtnCorner.Parent = Button
+
+    local toggled = false
+
+    Button.MouseButton1Click:Connect(function()
+        if isToggle then
+            toggled = not toggled
+            if toggled then
+                Button.BackgroundColor3 = Color3.fromRGB(0, 120, 200)
+                Button.TextColor3 = Color3.fromRGB(255, 255, 255)
+            else
+                Button.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+                Button.TextColor3 = Color3.fromRGB(200, 200, 200)
+            end
+            callback(toggled)
+        else
+            -- Animasi klik instant untuk non-toggle (Break Constraints)
+            Button.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+            task.wait(0.1)
+            Button.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+            callback()
+        end
+    end)
+end
+
+-- [[ MENDAFTARKAN FITUR KE UI ]] --
+createButton("Mass Drag", true, function(state) States.MassDrag = state end)
+createButton("Mass Spin", true, function(state) States.MassSpin = state end)
+createButton("Black Hole", true, function(state) States.BlackHole = state end)
+createButton("Fling Slingshot", true, function(state) States.FlingSlingshot = state end)
+createButton("Break Constraints", false, function() breakConstraints() end)
+
+-- Notifikasi sukses saat inject script
+print("Physics Toolkit v2 Berhasil Dimuat!")
