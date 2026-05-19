@@ -1,24 +1,23 @@
--- [[ KRIPTOS PHYSICAL MANIPULATION TOOL v4.5 PRO ]] --
+-- [[ KRIPTOS PHYSICAL MANIPULATION TOOL v4.6 FIX ]] --
 -- Cocok untuk Executor Mobile & PC (Delta, Fluxus, Hydrogen, Wave, dll)
--- Desain UI Baru: Setiap tombol memiliki kolom keterangan fitur langsung di bawahnya!
+-- FIX: Perbaikan logika loop yang menghapus objek gaya secara tidak sengaja.
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 local CoreGui = game:GetService("CoreGui")
 
--- Bersihkan UI lama jika sudah pernah dijalankan sebelumnya
-if CoreGui:FindFirstChild("KriptosConstraintUI_v4_5") then
-    CoreGui.KriptosConstraintUI_v4_5:Destroy()
+-- Bersihkan UI lama jika ada
+if CoreGui:FindFirstChild("KriptosConstraintUI_v4_6") then
+    CoreGui.KriptosConstraintUI_v4_6:Destroy()
 end
 
--- ScreenGui Utama (Disimpan di CoreGui agar anti-reset saat karakter mati/respawn)
 local SGUI = Instance.new("ScreenGui")
-SGUI.Name = "KriptosConstraintUI_v4_5"
+SGUI.Name = "KriptosConstraintUI_v4_6"
 SGUI.Parent = CoreGui
 SGUI.ResetOnSpawn = false
 
--- [[ UTILITY: FUNGSI SYSTEM DRAGGABLE (GESER LUAS) ]] --
+-- [[ UTILITY: FUNGSI SYSTEM DRAGGABLE ]] --
 local function makeDraggable(frame, dragHandle)
     local dragging, dragInput, dragStart, startPos
     dragHandle = dragHandle or frame
@@ -30,9 +29,7 @@ local function makeDraggable(frame, dragHandle)
             startPos = frame.Position
             
             input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then
-                    dragging = false
-                end
+                if input.UserInputState == Enum.UserInputState.End then dragging = false end
             end)
         end
     end)
@@ -51,7 +48,7 @@ local function makeDraggable(frame, dragHandle)
     end)
 end
 
--- [[ 1. ICON SETTINGS (Tombol Pemicu Buka/Tutup - Draggable) ]] --
+-- [[ 1. ICON SETTINGS (Ditambahkan teks alternatif jika Gambar Aset Gagal Muat) ]] --
 local SettingsIcon = Instance.new("ImageButton")
 SettingsIcon.Name = "SettingsIcon"
 SettingsIcon.Size = UDim2.new(0, 45, 0, 45)
@@ -61,6 +58,16 @@ SettingsIcon.Image = "rbxassetid://7059346373"
 SettingsIcon.ImageColor3 = Color3.fromRGB(0, 255, 255)
 SettingsIcon.BorderSizePixel = 0
 SettingsIcon.Parent = SGUI
+
+local BackupText = Instance.new("TextLabel")
+BackupText.Size = UDim2.new(1, 0, 1, 0)
+BackupText.BackgroundTransparency = 1
+BackupText.Text = "[ K ]"
+BackupText.TextColor3 = Color3.fromRGB(0, 255, 255)
+BackupText.Font = Enum.Font.SourceSansBold
+BackupText.TextSize = 14
+BackupText.ZIndex = 0 -- Berada di belakang gambar, muncul jika gambar transparan/gagal muat
+BackupText.Parent = SettingsIcon
 
 local IconCorner = Instance.new("UICorner")
 IconCorner.CornerRadius = UDim.new(0, 10)
@@ -73,7 +80,7 @@ IconStroke.Parent = SettingsIcon
 
 makeDraggable(SettingsIcon)
 
--- [[ 2. MAIN PANEL GUI (Bentuk Persegi Empat 310x400 - Tengah Layar) ]] --
+-- [[ 2. MAIN PANEL GUI ]] --
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Size = UDim2.new(0, 310, 0, 400)
@@ -94,22 +101,19 @@ MainStroke.Parent = MainFrame
 
 makeDraggable(MainFrame)
 
--- Header Judul Menu Panel
 local Header = Instance.new("TextLabel")
 Header.Size = UDim2.new(1, 0, 0, 40)
 Header.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-Header.Text = "PHYSICS & REPLICATION v4.5"
+Header.Text = "PHYSICS & REPLICATION v4.6"
 Header.TextColor3 = Color3.fromRGB(0, 255, 255)
 Header.Font = Enum.Font.SourceSansBold
 Header.TextSize = 14
-Header.BorderSizePixel = 0
 Header.Parent = MainFrame
 
 local HeaderCorner = Instance.new("UICorner")
 HeaderCorner.CornerRadius = UDim.new(0, 12)
 HeaderCorner.Parent = Header
 
--- Menggunakan SCROLLING FRAME agar muat banyak tombol + kolom keterangan di layar HP/PC
 local ScrollContainer = Instance.new("ScrollingFrame")
 ScrollContainer.Size = UDim2.new(1, -20, 1, -55)
 ScrollContainer.Position = UDim2.new(0, 10, 0, 48)
@@ -117,7 +121,7 @@ ScrollContainer.BackgroundTransparency = 1
 ScrollContainer.BorderSizePixel = 0
 ScrollContainer.ScrollBarThickness = 4
 ScrollContainer.ScrollBarImageColor3 = Color3.fromRGB(0, 255, 255)
-ScrollContainer.CanvasSize = UDim2.new(0, 0, 0, 0) -- Otomatis membesar berkat UIListLayout
+ScrollContainer.CanvasSize = UDim2.new(0, 0, 0, 0)
 ScrollContainer.Parent = MainFrame
 
 local UILayout = Instance.new("UIListLayout")
@@ -125,13 +129,11 @@ UILayout.Parent = ScrollContainer
 UILayout.SortOrder = Enum.SortOrder.LayoutOrder
 UILayout.Padding = UDim.new(0, 6)
 
--- Otomatis memperbarui ukuran canvas scroll bar setiap kali ada elemen baru masuk
 UILayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
     ScrollContainer.CanvasSize = UDim2.new(0, 0, 0, UILayout.AbsoluteContentSize.Y + 10)
 end)
 
-
--- [[ 3. DATA KETERANGAN FITUR DAN LOGIKA ENGINE INDEPENDEN ]] --
+-- [[ 3. LOGIKA ENGINE FISIKA RE-OPTIMIZED ]] --
 local ActiveStates = {
     ["Mass Drag"] = false,
     ["Mass Spin"] = false,
@@ -148,7 +150,6 @@ local FeatureDescriptions = {
     ["Break Constraints"] = "Memindai las mekanis bawaan objek map (Weld, Snap, Motor6D, dll), mengklaim ownership lokal, lalu menghancurkannya agar properti copot terberai."
 }
 
--- Penyimpanan instansi objek gaya fisika tiruan
 local StoredObjects = {
     ["Mass Drag"] = {},
     ["Mass Spin"] = {},
@@ -165,13 +166,6 @@ local function ClearSpecificFisika(featureName)
     end
 end
 
-local function ClearAllFisika()
-    for fName, _ in pairs(StoredObjects) do
-        ClearSpecificFisika(fName)
-    end
-end
-
--- Filter pelindung agar anggota tubuh pemain di server aman dari modifikasi
 local function isAPlayerCharacterPart(part)
     for _, p in pairs(Players:GetPlayers()) do
         if p.Character and part:IsDescendantOf(p.Character) then
@@ -181,123 +175,108 @@ local function isAPlayerCharacterPart(part)
     return false
 end
 
--- RUNTIME CALCULATION ENGINE
-local function JalankanLogikaFisika()
-    local character = LocalPlayer.Character
-    if not character then return end
-    local hrp = character:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-    
-    for fName, _ in pairs(StoredObjects) do
-        ClearSpecificFisika(fName)
-    end
-    
-    for _, part in pairs(workspace:GetDescendants()) do
-        if part:IsA("BasePart") and not part.Anchored and not isAPlayerCharacterPart(part) then
-            
-            -- [FITUR A]: SERET MASAL
-            if ActiveStates["Mass Drag"] then
-                local att0 = Instance.new("Attachment", hrp)
-                local att1 = Instance.new("Attachment", part)
-                local rope = Instance.new("RopeConstraint")
-                rope.Attachment0 = att0
-                rope.Attachment1 = att1
-                rope.Length = 12
-                rope.Visible = true
-                rope.Color = BrickColor.new("Cyan")
-                rope.Parent = hrp
-                
-                table.insert(StoredObjects["Mass Drag"], att0)
-                table.insert(StoredObjects["Mass Drag"], att1)
-                table.insert(StoredObjects["Mass Drag"], rope)
+-- LOGIKA APLIKASI GAYA FISIK INDEPENDEN (Hanya dieksekusi saat status ON)
+local function TerapkanGayaKeObjek(featureName, part, hrp)
+    if featureName == "Mass Drag" then
+        local att0 = Instance.new("Attachment", hrp)
+        local att1 = Instance.new("Attachment", part)
+        local rope = Instance.new("RopeConstraint")
+        rope.Attachment0 = att0
+        rope.Attachment1 = att1
+        rope.Length = 12
+        rope.Visible = true
+        rope.Color = BrickColor.new("Cyan")
+        rope.Parent = hrp
+        table.insert(StoredObjects["Mass Drag"], att0)
+        table.insert(StoredObjects["Mass Drag"], att1)
+        table.insert(StoredObjects["Mass Drag"], rope)
+        
+    elseif featureName == "Mass Spin" then
+        local att = Instance.new("Attachment", part)
+        local av = Instance.new("AngularVelocity")
+        av.Attachment0 = att
+        av.MaxTorque = math.huge
+        av.AngularVelocity = Vector3.new(0, 75, 0)
+        av.Parent = part
+        table.insert(StoredObjects["Mass Spin"], att)
+        table.insert(StoredObjects["Mass Spin"], av)
+        
+    elseif featureName == "Black Hole" then
+        local att = Instance.new("Attachment", part)
+        local lv = Instance.new("LinearVelocity")
+        lv.Attachment0 = att
+        lv.MaxForce = math.huge
+        lv.VectorVelocity = ((hrp.Position + Vector3.new(0, 15, 0)) - part.Position).Unit * 60
+        lv.Parent = part
+        table.insert(StoredObjects["Black Hole"], att)
+        table.insert(StoredObjects["Black Hole"], lv)
+        
+    elseif featureName == "Fling Slingshot" then
+        local att = Instance.new("Attachment", part)
+        local vf = Instance.new("VectorForce")
+        vf.Attachment0 = att
+        vf.Force = Vector3.new(math.random(-80000, 80000), 100000, math.random(-80000, 80000))
+        vf.Parent = part
+        table.insert(StoredObjects["Fling Slingshot"], att)
+        table.insert(StoredObjects["Fling Slingshot"], vf)
+        
+    elseif featureName == "Break Constraints" then
+        local targetJoints = {}
+        for _, joint in pairs(part:GetChildren()) do
+            if joint:IsA("Constraint") or joint:IsA("Weld") or joint:IsA("ManualWeld") or joint:IsA("WeldConstraint") or joint:IsA("Motor6D") or joint:IsA("Snap") then
+                table.insert(targetJoints, joint)
             end
-                
-            -- [FITUR B]: PUTAR MASAL
-            if ActiveStates["Mass Spin"] then
-                local att = Instance.new("Attachment", part)
-                local av = Instance.new("AngularVelocity")
-                av.Attachment0 = att
-                av.MaxTorque = math.huge
-                av.AngularVelocity = Vector3.new(0, 75, 0)
-                av.Parent = part
-                
-                table.insert(StoredObjects["Mass Spin"], att)
-                table.insert(StoredObjects["Mass Spin"], av)
+        end
+        if #targetJoints > 0 then
+            part.Velocity = Vector3.new(0, -0.5, 0) -- Paksa network ownership
+            for _, target in pairs(targetJoints) do
+                target:Destroy()
             end
-                
-            -- [FITUR C]: LUBANG HITAM
-            if ActiveStates["Black Hole"] then
-                local att = Instance.new("Attachment", part)
-                local lv = Instance.new("LinearVelocity")
-                lv.Attachment0 = att
-                lv.MaxForce = math.huge
-                lv.VectorVelocity = ((hrp.Position + Vector3.new(0, 15, 0)) - part.Position).Unit * 50
-                lv.Parent = part
-                
-                table.insert(StoredObjects["Black Hole"], att)
-                table.insert(StoredObjects["Black Hole"], lv)
-            end
-                
-            -- [FITUR D]: KETAPEL LUAR ANGKASA
-            if ActiveStates["Fling Slingshot"] then
-                local att = Instance.new("Attachment", part)
-                local vf = Instance.new("VectorForce")
-                vf.Attachment0 = att
-                vf.Force = Vector3.new(math.random(-70000, 70000), 95000, math.random(-70000, 70000))
-                vf.Parent = part
-                
-                table.insert(StoredObjects["Fling Slingshot"], att)
-                table.insert(StoredObjects["Fling Slingshot"], vf)
-            end
-
-            -- [FITUR E]: BREAK CONSTRAINTS MAP ENVIRONMENT (SINKRON REPLICATED)
-            if ActiveStates["Break Constraints"] then
-                local targetJoints = {}
-                for _, joint in pairs(part:GetChildren()) do
-                    if joint:IsA("Constraint") or joint:IsA("Weld") or joint:IsA("ManualWeld") or joint:IsA("WeldConstraint") or joint:IsA("Motor6D") or joint:IsA("Snap") then
-                        table.insert(targetJoints, joint)
-                    end
-                end
-                
-                if #targetJoints > 0 then
-                    part.Velocity = Vector3.new(0, -0.2, 0) -- Pemindahan paksa kepemilikan physics
-                    for _, target in pairs(targetJoints) do
-                        target:Destroy()
-                    end
-                end
-            end
-            
         end
     end
 end
 
--- Thread loop konstan real-time (setiap 0.5 detik)
+-- THREAD LOOP UTAMA (FIXED: Tidak menghapus objek yang sedang aktif)
 task.spawn(function()
     while true do
-        local isAnyFeatureOn = false
-        for _, state in pairs(ActiveStates) do
-            if state then isAnyFeatureOn = true break end
-        end
+        local character = LocalPlayer.Character
+        local hrp = character and character:FindFirstChild("HumanoidRootPart")
         
-        if isAnyFeatureOn then
-            JalankanLogikaFisika()
-        else
-            ClearAllFisika()
+        if hrp then
+            -- Cari tahu fitur apa saja yang saat ini berstatus ON
+            local activeFeatures = {}
+            for fName, state in pairs(ActiveStates) do
+                if state then
+                    table.insert(activeFeatures, fName)
+                    -- Reset instansi lama khusus fitur bertipe looping kontinyu (seperti Black Hole/Drag agar posisinya terupdate)
+                    if fName ~= "Break Constraints" then
+                        ClearSpecificFisika(fName)
+                    end
+                end
+            end
+            
+            -- Jika ada minimal satu fitur ON, scan workspace satu kali untuk frame ini
+            if #activeFeatures > 0 then
+                for _, part in pairs(workspace:GetDescendants()) do
+                    if part:IsA("BasePart") and not part.Anchored and not isAPlayerCharacterPart(part) then
+                        for _, fName in pairs(activeFeatures) do
+                            TerapkanGayaKeObjek(fName, part, hrp)
+                        end
+                    end
+                end
+            end
         end
-        task.wait(0.5)
+        task.wait(0.6) -- Durasi delay dioptimalkan agar tidak lag/crash di perangkat mobile
     end
 end)
 
-
--- [[ 4. DYNAMIC BUTTON GENERATOR WITH DESCRIPTION COLUMN ]] --
+-- [[ 4. DYNAMIC BUTTON GENERATOR ]] --
 local function CreateMenuButton(featureName)
-    -- Frame pembungkus per-tombol agar tata letak rapi
     local ItemGroupFrame = Instance.new("Frame")
-    ItemGroupFrame.Size = UDim2.new(1, -6, 0, 95) -- Menampung Tombol (38px) + Jarak (5px) + Deskripsi (52px)
+    ItemGroupFrame.Size = UDim2.new(1, -6, 0, 95)
     ItemGroupFrame.BackgroundTransparency = 1
     ItemGroupFrame.Parent = ScrollContainer
     
-    -- Element Utama: Tombol Fitur
     local Btn = Instance.new("TextButton")
     Btn.Size = UDim2.new(1, 0, 0, 38)
     Btn.BackgroundColor3 = Color3.fromRGB(28, 28, 28)
@@ -317,12 +296,11 @@ local function CreateMenuButton(featureName)
     BtnStroke.Thickness = 1
     BtnStroke.Parent = Btn
     
-    -- Element Kedua: Kolom Keterangan di bawah tombol
     local DescLabel = Instance.new("TextLabel")
     DescLabel.Size = UDim2.new(1, 0, 0, 52)
     DescLabel.Position = UDim2.new(0, 0, 0, 43)
     DescLabel.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
-    DescLabel.Text = FeatureDescriptions[featureName] or "Tidak ada deskripsi yang tersedia untuk fitur ini."
+    DescLabel.Text = FeatureDescriptions[featureName]
     DescLabel.TextColor3 = Color3.fromRGB(140, 140, 140)
     DescLabel.Font = Enum.Font.SourceSans
     DescLabel.TextSize = 11
@@ -339,10 +317,8 @@ local function CreateMenuButton(featureName)
     DescPadding.PaddingLeft = UDim.new(0, 8)
     DescPadding.PaddingRight = UDim.new(0, 8)
     DescPadding.PaddingTop = UDim.new(0, 5)
-    DescPadding.PaddingBottom = UDim.new(0, 5)
     DescPadding.Parent = DescLabel
 
-    -- Event Trigger Klik Switch Independen
     Btn.MouseButton1Click:Connect(function()
         ActiveStates[featureName] = not ActiveStates[featureName]
         
@@ -351,7 +327,7 @@ local function CreateMenuButton(featureName)
             Btn.BackgroundColor3 = Color3.fromRGB(0, 90, 90)
             Btn.TextColor3 = Color3.fromRGB(0, 255, 255)
             Btn.UIStroke.Color = Color3.fromRGB(0, 255, 255)
-            DescLabel.TextColor3 = Color3.fromRGB(180, 255, 255) -- Highlight warna teks keterangan
+            DescLabel.TextColor3 = Color3.fromRGB(180, 255, 255)
         else
             Btn.Text = featureName .. " : [OFF]"
             Btn.BackgroundColor3 = Color3.fromRGB(28, 28, 28)
@@ -364,14 +340,14 @@ local function CreateMenuButton(featureName)
     end)
 end
 
--- Daftarkan pembuatan seluruh tombol beserta kolom keterangannya secara berurutan
+-- Membangun Tombol
 CreateMenuButton("Mass Drag")
 CreateMenuButton("Mass Spin")
 CreateMenuButton("Black Hole")
 CreateMenuButton("Fling Slingshot")
 CreateMenuButton("Break Constraints")
 
--- [[ 5. KENDALI TOMBOL OPEN / CLOSE UTAMA ]] --
+-- [[ 5. KENDALI TOMBOL UTAMA ]] --
 SettingsIcon.MouseButton1Click:Connect(function()
     MainFrame.Visible = not MainFrame.Visible
 end)
