@@ -1,6 +1,9 @@
--- [[ SERVER-REPLICATED SHARP SQUARE 300x300 PHYSICS PRO V13 - VOICE EDITION ]] --
+
+
+-- [[ SERVER-REPLICATED SHARP SQUARE 300x300 PHYSICS PRO V13 ]] --
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local LogService = game:GetService("LogService")
 local LocalPlayer = Players.LocalPlayer
 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 
@@ -56,15 +59,65 @@ FeatureFrame.Position = UDim2.new(0, 0, 0, 30)
 FeatureFrame.BackgroundTransparency = 1
 FeatureFrame.Parent = MainFrame
 
--- Kontainer Utama Vertikal (Scrolling Frame)
+-- Kontainer Utama Vertikal (Untuk Fitur Physics)
 local ScrollContainer = Instance.new("ScrollingFrame")
 ScrollContainer.Size = UDim2.new(1, -12, 1, -10)
 ScrollContainer.Position = UDim2.new(0, 6, 0, 5)
 ScrollContainer.BackgroundTransparency = 1
 ScrollContainer.BorderSizePixel = 0
-ScrollContainer.CanvasSize = UDim2.new(0, 0, 0, 480) -- Ditambah tingginya agar muat semua panel
+ScrollContainer.CanvasSize = UDim2.new(0, 0, 0, 370)
 ScrollContainer.ScrollBarThickness = 3
 ScrollContainer.Parent = FeatureFrame
+
+-- --- PANEL CONSOLE SPYING (Overlay Rapi Samping/Bawah jika Diaktifkan) ---
+local SpyConsoleFrame = Instance.new("Frame")
+SpyConsoleFrame.Size = UDim2.new(0, 288, 0, 110)
+SpyConsoleFrame.Position = UDim2.new(0, 6, 0, 150) -- Mengambil area bawah saat Spy Aktif
+SpyConsoleFrame.BackgroundColor3 = Color3.fromRGB(8, 8, 10)
+SpyConsoleFrame.BorderSizePixel = 0
+SpyConsoleFrame.Visible = false
+SpyConsoleFrame.Parent = FeatureFrame
+
+local SpyStroke = Instance.new("UIStroke")
+SpyStroke.Color = Color3.fromRGB(255, 60, 60) -- Warna merah penanda Logger/Spy
+SpyStroke.Thickness = 1
+SpyStroke.Parent = SpyConsoleFrame
+
+local SpyTitle = Instance.new("TextLabel")
+SpyTitle.Size = UDim2.new(1, 0, 0, 18)
+SpyTitle.BackgroundColor3 = Color3.fromRGB(15, 10, 10)
+SpyTitle.Text = "  REMOTE TRAFFIC LOG (CLIENT -> SERVER)"
+SpyTitle.TextColor3 = Color3.fromRGB(255, 100, 100)
+SpyTitle.Font = Enum.Font.SourceSansBold
+SpyTitle.TextSize = 10
+SpyTitle.TextXAlignment = Enum.TextXAlignment.Left
+SpyTitle.Parent = SpyConsoleFrame
+
+-- Tombol Clear Log
+local ClearLogBtn = Instance.new("TextButton")
+ClearLogBtn.Size = UDim2.new(0, 45, 0, 14)
+ClearLogBtn.Position = UDim2.new(1, -50, 0, 2)
+ClearLogBtn.BackgroundColor3 = Color3.fromRGB(30, 15, 15)
+ClearLogBtn.Text = "CLEAR"
+ClearLogBtn.TextColor3 = Color3.fromRGB(255, 150, 150)
+ClearLogBtn.Font = Enum.Font.SourceSansBold
+ClearLogBtn.TextSize = 9
+ClearLogBtn.BorderSizePixel = 0
+ClearLogBtn.Parent = SpyConsoleFrame
+
+local SpyScroll = Instance.new("ScrollingFrame")
+SpyScroll.Size = UDim2.new(1, -6, 1, -22)
+SpyScroll.Position = UDim2.new(0, 3, 0, 20)
+SpyScroll.BackgroundTransparency = 1
+SpyScroll.BorderSizePixel = 0
+SpyScroll.CanvasSize = UDim2.new(0, 0, 0, 20)
+SpyScroll.ScrollBarThickness = 2
+SpyScroll.Parent = SpyConsoleFrame
+
+local SpyList = Instance.new("UIListLayout")
+SpyList.Padding = UDim.new(0, 2)
+SpyList.SortOrder = Enum.SortOrder.LayoutOrder
+SpyList.Parent = SpyScroll
 
 local UIListLayout = Instance.new("UIListLayout")
 UIListLayout.FillDirection = Enum.FillDirection.Vertical
@@ -72,194 +125,15 @@ UIListLayout.Padding = UDim.new(0, 6)
 UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 UIListLayout.Parent = ScrollContainer
 
--- ==========================================
--- PANEL KHUSUS: VOICE SETTINGS (200x200 STYLE)
--- ==========================================
-local VoicePanel = Instance.new("Frame")
-VoicePanel.Name = "VoiceSettingsPanel"
-VoicePanel.Size = UDim2.new(1, -6, 0, 185) -- Ukuran proporsional di dalam kontainer 300
-VoicePanel.BackgroundColor3 = Color3.fromRGB(16, 16, 20)
-VoicePanel.BorderSizePixel = 0
-VoicePanel.LayoutOrder = 1
-VoicePanel.Parent = ScrollContainer
-
-local VoicePanelStroke = Instance.new("UIStroke")
-VoicePanelStroke.Color = Color3.fromRGB(0, 150, 255)
-VoicePanelStroke.Thickness = 1
-VoicePanelStroke.Parent = VoicePanel
-
-local VoicePadding = Instance.new("UIPadding")
-VoicePadding.PaddingTop = UDim.new(0, 6)
-VoicePadding.PaddingBottom = UDim.new(0, 6)
-VoicePadding.PaddingLeft = UDim.new(0, 10)
-VoicePadding.PaddingRight = UDim.new(0, 10)
-VoicePadding.Parent = VoicePanel
-
-local VoiceLayout = Instance.new("UIListLayout")
-VoiceLayout.SortOrder = Enum.SortOrder.LayoutOrder
-VoiceLayout.Padding = UDim.new(0, 4)
-VoiceLayout.Parent = VoicePanel
-
--- Fungsi Pembantu Elemen Internal Voice Panel
-local function createVoiceLabel(text, order, styleType)
-    local label = Instance.new("TextLabel")
-    label.BackgroundTransparency = 1
-    label.Text = text
-    label.LayoutOrder = order
-    label.Parent = VoicePanel
-    
-    if styleType == "Title" then
-        label.Size = UDim2.new(1, 0, 0, 14)
-        label.TextColor3 = Color3.fromRGB(0, 180, 255)
-        label.TextSize = 11
-        label.TextXAlignment = Enum.TextXAlignment.Center
-        label.Font = Enum.Font.SourceSansBold
-    elseif styleType == "Copyright" then
-        label.Size = UDim2.new(1, 0, 0, 10)
-        label.TextColor3 = Color3.fromRGB(100, 100, 105)
-        label.TextSize = 8
-        label.TextXAlignment = Enum.TextXAlignment.Center
-        label.Font = Enum.Font.SourceSansItalic
-    else
-        label.Size = UDim2.new(1, 0, 0, 11)
-        label.TextColor3 = Color3.fromRGB(170, 170, 175)
-        label.TextSize = 9
-        label.TextXAlignment = Enum.TextXAlignment.Left
-        label.Font = Enum.Font.SourceSansBold
-    end
-    return label
-end
-
-local function createVoiceInput(placeholder, order)
-    local box = Instance.new("TextBox")
-    box.Size = UDim2.new(1, 0, 0, 20)
-    box.BackgroundColor3 = Color3.fromRGB(24, 24, 28)
-    box.PlaceholderText = placeholder
-    box.Text = ""
-    box.TextColor3 = Color3.fromRGB(255, 255, 255)
-    box.PlaceholderColor3 = Color3.fromRGB(90, 90, 95)
-    box.TextSize = 10
-    box.Font = Enum.Font.Code
-    box.LayoutOrder = order
-    box.ClearTextOnFocus = false
-    box.Parent = VoicePanel
-    
-    local bStroke = Instance.new("UIStroke")
-    bStroke.Color = Color3.fromRGB(40, 40, 45)
-    bStroke.Thickness = 1
-    bStroke.Parent = box
-    return box
-end
-
--- Menyusun Format Sesuai Request Kamu
-createVoiceLabel("VOICE SETTINGS", 1, "Title")
-createVoiceLabel("Copyright by sptzyy", 2, "Copyright")
-
-createVoiceLabel("API KEY:", 3, "Normal")
-local InputAPI = createVoiceInput("Masukkan Open Cloud Key...", 4)
-
-createVoiceLabel("UNIVERSE ID:", 5, "Normal")
-local InputUniverse = createVoiceInput("Masukkan Universe ID...", 6)
-
--- Button Eksekusi
-local ActionButton = Instance.new("TextButton")
-ActionButton.Size = UDim2.new(1, 0, 0, 22)
-ActionButton.BackgroundColor3 = Color3.fromRGB(0, 120, 200)
-ActionButton.Text = "AKTIFKAN VOICE CHAT"
-ActionButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-ActionButton.Font = Enum.Font.SourceSansBold
-ActionButton.TextSize = 10
-ActionButton.BorderSizePixel = 0
-ActionButton.LayoutOrder = 7
-ActionButton.Parent = VoicePanel
-
-local ActionStroke = Instance.new("UIStroke")
-ActionStroke.Color = Color3.fromRGB(0, 160, 255)
-ActionStroke.Thickness = 1
-ActionStroke.Parent = ActionButton
-
--- Console Log Dalam GUI Status
-local ConsoleLog = Instance.new("TextLabel")
-ConsoleLog.Size = UDim2.new(1, 0, 0, 26)
-ConsoleLog.BackgroundColor3 = Color3.fromRGB(8, 8, 10)
-ConsoleLog.Text = "Status: Menunggu input..."
-ConsoleLog.TextColor3 = Color3.fromRGB(0, 255, 150)
-ConsoleLog.TextSize = 9
-ConsoleLog.Font = Enum.Font.Code
-ConsoleLog.TextWrapped = true
-ConsoleLog.LayoutOrder = 8
-ConsoleLog.Parent = VoicePanel
-
-local ConsoleLogStroke = Instance.new("UIStroke")
-ConsoleLogStroke.Color = Color3.fromRGB(25, 25, 30)
-ConsoleLogStroke.Thickness = 1
-ConsoleLogStroke.Parent = ConsoleLog
-
-
--- ==========================================
--- LOGIKA TOMBOL OPEN CLOUD VOICE CHAT
--- ==========================================
-ActionButton.MouseButton1Click:Connect(function()
-    local apiKey = InputAPI.Text
-    local universeId = InputUniverse.Text
-    local requestFunc = request or http_request or (syn and syn.request)
-    
-    if apiKey == "" or universeId == "" then
-        ConsoleLog.Text = "Status: Gagal! Input tidak boleh kosong."
-        ConsoleLog.TextColor3 = Color3.fromRGB(255, 80, 80)
-        return
-    end
-    
-    if not requestFunc then
-        ConsoleLog.Text = "Status: Executor tidak support Http Request!"
-        ConsoleLog.TextColor3 = Color3.fromRGB(255, 80, 80)
-        return
-    end
-    
-    ConsoleLog.Text = "Status: Menghubungkan ke Open Cloud..."
-    ConsoleLog.TextColor3 = Color3.fromRGB(255, 200, 0)
-    
-    task.spawn(function()
-        local success, response = pcall(function()
-            return requestFunc({
-                Url = "https://api.roblox.com/universes/v1/universes/" .. universeId .. "/configuration",
-                Method = "PATCH",
-                Headers = {
-                    ["x-api-key"] = apiKey,
-                    ["Content-Type"] = "application/json"
-                },
-                Body = game:GetService("HttpService"):JSONEncode({
-                    isVoiceChatEnabled = true
-                })
-            })
-        end)
-        
-        if success and response then
-            if response.StatusCode == 200 then
-                ConsoleLog.Text = "Status: Sukses! Voice Chat Berhasil Aktif."
-                ConsoleLog.TextColor3 = Color3.fromRGB(0, 255, 150)
-            else
-                ConsoleLog.Text = "Err (" .. response.StatusCode .. "): " .. tostring(response.Body)
-                ConsoleLog.TextColor3 = Color3.fromRGB(255, 80, 80)
-            end
-        else
-            ConsoleLog.Text = "Status: Gagal mengirim request jaringan."
-            ConsoleLog.TextColor3 = Color3.fromRGB(255, 80, 80)
-        end
-    end)
-end)
-
-
--- ==========================================
--- LOGIKA REPLIKASI FISIKA (KODE ASLI DI-RETAIN)
--- ==========================================
+-- [[ VARIABLE & LOGIKA REPLIKASI FISIKA ]] --
 local States = {
     MassSpin = false,
     BlackHole = false,
     FlingSlingshot = false,
     BreakTethers = false,
     GlitchMagnet = false,
-    QuantumTether = false
+    QuantumTether = false,
+    RemoteSpy = false
 }
 
 local Configs = {
@@ -271,6 +145,114 @@ local Configs = {
     Quantum_Power = 45
 }
 
+-- [[ HOOKING LOGIKA REMOTE SPY (PENCEGAT ARGUMEN) ]] --
+local function formatTable(tbl, indent)
+    indent = indent or 0
+    local tabs = string.rep("  ", indent)
+    local str = "{\n"
+    for k, v in pairs(tbl) do
+        local key = type(k) == "string" and string.format("[%q]", k) or "["..tostring(k).."]"
+        local val = type(v) == "table" and formatTable(v, indent + 1) or string.format("%q", tostring(v))
+        str = str .. tabs .. "  " .. key .. " = " .. val .. ",\n"
+    end
+    return str .. tabs .. "}"
+end
+
+local function addLogToConsole(remoteName, remoteType, args)
+    -- Parsing argumen menjadi string terbaca
+    local argsStr = ""
+    if #args > 0 then
+        local cleanArgs = {}
+        for i, v in ipairs(args) do
+            if type(v) == "table" then
+                table.insert(cleanArgs, formatTable(v))
+            else
+                table.insert(cleanArgs, tostring(v).." ("..type(v)..")")
+            end
+        end
+        argsStr = table.concat(cleanArgs, ", ")
+    else
+        argsStr = "none"
+    end
+
+    local logText = string.format("[%s] %s -> Args: %s", remoteType, remoteName, argsStr)
+
+    -- Buat UI Baris Log Baru
+    local LogRow = Instance.new("Frame")
+    LogRow.Size = UDim2.new(1, 0, 0, 18)
+    LogRow.BackgroundTransparency = 1
+    LogRow.Parent = SpyScroll
+
+    local TextLabel = Instance.new("TextLabel")
+    TextLabel.Size = UDim2.new(1, -40, 1, 0)
+    TextLabel.BackgroundTransparency = 1
+    TextLabel.Text = " " .. logText
+    TextLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+    TextLabel.Font = Enum.Font.Code
+    TextLabel.TextSize = 8.5
+    TextLabel.TextXAlignment = Enum.TextXAlignment.Left
+    TextLabel.Parent = LogRow
+
+    local CopyBtn = Instance.new("TextButton")
+    CopyBtn.Size = UDim2.new(0, 32, 1, -2)
+    CopyBtn.Position = UDim2.new(1, -34, 0, 1)
+    CopyBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+    CopyBtn.Text = "COPY"
+    CopyBtn.TextColor3 = Color3.fromRGB(0, 180, 255)
+    CopyBtn.Font = Enum.Font.SourceSansBold
+    CopyBtn.TextSize = 8
+    CopyBtn.BorderSizePixel = 0
+    CopyBtn.Parent = LogRow
+
+    local CopyStroke = Instance.new("UIStroke")
+    CopyStroke.Color = Color3.fromRGB(45, 45, 50)
+    CopyStroke.Thickness = 1
+    CopyStroke.Parent = CopyBtn
+
+    -- Fungsi Copy Clipboard Tergantung Executor (Support setclipboard)
+    CopyBtn.MouseButton1Click:Connect(function()
+        if setclipboard then
+            setclipboard(logText)
+            CopyBtn.Text = "DONE"
+            task.wait(1)
+            CopyBtn.Text = "COPY"
+        else
+            CopyBtn.Text = "FAIL"
+        end
+    end)
+
+    -- Atur Canvas Otomatis Turun Ke Bawah
+    SpyScroll.CanvasSize = UDim2.new(0, 0, 0, SpyList.AbsoluteContentSize.Y + 10)
+    SpyScroll.CanvasPosition = Vector2.new(0, SpyList.AbsoluteContentSize.Y)
+end
+
+ClearLogBtn.MouseButton1Click:Connect(function()
+    for _, child in pairs(SpyScroll:GetChildren()) do
+        if child:IsA("Frame") then child:Destroy() end
+    end
+    SpyScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+end)
+
+-- Metamethod Hooking Engine (Hanya berjalan mulus di executor yang mendukung hookmetamethod)
+local rawmt = getrawmetatable and getrawmetatable(game)
+if rawmt and makewriteable then
+    makewriteable(rawmt)
+    local oldNamecall = rawmt.__namecall
+    
+    rawmt.__namecall = newcclosure(function(self, ...)
+        local method = getnamecallmethod()
+        local args = {...}
+        
+        if States.RemoteSpy and (method == "FireServer" or method == "InvokeServer") then
+            task.spawn(function()
+                addLogToConsole(self.Name, method == "FireServer" and "Event" or "Function", args)
+            end)
+        end
+        return oldNamecall(self, ...)
+    end)
+end
+
+-- [[ METODE REPLIKASI FISIKA ]] --
 local function claimNetworkOwnership(part)
     if settings().Physics.AllowSleep then settings().Physics.AllowSleep = false end
     part.RotVelocity = part.RotVelocity + Vector3.new(0, 0.01, 0)
@@ -312,11 +294,17 @@ RunService.Heartbeat:Connect(function()
 
         if States.QuantumTether then
             for _, subObj in pairs(part:GetChildren()) do
-                if subObj:IsA("Constraint") or subObj:IsA("RopeConstraint") or subObj:IsA("Weld") or subObj:IsA("WeldConstraint") then subObj:Destroy() end
+                if subObj:IsA("Constraint") or subObj:IsA("RopeConstraint") or subObj:IsA("Weld") or subObj:IsA("WeldConstraint") then
+                    subObj:Destroy()
+                end
             end
             local targetPos = root.Position + Vector3.new(0, 12, 0)
             local direction = (targetPos - part.Position)
-            if direction.Magnitude > 1.5 then part.Velocity = direction * Configs.Quantum_Power else part.Velocity = root.Velocity end
+            if direction.Magnitude > 1.5 then
+                part.Velocity = direction * Configs.Quantum_Power
+            else
+                part.Velocity = root.Velocity
+            end
             part.RotVelocity = Vector3.new(0, 120, 0)
         end
 
@@ -352,13 +340,12 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
--- [[ GENERATOR KOMPONEN UNTUK FITUR PHYSICS ]] --
-local function createSquareComponent(title, desc, defaultVal, configKey, layoutOrder, callback)
+-- [[ GENERATOR KOMPONEN GUI ]] --
+local function createSquareComponent(title, desc, defaultVal, configKey, isSpyButton, callback)
     local ButtonFrame = Instance.new("Frame")
     ButtonFrame.Size = UDim2.new(1, -6, 0, 50)
     ButtonFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 24)
     ButtonFrame.BorderSizePixel = 0
-    ButtonFrame.LayoutOrder = layoutOrder
     ButtonFrame.Parent = ScrollContainer
 
     local Stroke = Instance.new("UIStroke")
@@ -371,7 +358,7 @@ local function createSquareComponent(title, desc, defaultVal, configKey, layoutO
     TitleLabel.Position = UDim2.new(0, 8, 0.1, 0)
     TitleLabel.BackgroundTransparency = 1
     TitleLabel.Text = title
-    TitleLabel.TextColor3 = Color3.fromRGB(240, 240, 240)
+    TitleLabel.TextColor3 = isSpyButton and Color3.fromRGB(255, 100, 100) or Color3.fromRGB(240, 240, 240)
     TitleLabel.Font = Enum.Font.SourceSansBold
     TitleLabel.TextSize = 12
     TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -390,6 +377,7 @@ local function createSquareComponent(title, desc, defaultVal, configKey, layoutO
     DescLabel.TextYAlignment = Enum.TextYAlignment.Top
     DescLabel.Parent = ButtonFrame
 
+    -- Sembunyikan TextBox jika ini adalah tombol Spying murni tanpa konfigurasi nilai numeric
     if defaultVal then
         local InputBox = Instance.new("TextBox")
         InputBox.Size = UDim2.new(0, 42, 0, 20)
@@ -434,8 +422,8 @@ local function createSquareComponent(title, desc, defaultVal, configKey, layoutO
     ToggleButton.MouseButton1Click:Connect(function()
         toggled = not toggled
         if toggled then
-            Stroke.Color = Color3.fromRGB(0, 180, 255)
-            ToggleButton.BackgroundColor3 = Color3.fromRGB(0, 85, 160)
+            Stroke.Color = isSpyButton and Color3.fromRGB(255, 60, 60) or Color3.fromRGB(0, 180, 255)
+            ToggleButton.BackgroundColor3 = isSpyButton and Color3.fromRGB(150, 40, 40) or Color3.fromRGB(0, 85, 160)
             ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
             ToggleButton.Text = "ON"
         else
@@ -448,12 +436,19 @@ local function createSquareComponent(title, desc, defaultVal, configKey, layoutO
     end)
 end
 
--- [[ INTEGRASI LENGKAP UTK PHYSICS BUTTONS ]] --
-createSquareComponent("Quantum Tether", "Scan -> Break -> Magnet -> Spin di atas kepala.", Configs.Quantum_Power, "Quantum_Power", 2, function(state) States.QuantumTether = state end)
-createSquareComponent("Mass Spin", "Membuat objek berputar ekstrem & bergoyang.", Configs.MassSpin_Speed, "MassSpin_Speed", 3, function(state) States.MassSpin = state end)
-createSquareComponent("Black Hole", "Menarik objek berkumpul statis di atas kepala.", Configs.BlackHole_Force, "BlackHole_Force", 4, function(state) States.BlackHole = state end)
-createSquareComponent("Fling Slingshot", "Melontarkan objek dengan gaya entakan masif.", Configs.Fling_Power, "Fling_Power", 5, function(state) States.FlingSlingshot = state end)
-createSquareComponent("Break Tethers", "Membatasi jarak radius scan & memutus tali.", Configs.Scan_Radius, "Scan_Radius", 6, function(state) States.BreakTethers = state end)
-createSquareComponent("Glitch Magnet", "Menarik objek dengan keanehan velocity acak.", Configs.Glitch_Multi, "Glitch_Multi", 7, function(state) States.GlitchMagnet = state end)
+-- [[ INTEGRASI LENGKAP ]] --
+createSquareComponent("Remote Spying", "Mengintip & menyalin argumen FireServer.", nil, nil, true, function(state) 
+    States.RemoteSpy = state 
+    SpyConsoleFrame.Visible = state
+    -- Sesuaikan tinggi canvas layout utama agar tidak bertabrakan dengan Console Log
+    ScrollContainer.Size = state and UDim2.new(1, -12, 0, 140) or UDim2.new(1, -12, 1, -10)
+end)
 
-print("Server-Replicated Physics Toolkit v13 (Voice Panel Mode) Loaded!")
+createSquareComponent("Quantum Tether", "Scan -> Break -> Magnet -> Spin di atas kepala.", Configs.Quantum_Power, "Quantum_Power", false, function(state) States.QuantumTether = state end)
+createSquareComponent("Mass Spin", "Membuat objek berputar ekstrem & bergoyang.", Configs.MassSpin_Speed, "MassSpin_Speed", false, function(state) States.MassSpin = state end)
+createSquareComponent("Black Hole", "Menarik objek berkumpul statis di atas kepala.", Configs.BlackHole_Force, "BlackHole_Force", false, function(state) States.BlackHole = state end)
+createSquareComponent("Fling Slingshot", "Melontarkan objek dengan gaya entakan masif.", Configs.Fling_Power, "Fling_Power", false, function(state) States.FlingSlingshot = state end)
+createSquareComponent("Break Tethers", "Membatasi jarak radius scan & memutus tali.", Configs.Scan_Radius, "Scan_Radius", false, function(state) States.BreakTethers = state end)
+createSquareComponent("Glitch Magnet", "Menarik objek dengan keanehan velocity acak.", Configs.Glitch_Multi, "Glitch_Multi", false, function(state) States.GlitchMagnet = state end)
+
+print("Server-Replicated Physics Toolkit v13 (With Remote Spy) Loaded!")
