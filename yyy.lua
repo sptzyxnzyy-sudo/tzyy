@@ -221,7 +221,7 @@ local InputAPI = createVoiceInput("Masukkan Open Cloud Key...", 4)
 createVoiceLabel("UNIVERSE ID:", 5, "Normal")
 local InputUniverse = createVoiceInput("Masukkan Universe ID...", 6)
 
--- --- PEMBARUAN: CONTAINER SWITCH ROW UNTUK VOICE ---
+-- --- CONTAINER SWITCH ROW UNTUK MICROPHONE ---
 local VoiceRowFrame = Instance.new("Frame")
 VoiceRowFrame.Size = UDim2.new(1, 0, 0, 22)
 VoiceRowFrame.BackgroundTransparency = 1
@@ -231,7 +231,7 @@ VoiceRowFrame.Parent = VoicePanel
 local VoiceRowLabel = Instance.new("TextLabel")
 VoiceRowLabel.Size = UDim2.new(1, -44, 1, 0)
 VoiceRowLabel.BackgroundTransparency = 1
-VoiceRowLabel.Text = "VOICE CHAT STATUS:"
+VoiceRowLabel.Text = "ENABLE MICROPHONE:"
 VoiceRowLabel.TextColor3 = Color3.fromRGB(240, 240, 240)
 VoiceRowLabel.Font = Enum.Font.SourceSansBold
 VoiceRowLabel.TextSize = 10
@@ -294,7 +294,7 @@ local Configs = {
     Quantum_Power = 45
 }
 
--- [[ LOGIKA SAKLAR SWITCH ON/OFF VOICE ]] --
+-- [[ LOGIKA SAKLAR SWITCH ON/OFF MICROPHONE ]] --
 ActionButton.MouseButton1Click:Connect(function()
     local apiKey = string.gsub(InputAPI.Text, "%s+", "") 
     local universeId = string.gsub(InputUniverse.Text, "%s+", "")
@@ -311,9 +311,8 @@ ActionButton.MouseButton1Click:Connect(function()
         return
     end
     
-    -- Ambil status kebalikan untuk dikirim ke API
     local targetState = not States.VoiceActive
-    ConsoleLog.Text = targetState and "Status: Mengaktifkan..." or "Status: Mematikan..."
+    ConsoleLog.Text = targetState and "Status: Mengaktifkan Mic..." or "Status: Mematikan Mic..."
     ConsoleLog.TextColor3 = Color3.fromRGB(255, 200, 0)
     
     task.spawn(function()
@@ -327,7 +326,7 @@ ActionButton.MouseButton1Click:Connect(function()
                 },
                 Body = game:GetService("HttpService"):JSONEncode({
                     voiceChatSettings = {
-                        isVoiceChatEnabled = targetState
+                        isVoiceChatEnabled = targetState -- Parameter payload Roblox untuk merubah status mic game
                     }
                 })
             })
@@ -346,14 +345,14 @@ ActionButton.MouseButton1Click:Connect(function()
                     ActionStroke.Color = Color3.fromRGB(0, 180, 255)
                     ActionButton.TextColor3 = Color3.fromRGB(255, 255, 255)
                     ActionButton.Text = "ON"
-                    ConsoleLog.Text = "Status: Sukses! Voice Chat AKTIF."
+                    ConsoleLog.Text = "Status: Sukses! Microphone Game AKTIF."
                     ConsoleLog.TextColor3 = Color3.fromRGB(0, 255, 150)
                 else
                     ActionButton.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
                     ActionStroke.Color = Color3.fromRGB(50, 50, 55)
                     ActionButton.TextColor3 = Color3.fromRGB(150, 150, 150)
                     ActionButton.Text = "OFF"
-                    ConsoleLog.Text = "Status: Sukses! Voice Chat NONAKTIF."
+                    ConsoleLog.Text = "Status: Sukses! Microphone Game NONAKTIF."
                     ConsoleLog.TextColor3 = Color3.fromRGB(150, 150, 150)
                 end
             else
