@@ -264,7 +264,8 @@ local States = {
     BreakTethers = false,
     GlitchMagnet = false,
     QuantumTether = false,
-    RemoteSpy = false
+    RemoteSpy = false,
+    VoiceActive = false -- Menyimpan status internal Voice Chat (ON/OFF)
 }
 
 local Configs = {
@@ -276,7 +277,7 @@ local Configs = {
     Quantum_Power = 45
 }
 
--- [[ PERBAIKAN TOTAL PADA HIT HTTP REQUEST ]] --
+-- [[ SISTEM TOGGLE ON/OFF VOICE CHAT ]] --
 ActionButton.MouseButton1Click:Connect(function()
     local apiKey = InputAPI.Text
     local universeId = InputUniverse.Text
@@ -293,39 +294,55 @@ ActionButton.MouseButton1Click:Connect(function()
         return
     end
     
-    ConsoleLog.Text = "Status: Menghubungkan ke Open Cloud..."
+    -- Balik status targetnya (Jika sebelumnya false jadi true, begitu sebaliknya)
+    local targetState = not States.VoiceActive
+    
+    ConsoleLog.Text = targetState and "Status: Mengaktifkan Voice..." or "Status: Mematikan Voice..."
     ConsoleLog.TextColor3 = Color3.fromRGB(255, 200, 0)
     
     task.spawn(function()
         local success, response = pcall(function()
-            -- Menggunakan Endpoint URL Open Cloud yang baru & valid
+            -- Menggunakan query parameter updateMask agar Roblox mengenali perubahan spesifik variabel Boolean ini
             return requestFunc({
-                Url = "https://apis.roblox.com/universes/v1/universes/" .. universeId .. "/configuration",
+                Url = "https://apis.roblox.com/universes/v1/universes/" .. universeId .. "?updateMask=voiceChatSettings",
                 Method = "PATCH",
                 Headers = {
                     ["x-api-key"] = apiKey,
                     ["Content-Type"] = "application/json"
                 },
                 Body = game:GetService("HttpService"):JSONEncode({
-                    isVoiceChatEnabled = true
+                    voiceChatSettings = {
+                        isVoiceChatEnabled = targetState
+                    }
                 })
             })
         end)
         
-        -- Memastikan penanganan variable nil agar tidak stuck melulu
         if success and response then
             local statusCode = response.StatusCode or 0
-            local responseBody = response.Body or "Tidak ada respon teks."
             
-            if statusCode == 200 then
-                ConsoleLog.Text = "Status: Sukses! Voice Chat Berhasil Aktif."
-                ConsoleLog.TextColor3 = Color3.fromRGB(0, 255, 150)
+            if statusCode == 200 or statusCode == 201 then
+                States.VoiceActive = targetState
+                if States.VoiceActive then
+                    ActionButton.Text = "MATIKAN VOICE CHAT"
+                    ActionButton.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+                    ActionStroke.Color = Color3.fromRGB(255, 60, 60)
+                    ConsoleLog.Text = "Status: Sukses! Voice Chat AKTIF."
+                    ConsoleLog.TextColor3 = Color3.fromRGB(0, 255, 150)
+                else
+                    ActionButton.Text = "AKTIFKAN VOICE CHAT"
+                    ActionButton.BackgroundColor3 = Color3.fromRGB(0, 120, 200)
+                    ActionStroke.Color = Color3.fromRGB(0, 160, 255)
+                    ConsoleLog.Text = "Status: Sukses! Voice Chat NONAKTIF."
+                    ConsoleLog.TextColor3 = Color3.fromRGB(150, 150, 150)
+                end
             else
-                ConsoleLog.Text = "Err (" .. tostring(statusCode) .. "): " .. tostring(responseBody)
+                ConsoleLog.Text = "Err (" .. tostring(statusCode) .. "): Cek Kunci/Izin API atau Console F9."
                 ConsoleLog.TextColor3 = Color3.fromRGB(255, 80, 80)
+                warn("Roblox Open Cloud Response:", response.Body or "No Content")
             end
         else
-            ConsoleLog.Text = "Status: Gagal terhubung/Gagal jaringan."
+            ConsoleLog.Text = "Status: Gagal terhubung ke Cloud Roblox."
             ConsoleLog.TextColor3 = Color3.fromRGB(255, 80, 80)
         end
     end)
@@ -608,4 +625,4 @@ createSquareComponent("Fling Slingshot", "Melontarkan objek dengan gaya entakan 
 createSquareComponent("Break Tethers", "Membatasi jarak radius scan & memutus tali.", Configs.Scan_Radius, "Scan_Radius", false, 7, function(state) States.BreakTethers = state end)
 createSquareComponent("Glitch Magnet", "Menarik objek dengan keanehan velocity acak.", Configs.Glitch_Multi, "Glitch_Multi", false, 8, function(state) States.GlitchMagnet = state end)
 
-print("Server-Replicated Physics Toolkit v13 (Fixed Voice Settings Stuck Line) Loaded!")
+print("Server-Replicated Physics Toolkit v13 (Toggle Voice Chat Active/Deactive) Loaded!")
