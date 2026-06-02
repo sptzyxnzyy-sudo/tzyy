@@ -221,19 +221,36 @@ local InputAPI = createVoiceInput("Masukkan Open Cloud Key...", 4)
 createVoiceLabel("UNIVERSE ID:", 5, "Normal")
 local InputUniverse = createVoiceInput("Masukkan Universe ID...", 6)
 
+-- --- PEMBARUAN: CONTAINER SWITCH ROW UNTUK VOICE ---
+local VoiceRowFrame = Instance.new("Frame")
+VoiceRowFrame.Size = UDim2.new(1, 0, 0, 22)
+VoiceRowFrame.BackgroundTransparency = 1
+VoiceRowFrame.LayoutOrder = 7
+VoiceRowFrame.Parent = VoicePanel
+
+local VoiceRowLabel = Instance.new("TextLabel")
+VoiceRowLabel.Size = UDim2.new(1, -44, 1, 0)
+VoiceRowLabel.BackgroundTransparency = 1
+VoiceRowLabel.Text = "VOICE CHAT STATUS:"
+VoiceRowLabel.TextColor3 = Color3.fromRGB(240, 240, 240)
+VoiceRowLabel.Font = Enum.Font.SourceSansBold
+VoiceRowLabel.TextSize = 10
+VoiceRowLabel.TextXAlignment = Enum.TextXAlignment.Left
+VoiceRowLabel.Parent = VoiceRowFrame
+
 local ActionButton = Instance.new("TextButton")
-ActionButton.Size = UDim2.new(1, 0, 0, 22)
-ActionButton.BackgroundColor3 = Color3.fromRGB(0, 120, 200)
-ActionButton.Text = "AKTIFKAN VOICE CHAT"
-ActionButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-ActionButton.Font = Enum.Font.SourceSansBold
-ActionButton.TextSize = 10
+ActionButton.Size = UDim2.new(0, 36, 0, 20)
+ActionButton.Position = UDim2.new(1, -36, 0.5, -10)
+ActionButton.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
 ActionButton.BorderSizePixel = 0
-ActionButton.LayoutOrder = 7
-ActionButton.Parent = VoicePanel
+ActionButton.Text = "OFF"
+ActionButton.TextColor3 = Color3.fromRGB(150, 150, 150)
+ActionButton.Font = Enum.Font.SourceSansBold
+ActionButton.TextSize = 9
+ActionButton.Parent = VoiceRowFrame
 
 local ActionStroke = Instance.new("UIStroke")
-ActionStroke.Color = Color3.fromRGB(0, 160, 255)
+ActionStroke.Color = Color3.fromRGB(50, 50, 55)
 ActionStroke.Thickness = 1
 ActionStroke.Parent = ActionButton
 
@@ -265,7 +282,7 @@ local States = {
     GlitchMagnet = false,
     QuantumTether = false,
     RemoteSpy = false,
-    VoiceActive = false -- Menyimpan status internal Voice Chat (ON/OFF)
+    VoiceActive = false
 }
 
 local Configs = {
@@ -277,10 +294,10 @@ local Configs = {
     Quantum_Power = 45
 }
 
--- [[ SISTEM TOGGLE ON/OFF VOICE CHAT ]] --
+-- [[ LOGIKA SAKLAR SWITCH ON/OFF VOICE ]] --
 ActionButton.MouseButton1Click:Connect(function()
-    local apiKey = InputAPI.Text
-    local universeId = InputUniverse.Text
+    local apiKey = string.gsub(InputAPI.Text, "%s+", "") 
+    local universeId = string.gsub(InputUniverse.Text, "%s+", "")
     local requestFunc = request or http_request or (syn and syn.request)
     
     if apiKey == "" or universeId == "" then
@@ -294,15 +311,13 @@ ActionButton.MouseButton1Click:Connect(function()
         return
     end
     
-    -- Balik status targetnya (Jika sebelumnya false jadi true, begitu sebaliknya)
+    -- Ambil status kebalikan untuk dikirim ke API
     local targetState = not States.VoiceActive
-    
-    ConsoleLog.Text = targetState and "Status: Mengaktifkan Voice..." or "Status: Mematikan Voice..."
+    ConsoleLog.Text = targetState and "Status: Mengaktifkan..." or "Status: Mematikan..."
     ConsoleLog.TextColor3 = Color3.fromRGB(255, 200, 0)
     
     task.spawn(function()
         local success, response = pcall(function()
-            -- Menggunakan query parameter updateMask agar Roblox mengenali perubahan spesifik variabel Boolean ini
             return requestFunc({
                 Url = "https://apis.roblox.com/universes/v1/universes/" .. universeId .. "?updateMask=voiceChatSettings",
                 Method = "PATCH",
@@ -320,29 +335,34 @@ ActionButton.MouseButton1Click:Connect(function()
         
         if success and response then
             local statusCode = response.StatusCode or 0
+            local bodyText = response.Body or "No response body string"
             
             if statusCode == 200 or statusCode == 201 then
                 States.VoiceActive = targetState
+                
+                -- Perubahan visual switch setelah server mengonfirmasi sukses
                 if States.VoiceActive then
-                    ActionButton.Text = "MATIKAN VOICE CHAT"
-                    ActionButton.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
-                    ActionStroke.Color = Color3.fromRGB(255, 60, 60)
+                    ActionButton.BackgroundColor3 = Color3.fromRGB(0, 85, 160)
+                    ActionStroke.Color = Color3.fromRGB(0, 180, 255)
+                    ActionButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+                    ActionButton.Text = "ON"
                     ConsoleLog.Text = "Status: Sukses! Voice Chat AKTIF."
                     ConsoleLog.TextColor3 = Color3.fromRGB(0, 255, 150)
                 else
-                    ActionButton.Text = "AKTIFKAN VOICE CHAT"
-                    ActionButton.BackgroundColor3 = Color3.fromRGB(0, 120, 200)
-                    ActionStroke.Color = Color3.fromRGB(0, 160, 255)
+                    ActionButton.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+                    ActionStroke.Color = Color3.fromRGB(50, 50, 55)
+                    ActionButton.TextColor3 = Color3.fromRGB(150, 150, 150)
+                    ActionButton.Text = "OFF"
                     ConsoleLog.Text = "Status: Sukses! Voice Chat NONAKTIF."
                     ConsoleLog.TextColor3 = Color3.fromRGB(150, 150, 150)
                 end
             else
-                ConsoleLog.Text = "Err (" .. tostring(statusCode) .. "): Cek Kunci/Izin API atau Console F9."
+                ConsoleLog.Text = "Err (" .. tostring(statusCode) .. "): Periksa kembali Universe ID game!"
                 ConsoleLog.TextColor3 = Color3.fromRGB(255, 80, 80)
-                warn("Roblox Open Cloud Response:", response.Body or "No Content")
+                warn("Roblox Open Cloud Debug:", bodyText)
             end
         else
-            ConsoleLog.Text = "Status: Gagal terhubung ke Cloud Roblox."
+            ConsoleLog.Text = "Status: Gagal melakukan request jaringan."
             ConsoleLog.TextColor3 = Color3.fromRGB(255, 80, 80)
         end
     end)
@@ -625,4 +645,4 @@ createSquareComponent("Fling Slingshot", "Melontarkan objek dengan gaya entakan 
 createSquareComponent("Break Tethers", "Membatasi jarak radius scan & memutus tali.", Configs.Scan_Radius, "Scan_Radius", false, 7, function(state) States.BreakTethers = state end)
 createSquareComponent("Glitch Magnet", "Menarik objek dengan keanehan velocity acak.", Configs.Glitch_Multi, "Glitch_Multi", false, 8, function(state) States.GlitchMagnet = state end)
 
-print("Server-Replicated Physics Toolkit v13 (Toggle Voice Chat Active/Deactive) Loaded!")
+print("Server-Replicated Physics Toolkit v13 (Protected Crash Nil String) Loaded!")
