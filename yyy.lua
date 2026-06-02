@@ -76,7 +76,7 @@ ScrollContainer.Size = UDim2.new(1, -12, 1, -10)
 ScrollContainer.Position = UDim2.new(0, 6, 0, 5)
 ScrollContainer.BackgroundTransparency = 1
 ScrollContainer.BorderSizePixel = 0
-ScrollContainer.CanvasSize = UDim2.new(0, 0, 0, 560) -- Ditambah agar muat panel voice + seluruh komponen physics
+ScrollContainer.CanvasSize = UDim2.new(0, 0, 0, 560)
 ScrollContainer.ScrollBarThickness = 3
 ScrollContainer.Parent = FeatureFrame
 
@@ -144,7 +144,7 @@ VoicePanel.Name = "VoiceSettingsPanel"
 VoicePanel.Size = UDim2.new(1, -6, 0, 185)
 VoicePanel.BackgroundColor3 = Color3.fromRGB(16, 16, 20)
 VoicePanel.BorderSizePixel = 0
-VoicePanel.LayoutOrder = 1 -- Selalu muncul di paling atas list
+VoicePanel.LayoutOrder = 1
 VoicePanel.Parent = ScrollContainer
 
 local VoicePanelStroke = Instance.new("UIStroke")
@@ -276,7 +276,7 @@ local Configs = {
     Quantum_Power = 45
 }
 
--- [[ LOGIKA ACTION TOMBOL VOICE ]] --
+-- [[ PERBAIKAN TOTAL PADA HIT HTTP REQUEST ]] --
 ActionButton.MouseButton1Click:Connect(function()
     local apiKey = InputAPI.Text
     local universeId = InputUniverse.Text
@@ -298,26 +298,34 @@ ActionButton.MouseButton1Click:Connect(function()
     
     task.spawn(function()
         local success, response = pcall(function()
+            -- Menggunakan Endpoint URL Open Cloud yang baru & valid
             return requestFunc({
-                Url = "https://api.roblox.com/universes/v1/universes/" .. universeId .. "/configuration",
+                Url = "https://apis.roblox.com/universes/v1/universes/" .. universeId .. "/configuration",
                 Method = "PATCH",
                 Headers = {
                     ["x-api-key"] = apiKey,
                     ["Content-Type"] = "application/json"
                 },
-                Body = game:GetService("HttpService"):JSONEncode({isVoiceChatEnabled = true})
+                Body = game:GetService("HttpService"):JSONEncode({
+                    isVoiceChatEnabled = true
+                })
             })
         end)
+        
+        -- Memastikan penanganan variable nil agar tidak stuck melulu
         if success and response then
-            if response.StatusCode == 200 then
+            local statusCode = response.StatusCode or 0
+            local responseBody = response.Body or "Tidak ada respon teks."
+            
+            if statusCode == 200 then
                 ConsoleLog.Text = "Status: Sukses! Voice Chat Berhasil Aktif."
                 ConsoleLog.TextColor3 = Color3.fromRGB(0, 255, 150)
             else
-                ConsoleLog.Text = "Err (" .. response.StatusCode .. "): " .. tostring(response.Body)
+                ConsoleLog.Text = "Err (" .. tostring(statusCode) .. "): " .. tostring(responseBody)
                 ConsoleLog.TextColor3 = Color3.fromRGB(255, 80, 80)
             end
         else
-            ConsoleLog.Text = "Status: Gagal mengirim request jaringan."
+            ConsoleLog.Text = "Status: Gagal terhubung/Gagal jaringan."
             ConsoleLog.TextColor3 = Color3.fromRGB(255, 80, 80)
         end
     end)
@@ -600,4 +608,4 @@ createSquareComponent("Fling Slingshot", "Melontarkan objek dengan gaya entakan 
 createSquareComponent("Break Tethers", "Membatasi jarak radius scan & memutus tali.", Configs.Scan_Radius, "Scan_Radius", false, 7, function(state) States.BreakTethers = state end)
 createSquareComponent("Glitch Magnet", "Menarik objek dengan keanehan velocity acak.", Configs.Glitch_Multi, "Glitch_Multi", false, 8, function(state) States.GlitchMagnet = state end)
 
-print("Server-Replicated Physics Toolkit v13 (Voice Panel Mode Loaded on Delta!)")
+print("Server-Replicated Physics Toolkit v13 (Fixed Voice Settings Stuck Line) Loaded!")
