@@ -2,19 +2,26 @@
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
--- Hapus GUI lama jika ada agar tidak menumpuk saat di-execute ulang
-if (gethui and gethui()):FindFirstChild("ServerPhysicsGUI") then
-    (gethui() components):FindFirstChild("ServerPhysicsGUI"):Destroy()
-elseif game:GetService("CoreGui"):FindFirstChild("ServerPhysicsGUI") then
-    game:GetService("CoreGui").ServerPhysicsGUI:Destroy()
+-- Fungsi untuk mendapatkan Core Gui / UI Parent Executor
+local function getUIParent()
+    if gethui then return gethui() end
+    if syn and syn.protect_gui then return game:GetService("CoreGui") end
+    return game:GetService("CoreGui") or LocalPlayer:WaitForChild("PlayerGui")
 end
+
+-- Hapus GUI lama jika ada agar tidak menumpuk saat di-execute ulang
+local oldGui = getUIParent():FindFirstChild("ServerPhysicsGUI")
+if oldGui then oldGui:Destroy() end
 
 -- [[ SETUP GUI UTAMA ]] --
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "ServerPhysicsGUI"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-ScreenGui.Parent = (gethui and gethui()) or game:GetService("CoreGui") or LocalPlayer:WaitForChild("PlayerGui")
+
+-- Proteksi GUI dari deteksi anti-cheat jika didukung executor
+if syn and syn.protect_gui then syn.protect_gui(ScreenGui) end
+ScreenGui.Parent = getUIParent()
 
 -- Frame Utama (Persegi Empat Sempurna 300x300)
 local MainFrame = Instance.new("Frame")
@@ -67,7 +74,7 @@ VoicePanel.Parent = ContentFrame
 
 local VoiceLayout = Instance.new("UIListLayout")
 VoiceLayout.SortOrder = Enum.SortOrder.LayoutOrder
-VoiceLayout.Padding = UDim.new(0, 6) -- Jarak renggang antar elemen agar estetik dan luas
+VoiceLayout.Padding = UDim.new(0, 6)
 VoiceLayout.Parent = VoicePanel
 
 -- Fungsi Pembantu Elemen Teks
@@ -110,7 +117,7 @@ end
 
 local function createVoiceInput(placeholder, order)
     local box = Instance.new("TextBox")
-    box.Size = UDim2.new(1, 0, 0, 28) -- TextBox lebih tebal dan nyaman diklik di HP
+    box.Size = UDim2.new(1, 0, 0, 28)
     box.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
     box.BorderSizePixel = 0
     box.PlaceholderText = placeholder
@@ -237,3 +244,5 @@ ActionButton.MouseButton1Click:Connect(function()
         end
     end)
 end)
+
+print("Voice Activator 300x300 UI Loaded!")
