@@ -1,67 +1,66 @@
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
-local humanoid = character:WaitForChild("Humanoid")
-local animator = humanoid:WaitForChild("Animator")
-local LogService = game:GetService("LogService") -- Untuk fitur Copy (jika di Studio) atau pakai alternatif TextBox
 
 -- ==========================================
--- 1. PEMBUATAN GUI (Ukuran 300x300)
+-- 1. PEMBUATAN GUI (Tetap Aman & Bisa Di-drag)
 -- ==========================================
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "AnimTrackerGui"
+screenGui.Name = "ServerAnimScanner"
 screenGui.ResetOnSpawn = false
-screenGui.Parent = player:WaitForChild("PlayerGui")
 
--- Frame Utama
+-- Proteksi GUI agar tidak mudah dideteksi script anti-cheat bawaan game
+if syn and syn.protect_gui then
+    syn.protect_gui(screenGui)
+elseif gethui then
+    screenGui.Parent = gethui()
+else
+    screenGui.Parent = player:WaitForChild("PlayerGui")
+end
+
 local mainFrame = Instance.new("Frame")
 mainFrame.Size = UDim2.new(0, 300, 0, 300)
-mainFrame.Position = UDim2.new(0.5, -150, 0.5, -150) -- Di tengah layar
-mainFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+mainFrame.Position = UDim2.new(0.5, -150, 0.5, -150)
+mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
 mainFrame.BorderSizePixel = 0
 mainFrame.Active = true
-mainFrame.Draggable = true -- GUI bisa digeser/drag
+mainFrame.Draggable = true
 mainFrame.Parent = screenGui
 
--- Corner/Lengkungan Frame
 local uiCorner = Instance.new("UICorner")
 uiCorner.CornerRadius = UDim.new(0, 8)
 uiCorner.Parent = mainFrame
 
--- Title Bar (Judul)
 local titleLabel = Instance.new("TextLabel")
 titleLabel.Size = UDim2.new(1, -40, 0, 35)
 titleLabel.Position = UDim2.new(0, 10, 0, 0)
 titleLabel.BackgroundTransparency = 1
-titleLabel.Text = "Animation Tracker"
+titleLabel.Text = "Universal Emote Scanner"
 titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-titleLabel.TextSize = 16
+titleLabel.TextSize = 15
 titleLabel.Font = Enum.Font.SourceSansBold
 titleLabel.TextXAlignment = Enum.TextXAlignment.Left
 titleLabel.Parent = mainFrame
 
--- Tombol Close (X)
 local closeButton = Instance.new("TextButton")
-closeButton.Size = UDim2.new(0, 30, 0, 30)
-closeButton.Position = UDim2.new(1, -35, 0, 5)
-closeButton.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
+closeButton.Size = UDim2.new(0, 25, 0, 25)
+closeButton.Position = UDim2.new(1, -30, 0, 5)
+closeButton.BackgroundColor3 = Color3.fromRGB(200, 60, 60)
 closeButton.Text = "X"
 closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-closeButton.TextSize = 14
 closeButton.Font = Enum.Font.SourceSansBold
 closeButton.Parent = mainFrame
 
 local closeCorner = Instance.new("UICorner")
-closeCorner.CornerRadius = UDim.new(0, 6)
+closeCorner.CornerRadius = UDim.new(0, 4)
 closeCorner.Parent = closeButton
 
--- Scrolling Frame untuk Hasil Log
 local scrollFrame = Instance.new("ScrollingFrame")
 scrollFrame.Size = UDim2.new(1, -20, 1, -95)
 scrollFrame.Position = UDim2.new(0, 10, 0, 40)
-scrollFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+scrollFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
 scrollFrame.BorderSizePixel = 0
-scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0) -- Otomatis membesar nanti
 scrollFrame.AutomaticCanvasSize = Enum.AutomaticCanvasSize.Y
+scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
 scrollFrame.ScrollBarThickness = 6
 scrollFrame.Parent = mainFrame
 
@@ -69,28 +68,26 @@ local scrollCorner = Instance.new("UICorner")
 scrollCorner.CornerRadius = UDim.new(0, 4)
 scrollCorner.Parent = scrollFrame
 
--- TextBox di dalam Scroll (Supaya teksnya bisa di-block/copy manual juga)
 local textDisplay = Instance.new("TextBox")
 textDisplay.Size = UDim2.new(1, -10, 1, 0)
-textDisplay.Position = UDim2.new(0, 5, 0, 0)
+textDisplay.Position = UDim2.new(0, 5, 0, 5)
 textDisplay.BackgroundTransparency = 1
-textDisplay.Text = "Belum ada animasi dideteksi...\n"
-textDisplay.TextColor3 = Color3.fromRGB(200, 200, 200)
+textDisplay.Text = "[Ready] Aktifkan dance di game, lalu tunggu scan..."
+textDisplay.TextColor3 = Color3.fromRGB(0, 255, 150) -- Hijau indikator siap
 textDisplay.TextSize = 13
 textDisplay.Font = Enum.Font.Code
 textDisplay.TextXAlignment = Enum.TextXAlignment.Left
 textDisplay.TextYAlignment = Enum.TextYAlignment.Top
 textDisplay.ClearTextOnFocus = false
-textDisplay.TextEditable = false -- Hanya untuk dibaca & dicopy
+textDisplay.TextEditable = false
 textDisplay.TextWrapped = true
 textDisplay.Parent = scrollFrame
 
--- Tombol Copy All
 local copyButton = Instance.new("TextButton")
 copyButton.Size = UDim2.new(1, -20, 0, 35)
 copyButton.Position = UDim2.new(0, 10, 1, -45)
 copyButton.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
-copyButton.Text = "Copy All"
+copyButton.Text = "Copy All Results"
 copyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 copyButton.TextSize = 14
 copyButton.Font = Enum.Font.SourceSansBold
@@ -100,76 +97,106 @@ local copyCorner = Instance.new("UICorner")
 copyCorner.CornerRadius = UDim.new(0, 6)
 copyCorner.Parent = copyButton
 
-
 -- ==========================================
--- 2. LOGIKA & FUNGSI FITUR
+-- 2. LOGIKA SCANNER KHUSUS GAME ORANG LAIN
 -- ==========================================
 
--- Fungsi Menutup GUI
 closeButton.MouseButton1Click:Connect(function()
-    screenGui:Destroy() -- Menghapus GUI sepenuhnya dari layar
+    screenGui:Destroy()
 end)
 
--- Tabel penyimpanan data mentah untuk dicopy
 local hasilLog = {}
 
--- Fungsi update tampilan teks di GUI
 local function updateTampilan()
     local textGabungan = ""
     for _, log in ipairs(hasilLog) do
-        textGabungan = textGabungan .. string.format("ID: %s\nLink: %s\n-------------------\n", log.id, log.link)
+        textGabungan = textGabungan .. string.format("Nama Anim: %s\nID: %s\nLink: https://www.roblox.com/library/%s\n-------------------\n", log.nama, log.id, log.id)
     end
     textDisplay.Text = textGabungan
 end
 
--- Fungsi deteksi animasi baru
-animator.AnimationPlayed:Connect(function(animationTrack)
-    local rawId = animationTrack.Animation.AnimationId
-    local hanyaId = string.match(rawId, "%d+") or "000000" -- Ambil angkanya saja
-    local linkWebsite = "https://www.roblox.com/library/" .. hanyaId
+-- Fungsi utama pencari track animasi (Membaca paksa dari Humanoid/Animator)
+local function dapatkanAnimasiAktif()
+    local char = player.Character or workspace:FindFirstChild(player.Name)
+    if not char then return {} end
     
-    -- Cek jika ID ini sudah tercatat sebelumnya agar tidak double
-    local sudahAda = false
-    for _, v in ipairs(hasilLog) do
-        if v.id == hanyaId then sudahAda = true break end
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if not hum then return {} end
+    
+    -- Cek di Animator (Roblox baru) atau langsung di Humanoid (Roblox lama)
+    local animator = hum:FindFirstChildOfClass("Animator")
+    if animator then
+        return animator:GetPlayingAnimationTracks()
+    else
+        return hum:GetPlayingAnimationTracks()
     end
-    
-    if not sudahAda then
-        -- Masukkan ke tabel penampung
-        table.insert(hasilLog, {id = hanyaId, link = linkWebsite})
-        updateTampilan()
+end
+
+-- Loop Scanning Super Cepat (Setiap 0.2 detik sekali)
+task.spawn(function()
+    while true do
+        local tracks = dapatkanAnimasiAktif()
+        
+        for _, track in ipairs(tracks) do
+            if track.Animation and track.Animation.AnimationId ~= "" then
+                local rawId = track.Animation.AnimationId
+                local hanyaId = string.match(rawId, "%d+")
+                
+                -- Cari nama animasi (jika disetting oleh developernya)
+                local namaAnim = track.Name or "Unknown Emote"
+                
+                if hanyaId and hanyaId ~= "0" then
+                    -- Cek duplikat
+                    local sudahAda = false
+                    for _, v in ipairs(hasilLog) do
+                        if v.id == hanyaId then sudahAda = true break end
+                    end
+                    
+                    if not sudahAda then
+                        table.insert(hasilLog, {id = hanyaId, nama = namaAnim})
+                        updateTampilan()
+                    end
+                end
+            end
+        end
+        task.wait(0.2)
     end
 end)
 
--- Fungsi Copy All
+-- Tombol Copy All (Gunakan Setclipboard bawaan Executor jika ada, jika tidak pakai trik Ctrl+C)
 copyButton.MouseButton1Click:Connect(function()
     if #hasilLog == 0 then 
-        copyButton.Text = "Kosong!"
+        copyButton.Text = "Belum ada data!"
         task.wait(1)
-        copyButton.Text = "Copy All"
+        copyButton.Text = "Copy All Results"
         return 
     end
     
-    -- Format string akhir untuk dicopy
     local teksCopy = ""
     for _, log in ipairs(hasilLog) do
-        teksCopy = teksCopy .. string.format("ID: %s\nLink: %s\n\n", log.id, log.link)
+        teksCopy = teksCopy .. string.format("Nama: %s | ID: %s | Link: https://www.roblox.com/library/%s\n", log.nama, log.id, log.id)
     end
     
-    -- Trik Roblox: Menjadikan TextBox fokus dan otomatis menyeleksi semua teks 
-    -- agar user tinggal menekan Ctrl+C (karena Roblox membatasi setclipboard otomatis demi keamanan script)
-    textDisplay.TextEditable = true
-    textDisplay:CaptureFocus()
-    textDisplay.SelectionStart = 1
-    textDisplay.CursorPosition = #textDisplay.Text + 1
-    
-    -- Mengubah nama tombol sementara sebagai indikator
-    local textLama = copyButton.Text
-    copyButton.Text = "Tekan Ctrl + C sekarang!"
-    copyButton.BackgroundColor3 = Color3.fromRGB(46, 204, 113)
-    
-    task.wait(2)
-    textDisplay.TextEditable = false
-    copyButton.Text = textLama
-    copyButton.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
+    -- Jika menggunakan Executor bagus (Synapse, Wave, Solara, Celery, dll), pakai fungsi ini:
+    if setclipboard then
+        setclipboard(teksCopy)
+        copyButton.Text = "Berhasil Disalin ke Clipboard!"
+        copyButton.BackgroundColor3 = Color3.fromRGB(46, 204, 113)
+        task.wait(2)
+        copyButton.Text = "Copy All Results"
+        copyButton.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
+    else
+        -- Jika executor tidak mendukung setclipboard, pakai trik manual select
+        textDisplay.TextEditable = true
+        textDisplay:CaptureFocus()
+        textDisplay.SelectionStart = 1
+        textDisplay.CursorPosition = #textDisplay.Text + 1
+        
+        copyButton.Text = "Tekan Ctrl + C sekarang!"
+        copyButton.BackgroundColor3 = Color3.fromRGB(230, 126, 34)
+        task.wait(2)
+        textDisplay.TextEditable = false
+        copyButton.Text = "Copy All Results"
+        copyButton.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
+    end
 end)
